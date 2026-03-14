@@ -49,9 +49,10 @@ export default function TransactionFilters({
     !!filters.search ||
     !!filters.account_id ||
     !!filters.category_id ||
+    !!filters.direction ||
     !!filters.date_from ||
     !!filters.date_to ||
-    filters.is_business === true ||
+    filters.is_recurring === true ||
     filters.uncategorized_only === true;
 
   const inputClass =
@@ -123,6 +124,25 @@ export default function TransactionFilters({
 
       <div className="flex flex-col">
         <label className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+          Direction
+        </label>
+        <select
+          value={filters.direction ?? ""}
+          onChange={(e) =>
+            updateFilters({ direction: e.target.value || undefined })
+          }
+          className={selectClass}
+        >
+          <option value="">All</option>
+          <option value="income">Income</option>
+          <option value="expense">Expense</option>
+          <option value="transfer">Transfer</option>
+          <option value="adjustment">Adjustment</option>
+        </select>
+      </div>
+
+      <div className="flex flex-col">
+        <label className="text-xs text-gray-500 dark:text-gray-400 mb-1">
           Category
         </label>
         <select
@@ -144,13 +164,13 @@ export default function TransactionFilters({
       <label className="flex items-center gap-1.5 text-sm cursor-pointer pb-1">
         <input
           type="checkbox"
-          checked={filters.is_business === true}
+          checked={filters.is_recurring === true}
           onChange={(e) =>
-            updateFilters({ is_business: e.target.checked || undefined })
+            updateFilters({ is_recurring: e.target.checked || undefined })
           }
           className="rounded border-gray-300 dark:border-gray-600"
         />
-        Business
+        Recurring
       </label>
 
       <label className="flex items-center gap-1.5 text-sm cursor-pointer pb-1">
