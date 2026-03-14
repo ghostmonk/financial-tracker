@@ -2,6 +2,12 @@ use regex::Regex;
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::LazyLock;
+
+static RE_STORE_NUMBER: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\s*#\d+\s*$").unwrap());
+static RE_LONG_NUMBER: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\s+\d{9,}\s*$").unwrap());
 
 use crate::db::DbError;
 use crate::models::categorization_rule::CategorizationRule;
@@ -35,12 +41,10 @@ pub fn normalize_merchant_name(description: &str, payee: Option<&str>) -> String
     let mut name = raw.trim().to_uppercase();
 
     // Strip trailing store number pattern: #\d+
-    let re_store = Regex::new(r"\s*#\d+\s*$").unwrap();
-    name = re_store.replace(&name, "").to_string();
+    name = RE_STORE_NUMBER.replace(&name, "").to_string();
 
     // Strip trailing long numeric sequences (9+ digits)
-    let re_long_num = Regex::new(r"\s+\d{9,}\s*$").unwrap();
-    name = re_long_num.replace(&name, "").to_string();
+    name = RE_LONG_NUMBER.replace(&name, "").to_string();
 
     name.trim().to_string()
 }
