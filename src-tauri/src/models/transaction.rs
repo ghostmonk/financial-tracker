@@ -21,6 +21,7 @@ pub struct Transaction {
     pub import_hash: Option<String>,
     pub fitid: Option<String>,
     pub transaction_type: Option<String>,
+    pub categorized_by_rule: bool,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -73,7 +74,8 @@ pub struct TransactionFilters {
 
 const SELECT_COLS: &str = "id, date, amount, description, payee, account_id, category_id, \
                            is_business, tax_deductible, gst_amount, qst_amount, notes, \
-                           import_hash, fitid, transaction_type, created_at, updated_at";
+                           import_hash, fitid, transaction_type, categorized_by_rule, \
+                           created_at, updated_at";
 
 fn row_to_transaction(row: &rusqlite::Row) -> rusqlite::Result<Transaction> {
     Ok(Transaction {
@@ -92,8 +94,9 @@ fn row_to_transaction(row: &rusqlite::Row) -> rusqlite::Result<Transaction> {
         import_hash: row.get(12)?,
         fitid: row.get(13)?,
         transaction_type: row.get(14)?,
-        created_at: row.get(15)?,
-        updated_at: row.get(16)?,
+        categorized_by_rule: row.get(15)?,
+        created_at: row.get(16)?,
+        updated_at: row.get(17)?,
     })
 }
 
@@ -329,7 +332,7 @@ pub fn update_transactions_category(
     }
     let placeholders: Vec<String> = (0..ids.len()).map(|i| format!("?{}", i + 2)).collect();
     let sql = format!(
-        "UPDATE transactions SET category_id = ?1, updated_at = datetime('now') WHERE id IN ({})",
+        "UPDATE transactions SET category_id = ?1, categorized_by_rule = 0, updated_at = datetime('now') WHERE id IN ({})",
         placeholders.join(", ")
     );
     let mut values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
@@ -349,6 +352,30 @@ pub fn delete_transaction(conn: &Connection, id: &str) -> Result<(), DbError> {
         params![id],
     )?;
     Ok(())
+}
+
+pub fn get_transaction_ids_by_hashes(
+    conn: &Connection,
+    hashes: &[String],
+) -> Result<Vec<String>, DbError> {
+    if hashes.is_empty() {
+        return Ok(Vec::new());
+    }
+    let placeholders: Vec<String> = (0..hashes.len()).map(|i| format!("?{}", i + 1)).collect();
+    let sql = format!(
+        "SELECT id FROM transactions WHERE import_hash IN ({})",
+        placeholders.join(", ")
+    );
+    let mut values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
+    for hash in hashes {
+        values.push(Box::new(hash.clone()));
+    }
+    let param_refs: Vec<&dyn rusqlite::types::ToSql> = values.iter().map(|v| v.as_ref()).collect();
+    let mut stmt = conn.prepare(&sql)?;
+    let ids = stmt
+        .query_map(param_refs.as_slice(), |row| row.get::<_, String>(0))?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+    Ok(ids)
 }
 
 pub fn check_duplicates_by_fitid(
