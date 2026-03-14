@@ -9,6 +9,7 @@ static RE_LONG_NUMBER: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\s+\d{9,}
 
 use crate::db::DbError;
 use crate::models::categorization_rule::CategorizationRule;
+use crate::models::transaction::{row_to_transaction, Transaction, SELECT_COLS};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UncategorizedGroup {
@@ -255,6 +256,46 @@ pub fn reapply_all_rules(conn: &Connection) -> Result<usize, DbError> {
     }
 
     Ok(count)
+}
+
+/// Return all uncategorized transactions whose normalized merchant name matches `normalized_name`.
+/// Optionally filtered by account_id.
+pub fn get_group_transactions(
+    conn: &Connection,
+    normalized_name: &str,
+    account_id: Option<&str>,
+) -> Result<Vec<Transaction>, DbError> {
+    let sql = if account_id.is_some() {
+        format!(
+            "SELECT {} FROM transactions WHERE category_id IS NULL AND account_id = ?1",
+            SELECT_COLS
+        )
+    } else {
+        format!(
+            "SELECT {} FROM transactions WHERE category_id IS NULL",
+            SELECT_COLS
+        )
+    };
+
+    let mut stmt = conn.prepare(&sql)?;
+
+    let transactions: Vec<Transaction> = if let Some(acct) = account_id {
+        stmt.query_map(params![acct], row_to_transaction)?
+            .collect::<rusqlite::Result<Vec<_>>>()?
+    } else {
+        stmt.query_map([], row_to_transaction)?
+            .collect::<rusqlite::Result<Vec<_>>>()?
+    };
+
+    let results = transactions
+        .into_iter()
+        .filter(|tx| {
+            let normalized = normalize_merchant_name(&tx.description, tx.payee.as_deref());
+            normalized == normalized_name
+        })
+        .collect();
+
+    Ok(results)
 }
 
 /// Count distinct normalized merchant names where category_id IS NULL.
@@ -731,6 +772,40 @@ mod tests {
         assert!(rule_matches(&rule, "MY STORE", None, 0.0));
         assert!(rule_matches(&rule, "MY STORE", None, 999.99));
         assert!(rule_matches(&rule, "MY STORE", None, -500.0));
+    }
+
+    #[test]
+    fn test_get_group_transactions() {
+        let conn = setup_db();
+
+        // Two McDonalds with different store numbers (same normalized name)
+        insert_tx(&conn, "tx-1", "MCDONALD'S #148", None, "acct-1");
+        insert_tx(&conn, "tx-2", "MCDONALD'S #22", None, "acct-2");
+        // Different merchant
+        insert_tx(&conn, "tx-3", "MAXI ST-LAMBERT", None, "acct-1");
+        // Categorized McDonald's — should NOT appear (uncategorized only)
+        insert_tx(&conn, "tx-4", "MCDONALD'S #99", None, "acct-1");
+        conn.execute(
+            "UPDATE transactions SET category_id = 'cat-dining' WHERE id = 'tx-4'",
+            [],
+        )
+        .unwrap();
+
+        // All accounts — should return tx-1 and tx-2
+        let results = get_group_transactions(&conn, "MCDONALD'S", None).unwrap();
+        assert_eq!(results.len(), 2);
+        let ids: Vec<&str> = results.iter().map(|t| t.id.as_str()).collect();
+        assert!(ids.contains(&"tx-1"));
+        assert!(ids.contains(&"tx-2"));
+
+        // Filter by account — should return only tx-1
+        let results = get_group_transactions(&conn, "MCDONALD'S", Some("acct-1")).unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].id, "tx-1");
+
+        // Non-matching normalized name — empty
+        let results = get_group_transactions(&conn, "NONEXISTENT", None).unwrap();
+        assert!(results.is_empty());
     }
 
     #[test]

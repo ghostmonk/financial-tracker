@@ -39,6 +39,7 @@ pub fn run() {
             commands::transactions::update_transaction,
             commands::transactions::update_transactions_category,
             commands::transactions::delete_transaction,
+            commands::transactions::get_group_transactions,
             // Import
             commands::import::preview_csv_file,
             commands::import::parse_and_preview_csv,

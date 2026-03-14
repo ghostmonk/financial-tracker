@@ -76,13 +76,13 @@ pub struct TransactionFilters {
     pub offset: Option<u32>,
 }
 
-const SELECT_COLS: &str =
+pub const SELECT_COLS: &str =
     "id, date, amount, description, payee, merchant, account_id, category_id, \
                            is_recurring, tax_deductible, gst_amount, qst_amount, notes, \
                            import_hash, fitid, transaction_type, categorized_by_rule, \
                            created_at, updated_at";
 
-fn row_to_transaction(row: &rusqlite::Row) -> rusqlite::Result<Transaction> {
+pub fn row_to_transaction(row: &rusqlite::Row) -> rusqlite::Result<Transaction> {
     Ok(Transaction {
         id: row.get(0)?,
         date: row.get(1)?,
