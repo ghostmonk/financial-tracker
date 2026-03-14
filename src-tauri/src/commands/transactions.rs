@@ -7,7 +7,7 @@ use crate::AppState;
 
 use super::with_db_conn;
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn list_transactions(
     state: State<'_, AppState>,
     filters: TransactionFilters,
@@ -17,7 +17,7 @@ pub fn list_transactions(
     })
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn update_transaction(
     state: State<'_, AppState>,
     id: String,
@@ -28,7 +28,7 @@ pub fn update_transaction(
     })
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn update_transactions_category(
     state: State<'_, AppState>,
     ids: Vec<String>,
@@ -40,7 +40,7 @@ pub fn update_transactions_category(
     })
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn delete_transaction(state: State<'_, AppState>, id: String) -> Result<(), String> {
     with_db_conn(&state, |conn| {
         transaction::delete_transaction(conn, &id).map_err(|e| e.to_string())

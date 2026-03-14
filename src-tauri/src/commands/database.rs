@@ -4,7 +4,7 @@ use crate::db::Database;
 use crate::models::category::seed_default_categories;
 use crate::AppState;
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn unlock_database(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -35,7 +35,7 @@ pub fn unlock_database(
     Ok(())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn is_database_initialized(app: AppHandle) -> Result<bool, String> {
     let app_data_dir = app
         .path()
