@@ -42,7 +42,7 @@ export default function UncategorizedGroupList({
           {groups.map((group) => (
             <tr
               key={group.normalized_name}
-              className="hover:bg-gray-50 dark:hover:bg-gray-750"
+              className="hover:bg-blue-50 dark:hover:bg-gray-700/50"
             >
               <td className="px-4 py-3">
                 <div className="font-medium text-gray-900 dark:text-gray-100">
