@@ -14,6 +14,7 @@ import type {
 } from "../lib/types";
 import UncategorizedGroupList from "../components/categorize/UncategorizedGroupList";
 import GroupCategorizeDialog from "../components/categorize/GroupCategorizeDialog";
+import GroupDrillDown from "../components/categorize/GroupDrillDown";
 
 export default function CategorizePage() {
   const [groups, setGroups] = useState<UncategorizedGroup[]>([]);
@@ -22,6 +23,8 @@ export default function CategorizePage() {
   const [loading, setLoading] = useState(true);
   const [selectedAccountId, setSelectedAccountId] = useState<string>("");
   const [categorizingGroup, setCategorizingGroup] =
+    useState<UncategorizedGroup | null>(null);
+  const [drillDownGroup, setDrillDownGroup] =
     useState<UncategorizedGroup | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -93,13 +96,25 @@ export default function CategorizePage() {
         <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
       )}
 
-      {loading ? (
+      {drillDownGroup ? (
+        <GroupDrillDown
+          group={drillDownGroup}
+          categories={categories}
+          accountId={selectedAccountId || undefined}
+          onBack={() => {
+            setDrillDownGroup(null);
+            fetchGroups();
+          }}
+          onRefresh={fetchGroups}
+        />
+      ) : loading ? (
         <p className="text-gray-500 dark:text-gray-400 text-sm">Loading...</p>
       ) : (
         <UncategorizedGroupList
           groups={groups}
           accounts={accounts}
           onCategorize={setCategorizingGroup}
+          onDrillDown={setDrillDownGroup}
         />
       )}
 

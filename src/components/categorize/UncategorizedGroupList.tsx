@@ -4,6 +4,7 @@ interface UncategorizedGroupListProps {
   groups: UncategorizedGroup[];
   accounts: Account[];
   onCategorize: (group: UncategorizedGroup) => void;
+  onDrillDown: (group: UncategorizedGroup) => void;
 }
 
 function formatAmount(amount: number): string {
@@ -15,6 +16,7 @@ export default function UncategorizedGroupList({
   groups,
   accounts,
   onCategorize,
+  onDrillDown,
 }: UncategorizedGroupListProps) {
   if (groups.length === 0) {
     return (
@@ -45,9 +47,12 @@ export default function UncategorizedGroupList({
               className="hover:bg-blue-50 dark:hover:bg-gray-700/50"
             >
               <td className="px-4 py-3">
-                <div className="font-medium text-gray-900 dark:text-gray-100">
+                <button
+                  onClick={() => onDrillDown(group)}
+                  className="text-left font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                >
                   {group.normalized_name}
-                </div>
+                </button>
                 {group.sample_description !== group.normalized_name && (
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                     {group.sample_description}
@@ -77,7 +82,7 @@ export default function UncategorizedGroupList({
                   onClick={() => onCategorize(group)}
                   className="px-3 py-1 text-xs bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors"
                 >
-                  Categorize
+                  Categorize All
                 </button>
               </td>
             </tr>
