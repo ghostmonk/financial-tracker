@@ -43,7 +43,7 @@ export default function CategoryForm({
       c.id !== editingCategory?.id,
   );
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!name.trim()) return;
     onSubmit({

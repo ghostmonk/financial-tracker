@@ -40,7 +40,7 @@ export default function AccountForm({
     }
   }, [editingAccount]);
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!name.trim()) return;
     onSubmit({

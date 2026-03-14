@@ -41,7 +41,7 @@ export default function AccountsPage() {
           name: params.name,
           institution: params.institution,
           account_type: params.account_type,
-          currency: params.currency ?? undefined,
+          currency: params.currency || undefined,
         });
       } else {
         await createAccount(params);
