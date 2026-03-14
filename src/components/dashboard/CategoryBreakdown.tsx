@@ -1,4 +1,7 @@
+import { useState } from "react";
 import type { Category, Transaction } from "../../lib/types";
+
+type Direction = Category["direction"];
 
 interface CategoryBreakdownProps {
   transactions: Transaction[];
@@ -12,6 +15,20 @@ interface CategoryTotal {
   percentage: number;
 }
 
+const DIRECTION_LABELS: Record<Direction, string> = {
+  expense: "Expenses",
+  income: "Income",
+  transfer: "Transfers",
+  adjustment: "Adjustments",
+};
+
+const DIRECTION_ORDER: Direction[] = [
+  "expense",
+  "income",
+  "transfer",
+  "adjustment",
+];
+
 function formatCurrency(amount: number): string {
   const abs = Math.abs(amount).toFixed(2);
   return amount < 0 ? `-$${abs}` : `$${abs}`;
@@ -19,23 +36,36 @@ function formatCurrency(amount: number): string {
 
 function computeTotals(
   transactions: Transaction[],
+  categories: Category[],
   categoryMap: Map<string, Category>,
-  filter: (tx: Transaction) => boolean,
+  direction: Direction,
 ): CategoryTotal[] {
-  const filtered = transactions.filter(filter);
+  const directionCategoryIds = new Set(
+    categories.filter((c) => c.direction === direction).map((c) => c.id),
+  );
+
+  const filtered = transactions.filter((tx) => {
+    if (!tx.category_id) return false;
+    return directionCategoryIds.has(tx.category_id);
+  });
+
   const totalAbs = filtered.reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
 
-  const byCategory = new Map<string | null, number>();
+  // Group by parent category (or self if no parent)
+  const byParent = new Map<string, number>();
   for (const tx of filtered) {
-    const key = tx.category_id;
-    byCategory.set(key, (byCategory.get(key) ?? 0) + Math.abs(tx.amount));
+    const cat = categoryMap.get(tx.category_id!);
+    if (!cat) continue;
+    const parentId = cat.parent_id ?? cat.id;
+    byParent.set(parentId, (byParent.get(parentId) ?? 0) + Math.abs(tx.amount));
   }
 
   const result: CategoryTotal[] = [];
-  for (const [catId, total] of byCategory) {
+  for (const [parentId, total] of byParent) {
+    const parentCat = categoryMap.get(parentId);
     result.push({
-      categoryId: catId,
-      name: catId ? (categoryMap.get(catId)?.name ?? "Unknown") : "Uncategorized",
+      categoryId: parentId,
+      name: parentCat?.name ?? "Unknown",
       total,
       percentage: totalAbs > 0 ? (total / totalAbs) * 100 : 0,
     });
@@ -48,18 +78,8 @@ export default function CategoryBreakdown({
   transactions,
   categories,
 }: CategoryBreakdownProps) {
+  const [activeDirection, setActiveDirection] = useState<Direction>("expense");
   const categoryMap = new Map(categories.map((c) => [c.id, c]));
-
-  const incomeRows = computeTotals(
-    transactions,
-    categoryMap,
-    (tx) => tx.amount > 0,
-  );
-  const expenseRows = computeTotals(
-    transactions,
-    categoryMap,
-    (tx) => tx.amount < 0,
-  );
 
   if (transactions.length === 0) {
     return (
@@ -69,18 +89,58 @@ export default function CategoryBreakdown({
     );
   }
 
+  // Determine which direction tabs have data
+  const directionHasData = new Map<Direction, boolean>();
+  for (const dir of DIRECTION_ORDER) {
+    const dirCatIds = new Set(
+      categories.filter((c) => c.direction === dir).map((c) => c.id),
+    );
+    directionHasData.set(
+      dir,
+      transactions.some((tx) => tx.category_id && dirCatIds.has(tx.category_id)),
+    );
+  }
+
+  const rows = computeTotals(
+    transactions,
+    categories,
+    categoryMap,
+    activeDirection,
+  );
+
   const thClass =
     "px-3 py-2 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800";
   const tdClass =
     "px-3 py-2 text-sm border-b border-gray-100 dark:border-gray-800";
 
-  function renderSection(label: string, rows: CategoryTotal[]) {
-    if (rows.length === 0) return null;
-    return (
-      <div>
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-          {label}
-        </h3>
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700">
+        {DIRECTION_ORDER.map((dir) => {
+          const hasData = directionHasData.get(dir);
+          if (!hasData) return null;
+          const active = dir === activeDirection;
+          return (
+            <button
+              key={dir}
+              onClick={() => setActiveDirection(dir)}
+              className={`px-3 py-2 text-sm font-medium transition-colors ${
+                active
+                  ? "border-b-2 border-blue-500 text-blue-600 dark:text-blue-400"
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+              }`}
+            >
+              {DIRECTION_LABELS[dir]}
+            </button>
+          );
+        })}
+      </div>
+
+      {rows.length === 0 ? (
+        <div className="text-center py-6 text-gray-500 dark:text-gray-400 text-sm">
+          No {DIRECTION_LABELS[activeDirection].toLowerCase()} this month.
+        </div>
+      ) : (
         <div className="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-md">
           <table className="min-w-full">
             <thead>
@@ -116,14 +176,7 @@ export default function CategoryBreakdown({
             </tbody>
           </table>
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      {renderSection("Income by Category", incomeRows)}
-      {renderSection("Expenses by Category", expenseRows)}
+      )}
     </div>
   );
 }
