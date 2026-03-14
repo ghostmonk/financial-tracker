@@ -24,11 +24,16 @@ fn row_to_tag(row: &rusqlite::Row) -> rusqlite::Result<Tag> {
 }
 
 fn slugify(name: &str) -> String {
-    name.to_lowercase()
+    let raw: String = name
+        .to_lowercase()
         .replace(' ', "-")
         .chars()
         .filter(|c| c.is_alphanumeric() || *c == '-')
-        .collect()
+        .collect();
+    raw.split('-')
+        .filter(|s| !s.is_empty())
+        .collect::<Vec<_>>()
+        .join("-")
 }
 
 pub fn create_tag(conn: &Connection, name: &str, slug: &str) -> Result<Tag, DbError> {
@@ -227,7 +232,7 @@ mod tests {
         assert_eq!(slugify("Tax Deductible"), "tax-deductible");
         assert_eq!(slugify("Work"), "work");
         assert_eq!(slugify("Hello World!"), "hello-world");
-        assert_eq!(slugify("A & B"), "a--b");
+        assert_eq!(slugify("A & B"), "a-b");
     }
 
     #[test]
