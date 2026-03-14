@@ -1,8 +1,6 @@
 use tauri::State;
 
-use crate::models::transaction::{
-    self, Transaction, TransactionFilters, UpdateTransactionParams,
-};
+use crate::models::transaction::{self, Transaction, TransactionFilters, UpdateTransactionParams};
 use crate::AppState;
 
 use super::with_db_conn;

@@ -51,8 +51,7 @@ pub fn get_uncategorized_groups(
     account_id: Option<String>,
 ) -> Result<Vec<UncategorizedGroup>, String> {
     with_db_conn(&state, |conn| {
-        categorize::get_uncategorized_groups(conn, account_id.as_deref())
-            .map_err(|e| e.to_string())
+        categorize::get_uncategorized_groups(conn, account_id.as_deref()).map_err(|e| e.to_string())
     })
 }
 
@@ -69,8 +68,7 @@ pub fn apply_rules_to_transaction_ids(
     transaction_ids: Vec<String>,
 ) -> Result<usize, String> {
     with_db_conn(&state, |conn| {
-        categorize::apply_rules_to_transactions(conn, &transaction_ids)
-            .map_err(|e| e.to_string())
+        categorize::apply_rules_to_transactions(conn, &transaction_ids).map_err(|e| e.to_string())
     })
 }
 

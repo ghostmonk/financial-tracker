@@ -96,7 +96,9 @@ pub fn parse_csv(
 
         let raw_date = record
             .get(date_idx)
-            .ok_or_else(|| ImportError::InvalidCsv(format!("Row {} missing date column", line_num)))?
+            .ok_or_else(|| {
+                ImportError::InvalidCsv(format!("Row {} missing date column", line_num))
+            })?
             .trim();
         let date = parse_date(raw_date, &mapping.date_format)?;
 
@@ -117,14 +119,17 @@ pub fn parse_csv(
             .to_string();
 
         let payee = payee_idx.and_then(|idx| {
-            record.get(idx).map(|v| {
-                let trimmed = v.trim().to_string();
-                if trimmed.is_empty() {
-                    None
-                } else {
-                    Some(trimmed)
-                }
-            }).flatten()
+            record
+                .get(idx)
+                .map(|v| {
+                    let trimmed = v.trim().to_string();
+                    if trimmed.is_empty() {
+                        None
+                    } else {
+                        Some(trimmed)
+                    }
+                })
+                .flatten()
         });
 
         transactions.push(ParsedTransaction {
@@ -173,8 +178,9 @@ fn resolve_column_index(headers: &[String], column: &str) -> Result<usize, Impor
 
 /// Parse a date string according to the given format, returning YYYY-MM-DD.
 fn parse_date(raw: &str, format: &str) -> Result<String, ImportError> {
-    let parsed = chrono::NaiveDate::parse_from_str(raw, format)
-        .map_err(|e| ImportError::DateParseError(format!("'{}' with format '{}': {}", raw, format, e)))?;
+    let parsed = chrono::NaiveDate::parse_from_str(raw, format).map_err(|e| {
+        ImportError::DateParseError(format!("'{}' with format '{}': {}", raw, format, e))
+    })?;
     Ok(parsed.format("%Y-%m-%d").to_string())
 }
 
@@ -294,7 +300,8 @@ mod tests {
 
     #[test]
     fn test_negative_amounts() {
-        let csv = "Date,Description,Amount\n2023-01-01,Debit,-500.00\n2023-01-02,Debit2,\"-$1,000.00\"\n";
+        let csv =
+            "Date,Description,Amount\n2023-01-01,Debit,-500.00\n2023-01-02,Debit2,\"-$1,000.00\"\n";
         let mapping = CsvColumnMapping {
             date_column: "Date".to_string(),
             amount_column: "Amount".to_string(),

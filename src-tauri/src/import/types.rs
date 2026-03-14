@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ParsedTransaction {
-    pub date: String,                     // YYYY-MM-DD
+    pub date: String, // YYYY-MM-DD
     pub amount: f64,
     pub description: String,
     pub payee: Option<String>,

@@ -1,8 +1,6 @@
 use tauri::State;
 
-use crate::models::account::{
-    self, Account, CreateAccountParams, UpdateAccountParams,
-};
+use crate::models::account::{self, Account, CreateAccountParams, UpdateAccountParams};
 use crate::AppState;
 
 use super::with_db_conn;
