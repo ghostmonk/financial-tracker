@@ -1,8 +1,12 @@
-.PHONY: dev build test format clean
+.PHONY: dev dev-release build test format clean
 
-# Development
+# Development (debug Rust, fast compile)
 dev:
 	npm run tauri dev
+
+# Development (release Rust, fast runtime)
+dev-release:
+	npm run tauri dev -- --release
 
 # Build release
 build:
