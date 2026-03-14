@@ -1,3 +1,4 @@
+mod categorize;
 mod commands;
 mod db;
 mod import;
