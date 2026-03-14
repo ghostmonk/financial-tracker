@@ -45,7 +45,15 @@ export default function RulesPage() {
     listCategories().then(setCategories).catch(console.error);
   }, [fetchRules]);
 
-  const categoryMap = new Map(categories.map((c) => [c.id, c.name]));
+  const categoryMap = new Map(
+    categories.map((c) => {
+      if (c.parent_id) {
+        const parent = categories.find((p) => p.id === c.parent_id);
+        return [c.id, parent ? `${parent.name} > ${c.name}` : c.name];
+      }
+      return [c.id, c.name];
+    }),
+  );
 
   async function handleReapply() {
     setBanner(null);
@@ -266,12 +274,30 @@ function RuleForm({
     editingRule?.auto_apply ?? true,
   );
 
-  const incomeCategories = categories.filter(
-    (c) => c.category_type === "income",
-  );
-  const expenseCategories = categories.filter(
-    (c) => c.category_type !== "income",
-  );
+  const directionOrder = ["income", "expense", "transfer", "adjustment"] as const;
+  const directionLabels: Record<string, string> = {
+    income: "Income",
+    expense: "Expense",
+    transfer: "Transfer",
+    adjustment: "Adjustment",
+  };
+  const parents = categories.filter((c) => c.parent_id === null);
+  const children = categories.filter((c) => c.parent_id !== null);
+
+  const byDirection = directionOrder
+    .map((dir) => {
+      const dirParents = parents
+        .filter((c) => c.direction === dir)
+        .sort((a, b) => a.sort_order - b.sort_order);
+      const groups = dirParents.map((parent) => {
+        const kids = children
+          .filter((c) => c.parent_id === parent.id)
+          .sort((a, b) => a.sort_order - b.sort_order);
+        return { parent, children: kids };
+      });
+      return { direction: dir, label: directionLabels[dir], groups };
+    })
+    .filter((d) => d.groups.length > 0);
 
   function handleSubmit(e: React.FormEvent & { currentTarget: HTMLFormElement }) {
     e.preventDefault();
@@ -345,26 +371,31 @@ function RuleForm({
             required
           >
             <option value="">Select a category</option>
-            {incomeCategories.length > 0 && (
-              <optgroup label="Income">
-                {incomeCategories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.is_business_default ? "\u25C6 " : ""}
-                    {c.name}
-                  </option>
-                ))}
+            {byDirection.map((dirGroup) => (
+              <optgroup
+                key={dirGroup.direction}
+                label={`--- ${dirGroup.label} ---`}
+              >
+                {dirGroup.groups.flatMap((g) =>
+                  g.children.length === 0
+                    ? [
+                        <option key={g.parent.id} value={g.parent.id}>
+                          {g.parent.name}
+                        </option>,
+                      ]
+                    : [
+                        <option key={g.parent.id} value={g.parent.id}>
+                          {g.parent.name}
+                        </option>,
+                        ...g.children.map((child) => (
+                          <option key={child.id} value={child.id}>
+                            {"  \u2514 " + child.name}
+                          </option>
+                        )),
+                      ],
+                )}
               </optgroup>
-            )}
-            {expenseCategories.length > 0 && (
-              <optgroup label="Expense">
-                {expenseCategories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.is_business_default ? "\u25C6 " : ""}
-                    {c.name}
-                  </option>
-                ))}
-              </optgroup>
-            )}
+            ))}
           </select>
         </div>
 
