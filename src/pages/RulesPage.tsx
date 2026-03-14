@@ -156,6 +156,7 @@ export default function RulesPage() {
                 <th className="px-4 py-3">Field</th>
                 <th className="px-4 py-3">Match</th>
                 <th className="px-4 py-3">Category</th>
+                <th className="px-4 py-3">Amount</th>
                 <th className="px-4 py-3 text-right">Priority</th>
                 <th className="px-4 py-3">Auto</th>
                 <th className="px-4 py-3" />
@@ -174,6 +175,15 @@ export default function RulesPage() {
                   <td className="px-4 py-3">{rule.match_type}</td>
                   <td className="px-4 py-3">
                     {categoryMap.get(rule.category_id) ?? "Unknown"}
+                  </td>
+                  <td className="px-4 py-3 text-xs tabular-nums">
+                    {rule.amount_min != null && rule.amount_max != null
+                      ? `$${rule.amount_min.toFixed(2)} - $${rule.amount_max.toFixed(2)}`
+                      : rule.amount_min != null
+                        ? `>= $${rule.amount_min.toFixed(2)}`
+                        : rule.amount_max != null
+                          ? `<= $${rule.amount_max.toFixed(2)}`
+                          : "\u2014"}
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums">
                     {rule.priority}
@@ -269,6 +279,12 @@ function RuleForm({
   const [categoryId, setCategoryId] = useState(
     editingRule?.category_id ?? "",
   );
+  const [amountMin, setAmountMin] = useState(
+    editingRule?.amount_min?.toString() ?? "",
+  );
+  const [amountMax, setAmountMax] = useState(
+    editingRule?.amount_max?.toString() ?? "",
+  );
   const [priority, setPriority] = useState(editingRule?.priority ?? 0);
   const [autoApply, setAutoApply] = useState(
     editingRule?.auto_apply ?? true,
@@ -307,6 +323,8 @@ function RuleForm({
       match_field: matchField,
       match_type: matchType,
       category_id: categoryId,
+      amount_min: amountMin ? parseFloat(amountMin) : undefined,
+      amount_max: amountMax ? parseFloat(amountMax) : undefined,
       priority,
       auto_apply: autoApply,
     });
@@ -397,6 +415,31 @@ function RuleForm({
               </optgroup>
             ))}
           </select>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm font-medium mb-1">Min Amount</label>
+            <input
+              type="number"
+              step="0.01"
+              placeholder="Any"
+              value={amountMin}
+              onChange={(e) => setAmountMin(e.target.value)}
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Max Amount</label>
+            <input
+              type="number"
+              step="0.01"
+              placeholder="Any"
+              value={amountMax}
+              onChange={(e) => setAmountMax(e.target.value)}
+              className={inputClass}
+            />
+          </div>
         </div>
 
         <div>
