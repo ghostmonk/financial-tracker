@@ -2,6 +2,7 @@ use tauri::{AppHandle, Manager, State};
 
 use crate::db::Database;
 use crate::models::category::seed_default_categories;
+use crate::models::tag::seed_default_tags;
 use crate::AppState;
 
 #[tauri::command(rename_all = "snake_case")]
@@ -19,12 +20,11 @@ pub fn unlock_database(
 
     let db_path = app_data_dir.join("financial-tracker.db");
     let database = Database::open(&db_path, &password).map_err(|e| e.to_string())?;
-    database
-        .initialize_schema()
-        .map_err(|e| e.to_string())?;
+    database.initialize_schema().map_err(|e| e.to_string())?;
     {
         let conn = database.connection();
         seed_default_categories(&conn).map_err(|e| e.to_string())?;
+        seed_default_tags(&conn).map_err(|e| e.to_string())?;
     }
 
     let mut db_lock = state
