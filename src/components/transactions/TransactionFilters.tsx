@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import type {
   TransactionFilters as Filters,
   Account,
   Category,
+  Transaction,
 } from "../../lib/types";
 
 interface TransactionFiltersProps {
@@ -10,6 +11,7 @@ interface TransactionFiltersProps {
   onFiltersChange: (filters: Filters) => void;
   accounts: Account[];
   categories: Category[];
+  transactions: Transaction[];
 }
 
 export default function TransactionFilters({
@@ -17,6 +19,7 @@ export default function TransactionFilters({
   onFiltersChange,
   accounts,
   categories,
+  transactions,
 }: TransactionFiltersProps) {
   const [searchText, setSearchText] = useState(filters.search ?? "");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -45,6 +48,20 @@ export default function TransactionFilters({
     onFiltersChange({ limit: 50, offset: 0 });
   }
 
+  const usedCategories = useMemo(() => {
+    const usedCategoryIds = new Set(
+      transactions
+        .map((t) => t.category_id)
+        .filter((id): id is string => id !== null),
+    );
+    return categories.filter((c) => {
+      if (usedCategoryIds.has(c.id)) return true;
+      return categories.some(
+        (child) => child.parent_id === c.id && usedCategoryIds.has(child.id),
+      );
+    });
+  }, [transactions, categories]);
+
   const hasFilters =
     !!filters.search ||
     !!filters.account_id ||
@@ -52,6 +69,8 @@ export default function TransactionFilters({
     !!filters.direction ||
     !!filters.date_from ||
     !!filters.date_to ||
+    filters.amount_min != null ||
+    filters.amount_max != null ||
     filters.is_recurring === true ||
     filters.uncategorized_only === true;
 
@@ -98,6 +117,46 @@ export default function TransactionFilters({
           onChange={(e) =>
             updateFilters({ date_to: e.target.value || undefined })
           }
+          className={inputClass}
+        />
+      </div>
+
+      <div className="flex flex-col">
+        <label className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+          Min $
+        </label>
+        <input
+          type="number"
+          placeholder="Min $"
+          value={filters.amount_min ?? ""}
+          onChange={(e) =>
+            updateFilters({
+              amount_min: e.target.value
+                ? parseFloat(e.target.value)
+                : undefined,
+            })
+          }
+          step="0.01"
+          className={inputClass}
+        />
+      </div>
+
+      <div className="flex flex-col">
+        <label className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+          Max $
+        </label>
+        <input
+          type="number"
+          placeholder="Max $"
+          value={filters.amount_max ?? ""}
+          onChange={(e) =>
+            updateFilters({
+              amount_max: e.target.value
+                ? parseFloat(e.target.value)
+                : undefined,
+            })
+          }
+          step="0.01"
           className={inputClass}
         />
       </div>
@@ -153,7 +212,7 @@ export default function TransactionFilters({
           className={selectClass}
         >
           <option value="">All categories</option>
-          {categories.map((c) => (
+          {usedCategories.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
             </option>
