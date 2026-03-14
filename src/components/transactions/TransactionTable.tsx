@@ -204,7 +204,7 @@ export default function TransactionTable({
               return (
                 <tr
                   key={tx.id}
-                  className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 ${
+                  className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
                     selectedIds.has(tx.id)
                       ? "bg-blue-50/50 dark:bg-blue-900/20"
                       : ""
