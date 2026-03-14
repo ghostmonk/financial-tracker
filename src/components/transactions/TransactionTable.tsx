@@ -92,15 +92,6 @@ export default function TransactionTable({
     }
   }
 
-  async function handleBusinessToggle(tx: Transaction) {
-    try {
-      await updateTransaction(tx.id, { is_business: !tx.is_business });
-      onRefresh();
-    } catch (err) {
-      console.error("Failed to update business flag:", err);
-    }
-  }
-
   async function handleBulkCategory(categoryId: string | null) {
     setBulkCategoryOpen(false);
     const ids = Array.from(selectedIds);
@@ -114,21 +105,13 @@ export default function TransactionTable({
     }
   }
 
-  async function handleBulkToggleBusiness() {
-    const ids = Array.from(selectedIds);
-    if (ids.length === 0) return;
-    try {
-      for (const id of ids) {
-        const tx = transactions.find((t) => t.id === id);
-        if (tx) {
-          await updateTransaction(id, { is_business: !tx.is_business });
-        }
-      }
-      setSelectedIds(new Set());
-      onRefresh();
-    } catch (err) {
-      console.error("Failed to bulk toggle business:", err);
+  function categoryDisplay(cat: Category | null | undefined): string {
+    if (!cat) return "Uncategorized";
+    if (cat.parent_id) {
+      const parent = categoryMap.get(cat.parent_id);
+      if (parent) return `${parent.name} > ${cat.name}`;
     }
+    return cat.name;
   }
 
   if (transactions.length === 0 && !loading) {
@@ -172,12 +155,6 @@ export default function TransactionTable({
             )}
           </div>
           <button
-            onClick={handleBulkToggleBusiness}
-            className="px-3 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-sm hover:bg-gray-50 dark:hover:bg-gray-600"
-          >
-            Toggle Business
-          </button>
-          <button
             onClick={() => setSelectedIds(new Set())}
             className="ml-auto text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-xs"
           >
@@ -207,6 +184,7 @@ export default function TransactionTable({
                 Date{sortIndicator("date")}
               </th>
               <th className={thClass}>Description</th>
+              <th className={thClass}>Merchant</th>
               <th className={thClass}>Payee</th>
               <th
                 className={`${thClass} text-right cursor-pointer select-none`}
@@ -215,7 +193,6 @@ export default function TransactionTable({
                 Amount{sortIndicator("amount")}
               </th>
               <th className={thClass}>Category</th>
-              <th className={`${thClass} text-center`}>Biz</th>
               <th className={thClass}>Account</th>
             </tr>
           </thead>
@@ -247,10 +224,27 @@ export default function TransactionTable({
                     {tx.date}
                   </td>
                   <td
-                    className={`${tdClass} max-w-xs truncate text-gray-900 dark:text-gray-100`}
-                    title={tx.description}
+                    className={`${tdClass} max-w-xs text-gray-900 dark:text-gray-100`}
                   >
-                    {tx.description}
+                    <div className="flex items-center gap-1.5">
+                      <span className="truncate" title={tx.description}>
+                        {tx.description}
+                      </span>
+                      {tx.is_recurring && (
+                        <span
+                          className="shrink-0 text-[10px] px-1.5 py-0 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300"
+                          title="Recurring"
+                        >
+                          recurring
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td
+                    className={`${tdClass} max-w-[10rem] truncate text-gray-600 dark:text-gray-400`}
+                    title={tx.merchant ?? ""}
+                  >
+                    {tx.merchant ?? "--"}
                   </td>
                   <td
                     className={`${tdClass} max-w-[10rem] truncate text-gray-600 dark:text-gray-400`}
@@ -287,17 +281,9 @@ export default function TransactionTable({
                             : "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
                         }`}
                       >
-                        {cat ? cat.name : "Uncategorized"}
+                        {categoryDisplay(cat)}
                       </button>
                     )}
-                  </td>
-                  <td className={`${tdClass} text-center`}>
-                    <input
-                      type="checkbox"
-                      checked={tx.is_business}
-                      onChange={() => handleBusinessToggle(tx)}
-                      className="rounded border-gray-300 dark:border-gray-600"
-                    />
                   </td>
                   <td
                     className={`${tdClass} text-gray-600 dark:text-gray-400 whitespace-nowrap`}
