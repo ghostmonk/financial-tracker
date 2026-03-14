@@ -1,6 +1,8 @@
 mod db;
+mod models;
 
 use db::{Database, DbError};
+use models::category::seed_default_categories;
 use std::sync::Mutex;
 use tauri::{Manager, State};
 
@@ -23,6 +25,10 @@ fn unlock_database(
     let db_path = app_data_dir.join("financial-tracker.db");
     let database = Database::open(&db_path, &password)?;
     database.initialize_schema()?;
+    {
+        let conn = database.connection();
+        seed_default_categories(&conn)?;
+    }
 
     let mut db_lock = state.db.lock().unwrap();
     *db_lock = Some(database);
