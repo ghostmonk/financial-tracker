@@ -47,8 +47,13 @@ pub fn normalize_merchant_name(description: &str, payee: Option<&str>) -> String
     name.trim().to_string()
 }
 
-/// Check if a rule matches a transaction's description/payee fields.
-fn rule_matches(rule: &CategorizationRule, description: &str, payee: Option<&str>) -> bool {
+/// Check if a rule matches a transaction's description/payee fields and amount conditions.
+fn rule_matches(
+    rule: &CategorizationRule,
+    description: &str,
+    payee: Option<&str>,
+    amount: f64,
+) -> bool {
     let field_value = match rule.match_field.as_str() {
         "description" => description.to_uppercase(),
         "payee" => match payee {
@@ -60,12 +65,30 @@ fn rule_matches(rule: &CategorizationRule, description: &str, payee: Option<&str
 
     let pattern = rule.pattern.to_uppercase();
 
-    match rule.match_type.as_str() {
+    let pattern_matched = match rule.match_type.as_str() {
         "contains" => field_value.contains(&pattern),
         "starts_with" => field_value.starts_with(&pattern),
         "exact" => field_value == pattern,
         _ => false,
+    };
+
+    if !pattern_matched {
+        return false;
     }
+
+    // After pattern match succeeds, check amount conditions
+    if let Some(min) = rule.amount_min {
+        if amount.abs() < min {
+            return false;
+        }
+    }
+    if let Some(max) = rule.amount_max {
+        if amount.abs() > max {
+            return false;
+        }
+    }
+
+    true
 }
 
 /// Query all uncategorized transactions, group by normalized merchant name.
@@ -154,7 +177,7 @@ pub fn apply_rules_to_transactions(
         .map(|i| format!("?{}", i + 1))
         .collect();
     let sql = format!(
-        "SELECT id, description, payee FROM transactions WHERE category_id IS NULL AND id IN ({})",
+        "SELECT id, description, payee, amount FROM transactions WHERE category_id IS NULL AND id IN ({})",
         placeholders.join(", ")
     );
     let mut values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
@@ -164,16 +187,16 @@ pub fn apply_rules_to_transactions(
     let param_refs: Vec<&dyn rusqlite::types::ToSql> = values.iter().map(|v| v.as_ref()).collect();
 
     let mut stmt = conn.prepare(&sql)?;
-    let txns: Vec<(String, String, Option<String>)> = stmt
+    let txns: Vec<(String, String, Option<String>, f64)> = stmt
         .query_map(param_refs.as_slice(), |row| {
-            Ok((row.get(0)?, row.get(1)?, row.get(2)?))
+            Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
         })?
         .collect::<rusqlite::Result<Vec<_>>>()?;
 
     let mut count = 0usize;
-    for (tx_id, description, payee) in &txns {
+    for (tx_id, description, payee, amount) in &txns {
         for rule in &rules {
-            if rule_matches(rule, description, payee.as_deref()) {
+            if rule_matches(rule, description, payee.as_deref(), *amount) {
                 conn.execute(
                     "UPDATE transactions SET category_id = ?1, categorized_by_rule = 1, \
                      updated_at = datetime('now') WHERE id = ?2",
@@ -207,16 +230,19 @@ pub fn reapply_all_rules(conn: &Connection) -> Result<usize, DbError> {
     }
 
     // Fetch all uncategorized transactions
-    let mut stmt =
-        conn.prepare("SELECT id, description, payee FROM transactions WHERE category_id IS NULL")?;
-    let txns: Vec<(String, String, Option<String>)> = stmt
-        .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))?
+    let mut stmt = conn.prepare(
+        "SELECT id, description, payee, amount FROM transactions WHERE category_id IS NULL",
+    )?;
+    let txns: Vec<(String, String, Option<String>, f64)> = stmt
+        .query_map([], |row| {
+            Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
+        })?
         .collect::<rusqlite::Result<Vec<_>>>()?;
 
     let mut count = 0usize;
-    for (tx_id, description, payee) in &txns {
+    for (tx_id, description, payee, amount) in &txns {
         for rule in &rules {
-            if rule_matches(rule, description, payee.as_deref()) {
+            if rule_matches(rule, description, payee.as_deref(), *amount) {
                 conn.execute(
                     "UPDATE transactions SET category_id = ?1, categorized_by_rule = 1, \
                      updated_at = datetime('now') WHERE id = ?2",
@@ -378,9 +404,9 @@ mod tests {
             auto_apply: true,
             created_at: String::new(),
         };
-        assert!(rule_matches(&rule, "MCDONALD'S #148", None));
-        assert!(rule_matches(&rule, "some mcdonald thing", None));
-        assert!(!rule_matches(&rule, "BURGER KING", None));
+        assert!(rule_matches(&rule, "MCDONALD'S #148", None, 0.0));
+        assert!(rule_matches(&rule, "some mcdonald thing", None, 0.0));
+        assert!(!rule_matches(&rule, "BURGER KING", None, 0.0));
     }
 
     #[test]
@@ -397,8 +423,8 @@ mod tests {
             auto_apply: true,
             created_at: String::new(),
         };
-        assert!(rule_matches(&rule, "Tim Hortons #22", None));
-        assert!(!rule_matches(&rule, "AT TIM HORTONS", None));
+        assert!(rule_matches(&rule, "Tim Hortons #22", None, 0.0));
+        assert!(!rule_matches(&rule, "AT TIM HORTONS", None, 0.0));
     }
 
     #[test]
@@ -415,8 +441,8 @@ mod tests {
             auto_apply: true,
             created_at: String::new(),
         };
-        assert!(rule_matches(&rule, "cafe plus jm in", None));
-        assert!(!rule_matches(&rule, "CAFE PLUS JM IN EXTRA", None));
+        assert!(rule_matches(&rule, "cafe plus jm in", None, 0.0));
+        assert!(!rule_matches(&rule, "CAFE PLUS JM IN EXTRA", None, 0.0));
     }
 
     #[test]
@@ -436,11 +462,12 @@ mod tests {
         assert!(rule_matches(
             &rule,
             "E-TRANSFER",
-            Some("E-TRANSFER 105857783212;Tracey RBC;Internet Banking")
+            Some("E-TRANSFER 105857783212;Tracey RBC;Internet Banking"),
+            0.0,
         ));
-        assert!(!rule_matches(&rule, "E-TRANSFER", Some("John Smith")));
+        assert!(!rule_matches(&rule, "E-TRANSFER", Some("John Smith"), 0.0,));
         // No payee at all
-        assert!(!rule_matches(&rule, "E-TRANSFER", None));
+        assert!(!rule_matches(&rule, "E-TRANSFER", None, 0.0));
     }
 
     #[test]
@@ -636,5 +663,80 @@ mod tests {
 
         let count = count_uncategorized_groups(&conn).unwrap();
         assert_eq!(count, 1); // Only Maxi left
+    }
+
+    fn make_rule(amount_min: Option<f64>, amount_max: Option<f64>) -> CategorizationRule {
+        CategorizationRule {
+            id: "r1".into(),
+            pattern: "STORE".into(),
+            match_field: "description".into(),
+            match_type: "contains".into(),
+            category_id: "cat-dining".into(),
+            priority: 0,
+            amount_min,
+            amount_max,
+            auto_apply: true,
+            created_at: String::new(),
+        }
+    }
+
+    #[test]
+    fn test_rule_matches_amount_min_only() {
+        let rule = make_rule(Some(20.0), None);
+        // 25 >= 20 -> match
+        assert!(rule_matches(&rule, "MY STORE", None, 25.0));
+        // 20 >= 20 -> match (boundary)
+        assert!(rule_matches(&rule, "MY STORE", None, 20.0));
+        // 10 < 20 -> reject
+        assert!(!rule_matches(&rule, "MY STORE", None, 10.0));
+        // negative amount, abs(−30) = 30 >= 20 -> match
+        assert!(rule_matches(&rule, "MY STORE", None, -30.0));
+        // negative amount, abs(−5) = 5 < 20 -> reject
+        assert!(!rule_matches(&rule, "MY STORE", None, -5.0));
+    }
+
+    #[test]
+    fn test_rule_matches_amount_max_only() {
+        let rule = make_rule(None, Some(50.0));
+        // 30 <= 50 -> match
+        assert!(rule_matches(&rule, "MY STORE", None, 30.0));
+        // 50 <= 50 -> match (boundary)
+        assert!(rule_matches(&rule, "MY STORE", None, 50.0));
+        // 100 > 50 -> reject
+        assert!(!rule_matches(&rule, "MY STORE", None, 100.0));
+        // negative, abs(−40) = 40 <= 50 -> match
+        assert!(rule_matches(&rule, "MY STORE", None, -40.0));
+        // negative, abs(−60) = 60 > 50 -> reject
+        assert!(!rule_matches(&rule, "MY STORE", None, -60.0));
+    }
+
+    #[test]
+    fn test_rule_matches_amount_range() {
+        let rule = make_rule(Some(10.0), Some(50.0));
+        // within range
+        assert!(rule_matches(&rule, "MY STORE", None, 25.0));
+        // at min boundary
+        assert!(rule_matches(&rule, "MY STORE", None, 10.0));
+        // at max boundary
+        assert!(rule_matches(&rule, "MY STORE", None, 50.0));
+        // below min
+        assert!(!rule_matches(&rule, "MY STORE", None, 5.0));
+        // above max
+        assert!(!rule_matches(&rule, "MY STORE", None, 75.0));
+    }
+
+    #[test]
+    fn test_rule_matches_no_amount_conditions() {
+        let rule = make_rule(None, None);
+        assert!(rule_matches(&rule, "MY STORE", None, 0.0));
+        assert!(rule_matches(&rule, "MY STORE", None, 999.99));
+        assert!(rule_matches(&rule, "MY STORE", None, -500.0));
+    }
+
+    #[test]
+    fn test_rule_matches_amount_not_checked_when_pattern_fails() {
+        let rule = make_rule(Some(10.0), Some(50.0));
+        // Pattern doesn't match, amount is in range — should still be false
+        assert!(!rule_matches(&rule, "OTHER PLACE", None, 25.0));
     }
 }
