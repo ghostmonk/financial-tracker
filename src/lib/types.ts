@@ -66,6 +66,7 @@ export interface Transaction {
   import_hash: string | null;
   fitid: string | null;
   transaction_type: string | null;
+  categorized_by_rule: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -137,4 +138,42 @@ export interface ImportPreview {
 export interface ImportResult {
   imported_count: number;
   skipped_count: number;
+  categorized_count: number;
+}
+
+export interface CategorizationRule {
+  id: string;
+  pattern: string;
+  match_field: string;
+  match_type: string;
+  category_id: string;
+  priority: number;
+  auto_apply: boolean;
+  created_at: string;
+}
+
+export interface CreateRuleParams {
+  pattern: string;
+  match_field: string;
+  match_type: string;
+  category_id: string;
+  priority?: number;
+  auto_apply?: boolean;
+}
+
+export interface UpdateRuleParams {
+  pattern?: string;
+  match_field?: string;
+  match_type?: string;
+  category_id?: string;
+  priority?: number;
+  auto_apply?: boolean;
+}
+
+export interface UncategorizedGroup {
+  normalized_name: string;
+  transaction_count: number;
+  total_amount: number;
+  sample_description: string;
+  account_ids: string[];
 }

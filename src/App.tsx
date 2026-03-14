@@ -7,6 +7,8 @@ import TransactionsPage from "./pages/TransactionsPage";
 import ImportPage from "./pages/ImportPage";
 import AccountsPage from "./pages/AccountsPage";
 import CategoriesPage from "./pages/CategoriesPage";
+import CategorizePage from "./pages/CategorizePage";
+import RulesPage from "./pages/RulesPage";
 
 export default function App() {
   return (
@@ -18,9 +20,11 @@ export default function App() {
             <Route index element={<Navigate to="/transactions" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="transactions" element={<TransactionsPage />} />
+            <Route path="categorize" element={<CategorizePage />} />
             <Route path="import" element={<ImportPage />} />
             <Route path="accounts" element={<AccountsPage />} />
             <Route path="categories" element={<CategoriesPage />} />
+            <Route path="rules" element={<RulesPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

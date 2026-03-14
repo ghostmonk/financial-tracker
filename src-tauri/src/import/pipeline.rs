@@ -7,13 +7,14 @@ use crate::db::DbError;
 use crate::import::types::{ImportPreview, ParsedImport, ParsedTransaction};
 use crate::models::transaction::{
     check_duplicates_by_fitid, check_duplicates_by_hash, create_transactions_batch,
-    CreateTransactionParams,
+    get_transaction_ids_by_hashes, CreateTransactionParams,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ImportResult {
     pub imported_count: usize,
     pub skipped_count: usize,
+    pub categorized_count: usize,
 }
 
 pub fn compute_import_hash(date: &str, amount: f64, description: &str, account_id: &str) -> String {
@@ -131,6 +132,12 @@ pub fn execute_import(
 
     let imported_count = create_transactions_batch(conn, batch)?;
 
+    // Get IDs of imported transactions for rule application
+    let imported_hashes: Vec<String> = filtered.iter().map(|tx| tx.import_hash.clone()).collect();
+    let imported_ids = get_transaction_ids_by_hashes(conn, &imported_hashes)?;
+    let categorized_count =
+        crate::categorize::apply_rules_to_transactions(conn, &imported_ids).unwrap_or(0);
+
     // Create import record
     let record_id = Uuid::new_v4().to_string();
     conn.execute(
@@ -149,6 +156,7 @@ pub fn execute_import(
     Ok(ImportResult {
         imported_count,
         skipped_count,
+        categorized_count,
     })
 }
 
@@ -277,6 +285,7 @@ mod tests {
 
         assert_eq!(result.imported_count, 2);
         assert_eq!(result.skipped_count, 0);
+        assert_eq!(result.categorized_count, 0);
 
         // Verify transactions exist
         let count: i64 = conn
@@ -330,6 +339,7 @@ mod tests {
 
         assert_eq!(result.imported_count, 1);
         assert_eq!(result.skipped_count, 2);
+        assert_eq!(result.categorized_count, 0);
 
         let count: i64 = conn
             .query_row("SELECT COUNT(*) FROM transactions", [], |row| row.get(0))
@@ -367,6 +377,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(result1.imported_count, 2);
+        assert_eq!(result1.categorized_count, 0);
 
         // Second import of same data: all should be duplicates
         let preview2 = preview_import(&conn, "acct-1", make_parsed()).unwrap();
@@ -385,5 +396,6 @@ mod tests {
         .unwrap();
         assert_eq!(result2.imported_count, 0);
         assert_eq!(result2.skipped_count, 2);
+        assert_eq!(result2.categorized_count, 0);
     }
 }

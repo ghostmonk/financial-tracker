@@ -1,3 +1,4 @@
+mod categorize;
 mod commands;
 mod db;
 mod import;
@@ -43,6 +44,15 @@ pub fn run() {
             commands::import::parse_and_preview_csv,
             commands::import::parse_and_preview_ofx,
             commands::import::execute_import_command,
+            // Rules & Categorization
+            commands::rules::list_categorization_rules,
+            commands::rules::create_categorization_rule,
+            commands::rules::update_categorization_rule,
+            commands::rules::delete_categorization_rule,
+            commands::rules::get_uncategorized_groups,
+            commands::rules::count_uncategorized_groups,
+            commands::rules::apply_rules_to_transaction_ids,
+            commands::rules::reapply_all_rules,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
