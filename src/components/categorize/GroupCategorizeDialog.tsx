@@ -28,7 +28,7 @@ export default function GroupCategorizeDialog({
     (c) => c.category_type !== "income",
   );
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  function handleSubmit(e: React.FormEvent & { currentTarget: HTMLFormElement }) {
     e.preventDefault();
     if (!categoryId) return;
     onConfirm({

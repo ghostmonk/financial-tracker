@@ -273,7 +273,7 @@ function RuleForm({
     (c) => c.category_type !== "income",
   );
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  function handleSubmit(e: React.FormEvent & { currentTarget: HTMLFormElement }) {
     e.preventDefault();
     if (!pattern.trim() || !categoryId) return;
     onSubmit({
