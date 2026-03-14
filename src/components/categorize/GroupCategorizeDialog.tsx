@@ -4,6 +4,7 @@ import type {
   Category,
   CreateRuleParams,
 } from "../../lib/types";
+import CategorySelect from "../transactions/CategorySelect";
 
 interface GroupCategorizeDialogProps {
   group: UncategorizedGroup;
@@ -18,33 +19,8 @@ export default function GroupCategorizeDialog({
   onConfirm,
   onCancel,
 }: GroupCategorizeDialogProps) {
-  const [categoryId, setCategoryId] = useState("");
+  const [categoryId, setCategoryId] = useState<string | null>(null);
   const [matchType, setMatchType] = useState("contains");
-
-  const directionOrder = ["income", "expense", "transfer", "adjustment"] as const;
-  const directionLabels: Record<string, string> = {
-    income: "Income",
-    expense: "Expense",
-    transfer: "Transfer",
-    adjustment: "Adjustment",
-  };
-  const parents = categories.filter((c) => c.parent_id === null);
-  const children = categories.filter((c) => c.parent_id !== null);
-
-  const byDirection = directionOrder
-    .map((dir) => {
-      const dirParents = parents
-        .filter((c) => c.direction === dir)
-        .sort((a, b) => a.sort_order - b.sort_order);
-      const groups = dirParents.map((parent) => {
-        const kids = children
-          .filter((c) => c.parent_id === parent.id)
-          .sort((a, b) => a.sort_order - b.sort_order);
-        return { parent, children: kids };
-      });
-      return { direction: dir, label: directionLabels[dir], groups };
-    })
-    .filter((d) => d.groups.length > 0);
 
   function handleSubmit(e: React.FormEvent & { currentTarget: HTMLFormElement }) {
     e.preventDefault();
@@ -78,39 +54,11 @@ export default function GroupCategorizeDialog({
 
         <div>
           <label className="block text-sm font-medium mb-1">Category</label>
-          <select
+          <CategorySelect
+            categories={categories}
             value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-            className={inputClass}
-            required
-          >
-            <option value="">Select a category</option>
-            {byDirection.map((dirGroup) => (
-              <optgroup
-                key={dirGroup.direction}
-                label={`--- ${dirGroup.label} ---`}
-              >
-                {dirGroup.groups.flatMap((g) =>
-                  g.children.length === 0
-                    ? [
-                        <option key={g.parent.id} value={g.parent.id}>
-                          {g.parent.name}
-                        </option>,
-                      ]
-                    : [
-                        <option key={g.parent.id} value={g.parent.id}>
-                          {g.parent.name}
-                        </option>,
-                        ...g.children.map((child) => (
-                          <option key={child.id} value={child.id}>
-                            {"  \u2514 " + child.name}
-                          </option>
-                        )),
-                      ],
-                )}
-              </optgroup>
-            ))}
-          </select>
+            onChange={(catId) => setCategoryId(catId)}
+          />
         </div>
 
         <div>
@@ -136,7 +84,8 @@ export default function GroupCategorizeDialog({
           </button>
           <button
             type="submit"
-            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors"
+            disabled={!categoryId}
+            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Create Rule &amp; Categorize
           </button>

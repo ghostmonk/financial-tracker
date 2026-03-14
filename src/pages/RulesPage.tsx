@@ -13,6 +13,7 @@ import type {
   UpdateRuleParams,
   Category,
 } from "../lib/types";
+import CategorySelect from "../components/transactions/CategorySelect";
 
 export default function RulesPage() {
   const [rules, setRules] = useState<CategorizationRule[]>([]);
@@ -325,8 +326,8 @@ function RuleForm({
   const [matchType, setMatchType] = useState(
     editingRule?.match_type ?? "contains",
   );
-  const [categoryId, setCategoryId] = useState(
-    editingRule?.category_id ?? "",
+  const [categoryId, setCategoryId] = useState<string | null>(
+    editingRule?.category_id ?? null,
   );
   const [amountMin, setAmountMin] = useState(
     editingRule?.amount_min?.toString() ?? "",
@@ -338,31 +339,6 @@ function RuleForm({
   const [autoApply, setAutoApply] = useState(
     editingRule?.auto_apply ?? true,
   );
-
-  const directionOrder = ["income", "expense", "transfer", "adjustment"] as const;
-  const directionLabels: Record<string, string> = {
-    income: "Income",
-    expense: "Expense",
-    transfer: "Transfer",
-    adjustment: "Adjustment",
-  };
-  const parents = categories.filter((c) => c.parent_id === null);
-  const children = categories.filter((c) => c.parent_id !== null);
-
-  const byDirection = directionOrder
-    .map((dir) => {
-      const dirParents = parents
-        .filter((c) => c.direction === dir)
-        .sort((a, b) => a.sort_order - b.sort_order);
-      const groups = dirParents.map((parent) => {
-        const kids = children
-          .filter((c) => c.parent_id === parent.id)
-          .sort((a, b) => a.sort_order - b.sort_order);
-        return { parent, children: kids };
-      });
-      return { direction: dir, label: directionLabels[dir], groups };
-    })
-    .filter((d) => d.groups.length > 0);
 
   function handleSubmit(e: React.FormEvent & { currentTarget: HTMLFormElement }) {
     e.preventDefault();
@@ -431,39 +407,11 @@ function RuleForm({
 
         <div>
           <label className="block text-sm font-medium mb-1">Category</label>
-          <select
+          <CategorySelect
+            categories={categories}
             value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-            className={inputClass}
-            required
-          >
-            <option value="">Select a category</option>
-            {byDirection.map((dirGroup) => (
-              <optgroup
-                key={dirGroup.direction}
-                label={`--- ${dirGroup.label} ---`}
-              >
-                {dirGroup.groups.flatMap((g) =>
-                  g.children.length === 0
-                    ? [
-                        <option key={g.parent.id} value={g.parent.id}>
-                          {g.parent.name}
-                        </option>,
-                      ]
-                    : [
-                        <option key={g.parent.id} value={g.parent.id}>
-                          {g.parent.name}
-                        </option>,
-                        ...g.children.map((child) => (
-                          <option key={child.id} value={child.id}>
-                            {"  \u2514 " + child.name}
-                          </option>
-                        )),
-                      ],
-                )}
-              </optgroup>
-            ))}
-          </select>
+            onChange={(catId) => setCategoryId(catId)}
+          />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
