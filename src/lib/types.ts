@@ -82,6 +82,8 @@ export interface TransactionFilters {
   date_to?: string;
   search?: string;
   uncategorized_only?: boolean;
+  amount_min?: number;
+  amount_max?: number;
   limit?: number;
   offset?: number;
 }
@@ -151,6 +153,8 @@ export interface CategorizationRule {
   match_type: string;
   category_id: string;
   priority: number;
+  amount_min: number | null;
+  amount_max: number | null;
   auto_apply: boolean;
   created_at: string;
 }
@@ -162,6 +166,8 @@ export interface CreateRuleParams {
   category_id: string;
   priority?: number;
   auto_apply?: boolean;
+  amount_min?: number | null;
+  amount_max?: number | null;
 }
 
 export interface UpdateRuleParams {
@@ -171,6 +177,8 @@ export interface UpdateRuleParams {
   category_id?: string;
   priority?: number;
   auto_apply?: boolean;
+  amount_min?: number | null;
+  amount_max?: number | null;
 }
 
 export interface UncategorizedGroup {

@@ -205,6 +205,16 @@ export async function getUncategorizedGroups(
   });
 }
 
+export async function getGroupTransactions(
+  normalizedName: string,
+  accountId?: string,
+): Promise<Transaction[]> {
+  return invoke("get_group_transactions", {
+    normalized_name: normalizedName,
+    account_id: accountId ?? null,
+  });
+}
+
 export async function countUncategorizedGroups(): Promise<number> {
   return invoke("count_uncategorized_groups");
 }
