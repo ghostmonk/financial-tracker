@@ -72,6 +72,8 @@ pub struct TransactionFilters {
     pub date_to: Option<String>,
     pub search: Option<String>,
     pub uncategorized_only: Option<bool>,
+    pub amount_min: Option<f64>,
+    pub amount_max: Option<f64>,
     pub limit: Option<u32>,
     pub offset: Option<u32>,
 }
@@ -239,6 +241,16 @@ pub fn list_transactions(
     }
     if filters.uncategorized_only == Some(true) {
         conditions.push("t.category_id IS NULL".to_string());
+    }
+    if let Some(amount_min) = filters.amount_min {
+        conditions.push(format!("ABS(t.amount) >= ?{}", param_idx));
+        values.push(Box::new(amount_min));
+        param_idx += 1;
+    }
+    if let Some(amount_max) = filters.amount_max {
+        conditions.push(format!("ABS(t.amount) <= ?{}", param_idx));
+        values.push(Box::new(amount_max));
+        param_idx += 1;
     }
 
     let where_clause = if conditions.is_empty() {
