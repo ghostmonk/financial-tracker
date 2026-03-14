@@ -1,4 +1,5 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, Navigate } from "react-router-dom";
+import { useDatabase } from "../contexts/DatabaseContext";
 
 const navItems = [
   { to: "/dashboard", label: "Dashboard" },
@@ -9,6 +10,12 @@ const navItems = [
 ];
 
 export default function Layout() {
+  const { isUnlocked } = useDatabase();
+
+  if (!isUnlocked) {
+    return <Navigate to="/unlock" replace />;
+  }
+
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <aside className="w-56 flex-shrink-0 bg-gray-900 dark:bg-gray-950 text-gray-300 flex flex-col">
