@@ -1,54 +1,48 @@
+mod commands;
 mod db;
 mod import;
 mod models;
 
-use db::{Database, DbError};
-use models::category::seed_default_categories;
+use db::Database;
 use std::sync::Mutex;
-use tauri::{Manager, State};
 
 pub struct AppState {
     pub db: Mutex<Option<Database>>,
-}
-
-#[tauri::command]
-fn unlock_database(
-    app: tauri::AppHandle,
-    state: State<'_, AppState>,
-    password: String,
-) -> Result<(), DbError> {
-    let app_data_dir = app
-        .path()
-        .app_data_dir()
-        .expect("failed to resolve app data dir");
-    std::fs::create_dir_all(&app_data_dir).expect("failed to create app data dir");
-
-    let db_path = app_data_dir.join("financial-tracker.db");
-    let database = Database::open(&db_path, &password)?;
-    database.initialize_schema()?;
-    {
-        let conn = database.connection();
-        seed_default_categories(&conn)?;
-    }
-
-    let mut db_lock = state.db.lock().unwrap();
-    *db_lock = Some(database);
-    Ok(())
-}
-
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .manage(AppState {
             db: Mutex::new(None),
         })
-        .invoke_handler(tauri::generate_handler![greet, unlock_database])
+        .invoke_handler(tauri::generate_handler![
+            // Database
+            commands::database::unlock_database,
+            commands::database::is_database_initialized,
+            // Accounts
+            commands::accounts::list_accounts,
+            commands::accounts::create_account,
+            commands::accounts::update_account,
+            commands::accounts::delete_account,
+            // Categories
+            commands::categories::list_categories,
+            commands::categories::create_category,
+            commands::categories::update_category,
+            commands::categories::delete_category,
+            // Transactions
+            commands::transactions::list_transactions,
+            commands::transactions::update_transaction,
+            commands::transactions::update_transactions_category,
+            commands::transactions::delete_transaction,
+            // Import
+            commands::import::preview_csv_file,
+            commands::import::parse_and_preview_csv,
+            commands::import::parse_and_preview_ofx,
+            commands::import::execute_import_command,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
