@@ -60,7 +60,7 @@ export default function CategoryForm({
     }
   }
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  function handleSubmit(e: React.FormEvent & { currentTarget: HTMLFormElement }) {
     e.preventDefault();
     if (!name.trim() || !slug.trim()) return;
     onSubmit({
