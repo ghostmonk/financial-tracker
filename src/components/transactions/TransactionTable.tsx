@@ -13,7 +13,7 @@ interface TransactionTableProps {
   loading: boolean;
 }
 
-type SortField = "date" | "amount";
+type SortField = "date" | "description" | "merchant" | "payee" | "amount" | "category" | "account";
 type SortDir = "asc" | "desc";
 
 function formatAmount(amount: number): string {
@@ -42,11 +42,32 @@ export default function TransactionTable({
   const categoryMap = new Map(categories.map((c) => [c.id, c]));
 
   const sorted = [...transactions].sort((a, b) => {
-    let cmp: number;
-    if (sortField === "date") {
-      cmp = a.date.localeCompare(b.date);
-    } else {
-      cmp = a.amount - b.amount;
+    let cmp = 0;
+    switch (sortField) {
+      case "date":
+        cmp = a.date.localeCompare(b.date);
+        break;
+      case "description":
+        cmp = a.description.localeCompare(b.description);
+        break;
+      case "merchant":
+        cmp = (a.merchant ?? "").localeCompare(b.merchant ?? "");
+        break;
+      case "payee":
+        cmp = (a.payee ?? "").localeCompare(b.payee ?? "");
+        break;
+      case "amount":
+        cmp = a.amount - b.amount;
+        break;
+      case "category": {
+        const catA = a.category_id ? categoryMap.get(a.category_id)?.name ?? "" : "";
+        const catB = b.category_id ? categoryMap.get(b.category_id)?.name ?? "" : "";
+        cmp = catA.localeCompare(catB);
+        break;
+      }
+      case "account":
+        cmp = (accountMap.get(a.account_id) ?? "").localeCompare(accountMap.get(b.account_id) ?? "");
+        break;
     }
     return sortDir === "desc" ? -cmp : cmp;
   });
@@ -56,7 +77,7 @@ export default function TransactionTable({
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     } else {
       setSortField(field);
-      setSortDir(field === "date" ? "desc" : "desc");
+      setSortDir("desc");
     }
   }
 
@@ -177,23 +198,27 @@ export default function TransactionTable({
                   className="rounded border-gray-300 dark:border-gray-600"
                 />
               </th>
-              <th
-                className={`${thClass} cursor-pointer select-none`}
-                onClick={() => toggleSort("date")}
-              >
+              <th className={`${thClass} cursor-pointer select-none`} onClick={() => toggleSort("date")}>
                 Date{sortIndicator("date")}
               </th>
-              <th className={thClass}>Description</th>
-              <th className={thClass}>Merchant</th>
-              <th className={thClass}>Payee</th>
-              <th
-                className={`${thClass} text-right cursor-pointer select-none`}
-                onClick={() => toggleSort("amount")}
-              >
+              <th className={`${thClass} cursor-pointer select-none`} onClick={() => toggleSort("description")}>
+                Description{sortIndicator("description")}
+              </th>
+              <th className={`${thClass} cursor-pointer select-none`} onClick={() => toggleSort("merchant")}>
+                Merchant{sortIndicator("merchant")}
+              </th>
+              <th className={`${thClass} cursor-pointer select-none`} onClick={() => toggleSort("payee")}>
+                Payee{sortIndicator("payee")}
+              </th>
+              <th className={`${thClass} text-right cursor-pointer select-none`} onClick={() => toggleSort("amount")}>
                 Amount{sortIndicator("amount")}
               </th>
-              <th className={thClass}>Category</th>
-              <th className={thClass}>Account</th>
+              <th className={`${thClass} cursor-pointer select-none`} onClick={() => toggleSort("category")}>
+                Category{sortIndicator("category")}
+              </th>
+              <th className={`${thClass} cursor-pointer select-none`} onClick={() => toggleSort("account")}>
+                Account{sortIndicator("account")}
+              </th>
             </tr>
           </thead>
           <tbody>
