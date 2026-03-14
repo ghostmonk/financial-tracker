@@ -12,6 +12,8 @@ pub struct CategorizationRule {
     pub match_type: String,
     pub category_id: String,
     pub priority: i32,
+    pub amount_min: Option<f64>,
+    pub amount_max: Option<f64>,
     pub auto_apply: bool,
     pub created_at: String,
 }
@@ -23,6 +25,8 @@ pub struct CreateRuleParams {
     pub match_type: String,
     pub category_id: String,
     pub priority: Option<i32>,
+    pub amount_min: Option<f64>,
+    pub amount_max: Option<f64>,
     pub auto_apply: Option<bool>,
 }
 
@@ -33,11 +37,13 @@ pub struct UpdateRuleParams {
     pub match_type: Option<String>,
     pub category_id: Option<String>,
     pub priority: Option<i32>,
+    pub amount_min: Option<Option<f64>>,
+    pub amount_max: Option<Option<f64>>,
     pub auto_apply: Option<bool>,
 }
 
 const SELECT_COLS: &str =
-    "id, pattern, match_field, match_type, category_id, priority, auto_apply, created_at";
+    "id, pattern, match_field, match_type, category_id, priority, amount_min, amount_max, auto_apply, created_at";
 
 fn row_to_rule(row: &rusqlite::Row) -> rusqlite::Result<CategorizationRule> {
     Ok(CategorizationRule {
@@ -47,8 +53,10 @@ fn row_to_rule(row: &rusqlite::Row) -> rusqlite::Result<CategorizationRule> {
         match_type: row.get(3)?,
         category_id: row.get(4)?,
         priority: row.get(5)?,
-        auto_apply: row.get(6)?,
-        created_at: row.get(7)?,
+        amount_min: row.get(6)?,
+        amount_max: row.get(7)?,
+        auto_apply: row.get(8)?,
+        created_at: row.get(9)?,
     })
 }
 
@@ -60,8 +68,8 @@ pub fn create_rule(
     let priority = params.priority.unwrap_or(0);
     let auto_apply = params.auto_apply.unwrap_or(true);
     conn.execute(
-        "INSERT INTO categorization_rules (id, pattern, match_field, match_type, category_id, priority, auto_apply) \
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        "INSERT INTO categorization_rules (id, pattern, match_field, match_type, category_id, priority, amount_min, amount_max, auto_apply) \
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
         rusqlite::params![
             id,
             params.pattern,
@@ -69,6 +77,8 @@ pub fn create_rule(
             params.match_type,
             params.category_id,
             priority,
+            params.amount_min,
+            params.amount_max,
             auto_apply,
         ],
     )?;
@@ -118,6 +128,14 @@ pub fn update_rule(
     if let Some(priority) = params.priority {
         sets.push("priority = ?");
         values.push(Box::new(priority));
+    }
+    if let Some(ref amount_min) = params.amount_min {
+        sets.push("amount_min = ?");
+        values.push(Box::new(*amount_min));
+    }
+    if let Some(ref amount_max) = params.amount_max {
+        sets.push("amount_max = ?");
+        values.push(Box::new(*amount_max));
     }
     if let Some(auto_apply) = params.auto_apply {
         sets.push("auto_apply = ?");
@@ -191,6 +209,8 @@ mod tests {
                 match_type: "contains".to_string(),
                 category_id: "cat-1".to_string(),
                 priority: Some(10),
+                amount_min: None,
+                amount_max: None,
                 auto_apply: None,
             },
         )
@@ -211,6 +231,8 @@ mod tests {
                 match_type: "starts_with".to_string(),
                 category_id: "cat-2".to_string(),
                 priority: Some(5),
+                amount_min: None,
+                amount_max: None,
                 auto_apply: Some(false),
             },
         )
@@ -237,6 +259,8 @@ mod tests {
                 match_type: "contains".to_string(),
                 category_id: "cat-1".to_string(),
                 priority: None,
+                amount_min: None,
+                amount_max: None,
                 auto_apply: None,
             },
         )
@@ -254,6 +278,8 @@ mod tests {
                 match_type: Some("exact".to_string()),
                 category_id: Some("cat-2".to_string()),
                 priority: Some(20),
+                amount_min: None,
+                amount_max: None,
                 auto_apply: Some(false),
             },
         )
@@ -280,6 +306,8 @@ mod tests {
                 match_type: "contains".to_string(),
                 category_id: "cat-1".to_string(),
                 priority: None,
+                amount_min: None,
+                amount_max: None,
                 auto_apply: None,
             },
         )
@@ -294,6 +322,8 @@ mod tests {
                 match_type: None,
                 category_id: None,
                 priority: None,
+                amount_min: None,
+                amount_max: None,
                 auto_apply: None,
             },
         )
@@ -301,6 +331,98 @@ mod tests {
 
         assert_eq!(unchanged.id, rule.id);
         assert_eq!(unchanged.pattern, "TEST");
+    }
+
+    #[test]
+    fn test_create_rule_with_amount_conditions() {
+        let conn = setup_db();
+
+        let rule = create_rule(
+            &conn,
+            CreateRuleParams {
+                pattern: "LARGE PURCHASE".to_string(),
+                match_field: "description".to_string(),
+                match_type: "contains".to_string(),
+                category_id: "cat-1".to_string(),
+                priority: Some(5),
+                amount_min: Some(100.0),
+                amount_max: Some(500.0),
+                auto_apply: None,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(rule.amount_min, Some(100.0));
+        assert_eq!(rule.amount_max, Some(500.0));
+
+        // Verify persisted via list
+        let rules = list_rules(&conn).unwrap();
+        assert_eq!(rules.len(), 1);
+        assert_eq!(rules[0].amount_min, Some(100.0));
+        assert_eq!(rules[0].amount_max, Some(500.0));
+    }
+
+    #[test]
+    fn test_update_rule_amount_conditions() {
+        let conn = setup_db();
+
+        let rule = create_rule(
+            &conn,
+            CreateRuleParams {
+                pattern: "TEST".to_string(),
+                match_field: "description".to_string(),
+                match_type: "contains".to_string(),
+                category_id: "cat-1".to_string(),
+                priority: None,
+                amount_min: None,
+                amount_max: None,
+                auto_apply: None,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(rule.amount_min, None);
+        assert_eq!(rule.amount_max, None);
+
+        // Set amount conditions
+        let updated = update_rule(
+            &conn,
+            &rule.id,
+            UpdateRuleParams {
+                pattern: None,
+                match_field: None,
+                match_type: None,
+                category_id: None,
+                priority: None,
+                amount_min: Some(Some(50.0)),
+                amount_max: Some(Some(200.0)),
+                auto_apply: None,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(updated.amount_min, Some(50.0));
+        assert_eq!(updated.amount_max, Some(200.0));
+
+        // Clear amount conditions
+        let cleared = update_rule(
+            &conn,
+            &rule.id,
+            UpdateRuleParams {
+                pattern: None,
+                match_field: None,
+                match_type: None,
+                category_id: None,
+                priority: None,
+                amount_min: Some(None),
+                amount_max: Some(None),
+                auto_apply: None,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(cleared.amount_min, None);
+        assert_eq!(cleared.amount_max, None);
     }
 
     #[test]
@@ -315,6 +437,8 @@ mod tests {
                 match_type: "exact".to_string(),
                 category_id: "cat-1".to_string(),
                 priority: None,
+                amount_min: None,
+                amount_max: None,
                 auto_apply: None,
             },
         )

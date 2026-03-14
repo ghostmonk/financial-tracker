@@ -251,7 +251,7 @@ pub fn count_uncategorized_groups(conn: &Connection) -> Result<i64, DbError> {
 /// Load all auto_apply=1 rules ordered by priority DESC.
 fn load_auto_rules(conn: &Connection) -> Result<Vec<CategorizationRule>, DbError> {
     let mut stmt = conn.prepare(
-        "SELECT id, pattern, match_field, match_type, category_id, priority, auto_apply, created_at \
+        "SELECT id, pattern, match_field, match_type, category_id, priority, amount_min, amount_max, auto_apply, created_at \
          FROM categorization_rules WHERE auto_apply = 1 ORDER BY priority DESC",
     )?;
     let rules = stmt
@@ -263,8 +263,10 @@ fn load_auto_rules(conn: &Connection) -> Result<Vec<CategorizationRule>, DbError
                 match_type: row.get(3)?,
                 category_id: row.get(4)?,
                 priority: row.get(5)?,
-                auto_apply: row.get(6)?,
-                created_at: row.get(7)?,
+                amount_min: row.get(6)?,
+                amount_max: row.get(7)?,
+                auto_apply: row.get(8)?,
+                created_at: row.get(9)?,
             })
         })?
         .collect::<rusqlite::Result<Vec<_>>>()?;
@@ -371,6 +373,8 @@ mod tests {
             match_type: "contains".into(),
             category_id: "cat-dining".into(),
             priority: 0,
+            amount_min: None,
+            amount_max: None,
             auto_apply: true,
             created_at: String::new(),
         };
@@ -388,6 +392,8 @@ mod tests {
             match_type: "starts_with".into(),
             category_id: "cat-dining".into(),
             priority: 0,
+            amount_min: None,
+            amount_max: None,
             auto_apply: true,
             created_at: String::new(),
         };
@@ -404,6 +410,8 @@ mod tests {
             match_type: "exact".into(),
             category_id: "cat-dining".into(),
             priority: 0,
+            amount_min: None,
+            amount_max: None,
             auto_apply: true,
             created_at: String::new(),
         };
@@ -420,6 +428,8 @@ mod tests {
             match_type: "contains".into(),
             category_id: "cat-dining".into(),
             priority: 0,
+            amount_min: None,
+            amount_max: None,
             auto_apply: true,
             created_at: String::new(),
         };
