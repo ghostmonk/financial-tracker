@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   listCategorizationRules,
   createCategorizationRule,
@@ -28,6 +28,25 @@ export default function RulesPage() {
   const [error, setError] = useState<string | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
 
+  type SortField = "pattern" | "match_field" | "match_type" | "category" | "priority" | "auto_apply";
+  type SortDir = "asc" | "desc";
+  const [sortField, setSortField] = useState<SortField>("priority");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  function toggleSort(field: SortField) {
+    if (sortField === field) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDir("desc");
+    }
+  }
+
+  function sortIndicator(field: SortField) {
+    if (sortField !== field) return "";
+    return sortDir === "asc" ? " ▲" : " ▼";
+  }
+
   const fetchRules = useCallback(async () => {
     setLoading(true);
     try {
@@ -54,6 +73,36 @@ export default function RulesPage() {
       return [c.id, c.name];
     }),
   );
+
+  const sortedRules = useMemo(() => {
+    const sorted = [...rules].sort((a, b) => {
+      let cmp = 0;
+      switch (sortField) {
+        case "pattern":
+          cmp = a.pattern.localeCompare(b.pattern);
+          break;
+        case "match_field":
+          cmp = a.match_field.localeCompare(b.match_field);
+          break;
+        case "match_type":
+          cmp = a.match_type.localeCompare(b.match_type);
+          break;
+        case "category":
+          cmp = (categoryMap.get(a.category_id) ?? "").localeCompare(
+            categoryMap.get(b.category_id) ?? "",
+          );
+          break;
+        case "priority":
+          cmp = a.priority - b.priority;
+          break;
+        case "auto_apply":
+          cmp = Number(a.auto_apply) - Number(b.auto_apply);
+          break;
+      }
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return sorted;
+  }, [rules, sortField, sortDir, categoryMap]);
 
   async function handleReapply() {
     setBanner(null);
@@ -152,21 +201,21 @@ export default function RulesPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                <th className="px-4 py-3">Pattern</th>
-                <th className="px-4 py-3">Field</th>
-                <th className="px-4 py-3">Match</th>
-                <th className="px-4 py-3">Category</th>
+                <th className="px-4 py-3 cursor-pointer select-none" onClick={() => toggleSort("pattern")}>Pattern{sortIndicator("pattern")}</th>
+                <th className="px-4 py-3 cursor-pointer select-none" onClick={() => toggleSort("match_field")}>Field{sortIndicator("match_field")}</th>
+                <th className="px-4 py-3 cursor-pointer select-none" onClick={() => toggleSort("match_type")}>Match{sortIndicator("match_type")}</th>
+                <th className="px-4 py-3 cursor-pointer select-none" onClick={() => toggleSort("category")}>Category{sortIndicator("category")}</th>
                 <th className="px-4 py-3">Amount</th>
-                <th className="px-4 py-3 text-right">Priority</th>
-                <th className="px-4 py-3">Auto</th>
+                <th className="px-4 py-3 text-right cursor-pointer select-none" onClick={() => toggleSort("priority")}>Priority{sortIndicator("priority")}</th>
+                <th className="px-4 py-3 cursor-pointer select-none" onClick={() => toggleSort("auto_apply")}>Auto{sortIndicator("auto_apply")}</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-              {rules.map((rule) => (
+              {sortedRules.map((rule) => (
                 <tr
                   key={rule.id}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-750"
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
                 >
                   <td className="px-4 py-3 font-mono text-xs">
                     {rule.pattern}

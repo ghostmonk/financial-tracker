@@ -5,6 +5,7 @@ import type {
   Category,
   Transaction,
 } from "../../lib/types";
+import CategorySelect from "../transactions/CategorySelect";
 
 interface TransactionFiltersProps {
   filters: Filters;
@@ -201,23 +202,12 @@ export default function TransactionFilters({
       </div>
 
       <div className="flex flex-col">
-        <label className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-          Category
-        </label>
-        <select
-          value={filters.category_id ?? ""}
-          onChange={(e) =>
-            updateFilters({ category_id: e.target.value || undefined })
-          }
-          className={selectClass}
-        >
-          <option value="">All categories</option>
-          {usedCategories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+        <label className="text-xs text-gray-500 dark:text-gray-400 mb-1">Category</label>
+        <CategorySelect
+          categories={usedCategories}
+          value={filters.category_id ?? null}
+          onChange={(catId) => updateFilters({ category_id: catId ?? undefined })}
+        />
       </div>
 
       <label className="flex items-center gap-1.5 text-sm cursor-pointer pb-1">

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   getGroupTransactions,
   updateTransactionsCategory,
@@ -48,6 +48,25 @@ export default function GroupDrillDown({
   const [assigning, setAssigning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  type SortField = "date" | "description" | "amount";
+  type SortDir = "asc" | "desc";
+  const [sortField, setSortField] = useState<SortField>("date");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  function toggleSort(field: SortField) {
+    if (sortField === field) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDir("desc");
+    }
+  }
+
+  function sortIndicator(field: SortField) {
+    if (sortField !== field) return "";
+    return sortDir === "asc" ? " ▲" : " ▼";
+  }
+
   const fetchTransactions = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -77,6 +96,25 @@ export default function GroupDrillDown({
     if (amountMax && Math.abs(tx.amount) > parseFloat(amountMax)) return false;
     return true;
   });
+
+  const sortedFiltered = useMemo(() => {
+    const sorted = [...filtered].sort((a, b) => {
+      let cmp = 0;
+      switch (sortField) {
+        case "date":
+          cmp = a.date.localeCompare(b.date);
+          break;
+        case "description":
+          cmp = a.description.localeCompare(b.description);
+          break;
+        case "amount":
+          cmp = a.amount - b.amount;
+          break;
+      }
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return sorted;
+  }, [filtered, sortField, sortDir]);
 
   function toggleSelect(id: string) {
     setSelectedIds((prev) => {
@@ -313,21 +351,21 @@ export default function GroupDrillDown({
                     className="rounded border-gray-300 dark:border-gray-600"
                   />
                 </th>
-                <th className={thClass}>Date</th>
-                <th className={thClass}>Description</th>
-                <th className={`${thClass} text-right`}>Amount</th>
+                <th className={`${thClass} cursor-pointer select-none`} onClick={() => toggleSort("date")}>Date{sortIndicator("date")}</th>
+                <th className={`${thClass} cursor-pointer select-none`} onClick={() => toggleSort("description")}>Description{sortIndicator("description")}</th>
+                <th className={`${thClass} text-right cursor-pointer select-none`} onClick={() => toggleSort("amount")}>Amount{sortIndicator("amount")}</th>
                 <th className={thClass}>Category</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((tx) => {
+              {sortedFiltered.map((tx) => {
                 const cat = tx.category_id
                   ? categories.find((c) => c.id === tx.category_id)
                   : null;
                 return (
                   <tr
                     key={tx.id}
-                    className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 ${
+                    className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
                       selectedIds.has(tx.id)
                         ? "bg-blue-50/50 dark:bg-blue-900/20"
                         : ""

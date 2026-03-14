@@ -1,3 +1,4 @@
+import { useState, useMemo } from "react";
 import type { UncategorizedGroup, Account } from "../../lib/types";
 
 interface UncategorizedGroupListProps {
@@ -18,6 +19,44 @@ export default function UncategorizedGroupList({
   onCategorize,
   onDrillDown,
 }: UncategorizedGroupListProps) {
+  type SortField = "name" | "count" | "total";
+  type SortDir = "asc" | "desc";
+  const [sortField, setSortField] = useState<SortField>("count");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  function toggleSort(field: SortField) {
+    if (sortField === field) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDir("desc");
+    }
+  }
+
+  function sortIndicator(field: SortField) {
+    if (sortField !== field) return "";
+    return sortDir === "asc" ? " ▲" : " ▼";
+  }
+
+  const sortedGroups = useMemo(() => {
+    const sorted = [...groups].sort((a, b) => {
+      let cmp = 0;
+      switch (sortField) {
+        case "name":
+          cmp = a.normalized_name.localeCompare(b.normalized_name);
+          break;
+        case "count":
+          cmp = a.transaction_count - b.transaction_count;
+          break;
+        case "total":
+          cmp = a.total_amount - b.total_amount;
+          break;
+      }
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return sorted;
+  }, [groups, sortField, sortDir]);
+
   if (groups.length === 0) {
     return (
       <p className="text-center text-gray-500 dark:text-gray-400 py-12 text-sm">
@@ -33,18 +72,18 @@ export default function UncategorizedGroupList({
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-gray-200 dark:border-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-            <th className="px-4 py-3">Description</th>
-            <th className="px-4 py-3 text-right">Count</th>
-            <th className="px-4 py-3 text-right">Total</th>
+            <th className="px-4 py-3 cursor-pointer select-none" onClick={() => toggleSort("name")}>Description{sortIndicator("name")}</th>
+            <th className="px-4 py-3 text-right cursor-pointer select-none" onClick={() => toggleSort("count")}>Count{sortIndicator("count")}</th>
+            <th className="px-4 py-3 text-right cursor-pointer select-none" onClick={() => toggleSort("total")}>Total{sortIndicator("total")}</th>
             <th className="px-4 py-3">Accounts</th>
             <th className="px-4 py-3" />
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-          {groups.map((group) => (
+          {sortedGroups.map((group) => (
             <tr
               key={group.normalized_name}
-              className="hover:bg-blue-50 dark:hover:bg-gray-700/50"
+              className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
             >
               <td className="px-4 py-3">
                 <button
