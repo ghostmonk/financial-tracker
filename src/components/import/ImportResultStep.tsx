@@ -1,0 +1,50 @@
+import { useNavigate } from "react-router-dom";
+import type { ImportResult } from "../../lib/types";
+
+interface ImportResultStepProps {
+  result: ImportResult;
+  onReset: () => void;
+}
+
+export default function ImportResultStep({
+  result,
+  onReset,
+}: ImportResultStepProps) {
+  const navigate = useNavigate();
+
+  return (
+    <div className="max-w-lg space-y-6">
+      <div className="p-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
+        <h3 className="text-lg font-medium text-green-800 dark:text-green-200 mb-2">
+          Import Complete
+        </h3>
+        <p className="text-sm text-green-700 dark:text-green-300">
+          Imported {result.imported_count} transaction
+          {result.imported_count !== 1 ? "s" : ""}.
+          {result.skipped_count > 0 && (
+            <span>
+              {" "}
+              {result.skipped_count} duplicate
+              {result.skipped_count !== 1 ? "s" : ""} skipped.
+            </span>
+          )}
+        </p>
+      </div>
+
+      <div className="flex gap-3">
+        <button
+          onClick={onReset}
+          className="px-4 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors"
+        >
+          Import Another File
+        </button>
+        <button
+          onClick={() => navigate("/transactions")}
+          className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+        >
+          View Transactions
+        </button>
+      </div>
+    </div>
+  );
+}

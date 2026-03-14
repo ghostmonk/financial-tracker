@@ -17,7 +17,7 @@ export default function UnlockPage() {
       .catch(() => setIsFirstLaunch(true));
   }, []);
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!password) return;
 

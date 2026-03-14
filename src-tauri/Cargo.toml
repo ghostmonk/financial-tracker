@@ -29,4 +29,5 @@ uuid = { version = "1", features = ["v4", "serde"] }
 sha2 = "0.10"
 thiserror = "2"
 csv = "1"
+tauri-plugin-fs = "2"
 
