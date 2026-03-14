@@ -66,6 +66,12 @@ impl Database {
         )
         .ok();
 
+        // Migration: add amount conditions to categorization_rules
+        conn.execute_batch("ALTER TABLE categorization_rules ADD COLUMN amount_min REAL;")
+            .ok();
+        conn.execute_batch("ALTER TABLE categorization_rules ADD COLUMN amount_max REAL;")
+            .ok();
+
         Ok(())
     }
 

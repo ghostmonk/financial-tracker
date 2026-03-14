@@ -78,6 +78,8 @@ CREATE TABLE IF NOT EXISTS categorization_rules (
     match_type TEXT NOT NULL CHECK(match_type IN ('contains', 'starts_with', 'exact')),
     category_id TEXT NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
     priority INTEGER NOT NULL DEFAULT 0,
+    amount_min REAL,
+    amount_max REAL,
     auto_apply INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
