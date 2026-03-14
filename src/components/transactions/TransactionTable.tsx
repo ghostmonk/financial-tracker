@@ -3,6 +3,9 @@ import type { Transaction, Account, Category } from "../../lib/types";
 import { updateTransaction, updateTransactionsCategory } from "../../lib/tauri";
 import CategorySelect from "./CategorySelect";
 
+type SortField = "date" | "description" | "merchant" | "payee" | "amount" | "category" | "account";
+type SortDir = "asc" | "desc";
+
 interface TransactionTableProps {
   transactions: Transaction[];
   accounts: Account[];
@@ -11,10 +14,10 @@ interface TransactionTableProps {
   onLoadMore: () => void;
   onRefresh: () => void;
   loading: boolean;
+  sortField?: SortField;
+  sortDir?: SortDir;
+  onSortChange?: (field: string, dir: string) => void;
 }
-
-type SortField = "date" | "description" | "merchant" | "payee" | "amount" | "category" | "account";
-type SortDir = "asc" | "desc";
 
 function formatAmount(amount: number): string {
   const abs = Math.abs(amount).toFixed(2);
@@ -29,19 +32,27 @@ export default function TransactionTable({
   onLoadMore,
   onRefresh,
   loading,
+  sortField: propSortField,
+  sortDir: propSortDir,
+  onSortChange,
 }: TransactionTableProps) {
-  const [sortField, setSortField] = useState<SortField>("date");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [localSortField, setLocalSortField] = useState<SortField>("date");
+  const [localSortDir, setLocalSortDir] = useState<SortDir>("desc");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(
     null,
   );
   const [bulkCategoryOpen, setBulkCategoryOpen] = useState(false);
 
+  const sortField = propSortField ?? localSortField;
+  const sortDir = propSortDir ?? localSortDir;
+  const serverSorted = !!onSortChange;
+
   const accountMap = new Map(accounts.map((a) => [a.id, a.name]));
   const categoryMap = new Map(categories.map((c) => [c.id, c]));
 
-  const sorted = [...transactions].sort((a, b) => {
+  // When server-side sorting, transactions arrive pre-sorted
+  const sorted = serverSorted ? transactions : [...transactions].sort((a, b) => {
     let cmp = 0;
     switch (sortField) {
       case "date":
@@ -73,11 +84,12 @@ export default function TransactionTable({
   });
 
   function toggleSort(field: SortField) {
-    if (sortField === field) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    const newDir = sortField === field ? (sortDir === "asc" ? "desc" : "asc") : "desc";
+    if (onSortChange) {
+      onSortChange(field, newDir);
     } else {
-      setSortField(field);
-      setSortDir("desc");
+      setLocalSortField(field);
+      setLocalSortDir(newDir as SortDir);
     }
   }
 

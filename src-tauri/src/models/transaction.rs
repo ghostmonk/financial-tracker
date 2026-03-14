@@ -74,6 +74,8 @@ pub struct TransactionFilters {
     pub uncategorized_only: Option<bool>,
     pub amount_min: Option<f64>,
     pub amount_max: Option<f64>,
+    pub sort_field: Option<String>,
+    pub sort_dir: Option<String>,
     pub limit: Option<u32>,
     pub offset: Option<u32>,
 }
@@ -274,9 +276,22 @@ pub fn list_transactions(
         .collect::<Vec<_>>()
         .join(", ");
 
+    let order_col = match filters.sort_field.as_deref() {
+        Some("description") => "t.description",
+        Some("merchant") => "t.merchant",
+        Some("payee") => "t.payee",
+        Some("amount") => "t.amount",
+        Some("account") => "t.account_id",
+        _ => "t.date",
+    };
+    let order_dir = match filters.sort_dir.as_deref() {
+        Some("asc") => "ASC",
+        _ => "DESC",
+    };
+
     let sql = format!(
-        "SELECT {} FROM transactions t {} {} ORDER BY t.date DESC, t.created_at DESC LIMIT ?{} OFFSET ?{}",
-        select_cols, join_clause, where_clause, param_idx, param_idx + 1
+        "SELECT {} FROM transactions t {} {} ORDER BY {} {}, t.created_at DESC LIMIT ?{} OFFSET ?{}",
+        select_cols, join_clause, where_clause, order_col, order_dir, param_idx, param_idx + 1
     );
 
     values.push(Box::new(limit));

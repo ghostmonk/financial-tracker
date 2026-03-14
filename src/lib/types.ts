@@ -84,6 +84,8 @@ export interface TransactionFilters {
   uncategorized_only?: boolean;
   amount_min?: number;
   amount_max?: number;
+  sort_field?: string;
+  sort_dir?: string;
   limit?: number;
   offset?: number;
 }

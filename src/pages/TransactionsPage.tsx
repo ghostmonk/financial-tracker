@@ -102,6 +102,11 @@ export default function TransactionsPage() {
         onLoadMore={handleLoadMore}
         onRefresh={handleRefresh}
         loading={loading}
+        sortField={(filters.sort_field as "date" | "description" | "merchant" | "payee" | "amount" | "category" | "account") ?? "date"}
+        sortDir={(filters.sort_dir as "asc" | "desc") ?? "desc"}
+        onSortChange={(field, dir) => {
+          setFilters((prev) => ({ ...prev, sort_field: field, sort_dir: dir, offset: 0 }));
+        }}
       />
     </div>
   );
