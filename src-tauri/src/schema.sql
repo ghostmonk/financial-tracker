@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     import_hash TEXT,
     fitid TEXT,
     transaction_type TEXT,
+    categorized_by_rule INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

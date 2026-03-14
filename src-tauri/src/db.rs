@@ -40,6 +40,12 @@ impl Database {
         let conn = self.conn.lock().unwrap();
         let schema = include_str!("schema.sql");
         conn.execute_batch(schema)?;
+
+        // Migration: add categorized_by_rule if missing
+        conn.execute_batch(
+            "ALTER TABLE transactions ADD COLUMN categorized_by_rule INTEGER NOT NULL DEFAULT 0;"
+        ).ok(); // .ok() ignores "duplicate column" error on subsequent runs
+
         Ok(())
     }
 
