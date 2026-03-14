@@ -14,6 +14,10 @@ import type {
   ParsedTransaction,
   ImportPreview,
   ImportResult,
+  CategorizationRule,
+  CreateRuleParams,
+  UpdateRuleParams,
+  UncategorizedGroup,
 } from "./types";
 
 export type {
@@ -31,6 +35,10 @@ export type {
   ParsedTransaction,
   ImportPreview,
   ImportResult,
+  CategorizationRule,
+  CreateRuleParams,
+  UpdateRuleParams,
+  UncategorizedGroup,
 };
 
 // Database
@@ -164,4 +172,53 @@ export async function executeImport(
     skip_duplicate_fitids: skipDuplicateFitids,
     skip_duplicate_hashes: skipDuplicateHashes,
   });
+}
+
+// Categorization Rules
+
+export async function listCategorizationRules(): Promise<
+  CategorizationRule[]
+> {
+  return invoke("list_categorization_rules");
+}
+
+export async function createCategorizationRule(
+  params: CreateRuleParams,
+): Promise<CategorizationRule> {
+  return invoke("create_categorization_rule", { params });
+}
+
+export async function updateCategorizationRule(
+  id: string,
+  params: UpdateRuleParams,
+): Promise<CategorizationRule> {
+  return invoke("update_categorization_rule", { id, params });
+}
+
+export async function deleteCategorizationRule(id: string): Promise<void> {
+  return invoke("delete_categorization_rule", { id });
+}
+
+export async function getUncategorizedGroups(
+  accountId?: string,
+): Promise<UncategorizedGroup[]> {
+  return invoke("get_uncategorized_groups", {
+    account_id: accountId ?? null,
+  });
+}
+
+export async function countUncategorizedGroups(): Promise<number> {
+  return invoke("count_uncategorized_groups");
+}
+
+export async function applyRulesToTransactionIds(
+  transactionIds: string[],
+): Promise<number> {
+  return invoke("apply_rules_to_transaction_ids", {
+    transaction_ids: transactionIds,
+  });
+}
+
+export async function reapplyAllRules(): Promise<number> {
+  return invoke("reapply_all_rules");
 }
