@@ -119,7 +119,7 @@ pub fn execute_import(
             payee: tx.payee.clone(),
             account_id: account_id.to_string(),
             category_id: None,
-            merchant: None,
+            merchant: Some(tx.description.clone()),
             is_recurring: None,
             tax_deductible: None,
             gst_amount: None,
@@ -283,6 +283,16 @@ mod tests {
             .query_row("SELECT COUNT(*) FROM transactions", [], |row| row.get(0))
             .unwrap();
         assert_eq!(count, 2);
+
+        // Verify merchant is populated from description
+        let merchant: String = conn
+            .query_row(
+                "SELECT merchant FROM transactions WHERE description = 'GROCERY STORE'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(merchant, "GROCERY STORE");
 
         // Verify import record exists
         let record_count: i64 = conn
