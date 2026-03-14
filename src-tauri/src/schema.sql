@@ -11,10 +11,10 @@ CREATE TABLE IF NOT EXISTS accounts (
 
 CREATE TABLE IF NOT EXISTS categories (
     id TEXT PRIMARY KEY,
+    slug TEXT NOT NULL UNIQUE,
     name TEXT NOT NULL,
     parent_id TEXT REFERENCES categories(id) ON DELETE SET NULL,
-    category_type TEXT NOT NULL CHECK(category_type IN ('income', 'expense')),
-    is_business_default INTEGER NOT NULL DEFAULT 0,
+    direction TEXT NOT NULL CHECK(direction IN ('income', 'expense', 'transfer', 'adjustment')),
     sort_order INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -25,9 +25,11 @@ CREATE TABLE IF NOT EXISTS transactions (
     amount REAL NOT NULL,
     description TEXT NOT NULL,
     payee TEXT,
+    merchant TEXT,
     account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
     category_id TEXT REFERENCES categories(id) ON DELETE SET NULL,
     is_business INTEGER NOT NULL DEFAULT 0,
+    is_recurring INTEGER NOT NULL DEFAULT 0,
     tax_deductible INTEGER NOT NULL DEFAULT 0,
     gst_amount REAL,
     qst_amount REAL,
@@ -76,6 +78,23 @@ CREATE TABLE IF NOT EXISTS categorization_rules (
     match_type TEXT NOT NULL CHECK(match_type IN ('contains', 'starts_with', 'exact')),
     category_id TEXT NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
     priority INTEGER NOT NULL DEFAULT 0,
+    amount_min REAL,
+    amount_max REAL,
     auto_apply INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS tags (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    slug TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS transaction_tags (
+    transaction_id TEXT NOT NULL REFERENCES transactions(id) ON DELETE CASCADE,
+    tag_id TEXT NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+    PRIMARY KEY (transaction_id, tag_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_transaction_tags_tag ON transaction_tags(tag_id);

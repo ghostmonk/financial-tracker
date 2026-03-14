@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { listTransactions, listCategories } from "../lib/tauri";
 import type { Transaction, Category } from "../lib/types";
 import MonthlySummary from "../components/dashboard/MonthlySummary";
@@ -72,29 +72,6 @@ export default function DashboardPage() {
     }
   }
 
-  const { totalIncome, totalExpenses, businessIncome, businessExpenses } =
-    useMemo(() => {
-      let inc = 0;
-      let exp = 0;
-      let bInc = 0;
-      let bExp = 0;
-      for (const tx of transactions) {
-        if (tx.amount > 0) {
-          inc += tx.amount;
-          if (tx.is_business) bInc += tx.amount;
-        } else {
-          exp += tx.amount;
-          if (tx.is_business) bExp += tx.amount;
-        }
-      }
-      return {
-        totalIncome: inc,
-        totalExpenses: exp,
-        businessIncome: bInc,
-        businessExpenses: bExp,
-      };
-    }, [transactions]);
-
   const { year: curY, month: curM } = getYearMonth(new Date());
   const atCurrentMonth = year === curY && month === curM;
 
@@ -125,10 +102,8 @@ export default function DashboardPage() {
       </div>
 
       <MonthlySummary
-        totalIncome={totalIncome}
-        totalExpenses={totalExpenses}
-        businessIncome={businessIncome}
-        businessExpenses={businessExpenses}
+        transactions={transactions}
+        categories={categories}
       />
 
       <CategoryBreakdown

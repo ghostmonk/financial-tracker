@@ -39,6 +39,7 @@ pub fn run() {
             commands::transactions::update_transaction,
             commands::transactions::update_transactions_category,
             commands::transactions::delete_transaction,
+            commands::transactions::get_group_transactions,
             // Import
             commands::import::preview_csv_file,
             commands::import::parse_and_preview_csv,
@@ -53,6 +54,12 @@ pub fn run() {
             commands::rules::count_uncategorized_groups,
             commands::rules::apply_rules_to_transaction_ids,
             commands::rules::reapply_all_rules,
+            // Tags
+            commands::tags::list_tags,
+            commands::tags::create_tag,
+            commands::tags::delete_tag,
+            commands::tags::set_transaction_tags,
+            commands::tags::get_transaction_tags,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

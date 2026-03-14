@@ -1,8 +1,7 @@
 use tauri::State;
 
-use crate::models::transaction::{
-    self, Transaction, TransactionFilters, UpdateTransactionParams,
-};
+use crate::categorize;
+use crate::models::transaction::{self, Transaction, TransactionFilters, UpdateTransactionParams};
 use crate::AppState;
 
 use super::with_db_conn;
@@ -36,6 +35,18 @@ pub fn update_transactions_category(
 ) -> Result<(), String> {
     with_db_conn(&state, |conn| {
         transaction::update_transactions_category(conn, &ids, category_id.as_deref())
+            .map_err(|e| e.to_string())
+    })
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn get_group_transactions(
+    state: State<'_, AppState>,
+    normalized_name: String,
+    account_id: Option<String>,
+) -> Result<Vec<Transaction>, String> {
+    with_db_conn(&state, |conn| {
+        categorize::get_group_transactions(conn, &normalized_name, account_id.as_deref())
             .map_err(|e| e.to_string())
     })
 }

@@ -27,26 +27,27 @@ export interface UpdateAccountParams {
 
 export interface Category {
   id: string;
+  slug: string;
   name: string;
   parent_id: string | null;
-  category_type: string;
-  is_business_default: boolean;
+  direction: "income" | "expense" | "transfer" | "adjustment";
   sort_order: number;
+  created_at: string;
 }
 
 export interface CreateCategoryParams {
+  slug: string;
   name: string;
   parent_id?: string | null;
-  category_type: string;
-  is_business_default: boolean;
-  sort_order: number;
+  direction: string;
+  sort_order?: number;
 }
 
 export interface UpdateCategoryParams {
+  slug?: string;
   name?: string;
   parent_id?: string | null;
-  category_type?: string;
-  is_business_default?: boolean;
+  direction?: string;
   sort_order?: number;
 }
 
@@ -56,9 +57,10 @@ export interface Transaction {
   amount: number;
   description: string;
   payee: string | null;
+  merchant: string | null;
   account_id: string;
   category_id: string | null;
-  is_business: boolean;
+  is_recurring: boolean;
   tax_deductible: boolean;
   gst_amount: number | null;
   qst_amount: number | null;
@@ -74,11 +76,16 @@ export interface Transaction {
 export interface TransactionFilters {
   account_id?: string;
   category_id?: string;
-  is_business?: boolean;
+  direction?: string;
+  is_recurring?: boolean;
   date_from?: string;
   date_to?: string;
   search?: string;
   uncategorized_only?: boolean;
+  amount_min?: number;
+  amount_max?: number;
+  sort_field?: string;
+  sort_dir?: string;
   limit?: number;
   offset?: number;
 }
@@ -89,7 +96,7 @@ export interface UpdateTransactionParams {
   description?: string;
   payee?: string | null;
   category_id?: string | null;
-  is_business?: boolean;
+  is_recurring?: boolean;
   tax_deductible?: boolean;
   gst_amount?: number | null;
   qst_amount?: number | null;
@@ -148,6 +155,8 @@ export interface CategorizationRule {
   match_type: string;
   category_id: string;
   priority: number;
+  amount_min: number | null;
+  amount_max: number | null;
   auto_apply: boolean;
   created_at: string;
 }
@@ -159,6 +168,8 @@ export interface CreateRuleParams {
   category_id: string;
   priority?: number;
   auto_apply?: boolean;
+  amount_min?: number | null;
+  amount_max?: number | null;
 }
 
 export interface UpdateRuleParams {
@@ -168,6 +179,8 @@ export interface UpdateRuleParams {
   category_id?: string;
   priority?: number;
   auto_apply?: boolean;
+  amount_min?: number | null;
+  amount_max?: number | null;
 }
 
 export interface UncategorizedGroup {
@@ -176,4 +189,11 @@ export interface UncategorizedGroup {
   total_amount: number;
   sample_description: string;
   account_ids: string[];
+}
+
+export interface Tag {
+  id: string;
+  name: string;
+  slug: string;
+  created_at: string;
 }

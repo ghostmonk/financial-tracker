@@ -8,6 +8,13 @@ interface CategoryFormProps {
   onCancel: () => void;
 }
 
+function toSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 export default function CategoryForm({
   categories,
   editingCategory,
@@ -15,42 +22,52 @@ export default function CategoryForm({
   onCancel,
 }: CategoryFormProps) {
   const [name, setName] = useState("");
-  const [categoryType, setCategoryType] = useState("expense");
+  const [slug, setSlug] = useState("");
+  const [slugTouched, setSlugTouched] = useState(false);
+  const [direction, setDirection] = useState<Category["direction"]>("expense");
   const [parentId, setParentId] = useState<string | null>(null);
-  const [isBusinessDefault, setIsBusinessDefault] = useState(false);
   const [sortOrder, setSortOrder] = useState(0);
 
   useEffect(() => {
     if (editingCategory) {
       setName(editingCategory.name);
-      setCategoryType(editingCategory.category_type);
+      setSlug(editingCategory.slug);
+      setSlugTouched(true);
+      setDirection(editingCategory.direction);
       setParentId(editingCategory.parent_id);
-      setIsBusinessDefault(editingCategory.is_business_default);
       setSortOrder(editingCategory.sort_order);
     } else {
       setName("");
-      setCategoryType("expense");
+      setSlug("");
+      setSlugTouched(false);
+      setDirection("expense");
       setParentId(null);
-      setIsBusinessDefault(false);
       setSortOrder(0);
     }
   }, [editingCategory]);
 
   const parentOptions = categories.filter(
     (c) =>
-      c.category_type === categoryType &&
+      c.direction === direction &&
       c.parent_id === null &&
       c.id !== editingCategory?.id,
   );
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  function handleNameChange(value: string) {
+    setName(value);
+    if (!slugTouched) {
+      setSlug(toSlug(value));
+    }
+  }
+
+  function handleSubmit(e: React.FormEvent & { currentTarget: HTMLFormElement }) {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || !slug.trim()) return;
     onSubmit({
       name: name.trim(),
-      category_type: categoryType,
+      slug: slug.trim(),
+      direction,
       parent_id: parentId || null,
-      is_business_default: isBusinessDefault,
       sort_order: sortOrder,
     });
   }
@@ -73,7 +90,7 @@ export default function CategoryForm({
           <input
             type="text"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => handleNameChange(e.target.value)}
             className={inputClass}
             autoFocus
             required
@@ -81,18 +98,36 @@ export default function CategoryForm({
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Type</label>
-          <select
-            value={categoryType}
+          <label className="block text-sm font-medium mb-1">Slug</label>
+          <input
+            type="text"
+            value={slug}
             onChange={(e) => {
-              setCategoryType(e.target.value);
+              setSlug(e.target.value);
+              setSlugTouched(true);
+            }}
+            className={inputClass}
+            required
+          />
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Auto-generated from name. Edit to customize.
+          </p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">Direction</label>
+          <select
+            value={direction}
+            onChange={(e) => {
+              setDirection(e.target.value as Category["direction"]);
               setParentId(null);
             }}
             className={inputClass}
           >
             <option value="income">Income</option>
-            <option value="expense">Personal Expense</option>
-            <option value="business_expense">Business Expense</option>
+            <option value="expense">Expense</option>
+            <option value="transfer">Transfer</option>
+            <option value="adjustment">Adjustment</option>
           </select>
         </div>
 
@@ -123,16 +158,6 @@ export default function CategoryForm({
             className={inputClass}
           />
         </div>
-
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={isBusinessDefault}
-            onChange={(e) => setIsBusinessDefault(e.target.checked)}
-            className="rounded border-gray-300 dark:border-gray-600"
-          />
-          Default business category
-        </label>
 
         <div className="flex justify-end gap-2 pt-2">
           <button

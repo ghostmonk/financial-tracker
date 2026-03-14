@@ -1,8 +1,8 @@
+import type { Category, Transaction } from "../../lib/types";
+
 interface MonthlySummaryProps {
-  totalIncome: number;
-  totalExpenses: number;
-  businessIncome: number;
-  businessExpenses: number;
+  transactions: Transaction[];
+  categories: Category[];
 }
 
 function formatCurrency(amount: number): string {
@@ -29,24 +29,62 @@ function SummaryCard({ label, value, colorClass }: CardProps) {
   );
 }
 
+type Direction = Category["direction"];
+
+function getDirection(
+  tx: Transaction,
+  categoryMap: Map<string, Category>,
+): Direction | null {
+  if (!tx.category_id) return null;
+  return categoryMap.get(tx.category_id)?.direction ?? null;
+}
+
 export default function MonthlySummary({
-  totalIncome,
-  totalExpenses,
-  businessIncome,
-  businessExpenses,
+  transactions,
+  categories,
 }: MonthlySummaryProps) {
-  const net = totalIncome + totalExpenses;
+  const categoryMap = new Map(categories.map((c) => [c.id, c]));
+
+  let income = 0;
+  let expenses = 0;
+  let transfers = 0;
+  let adjustments = 0;
+
+  for (const tx of transactions) {
+    const dir = getDirection(tx, categoryMap);
+    switch (dir) {
+      case "income":
+        income += tx.amount;
+        break;
+      case "expense":
+        expenses += tx.amount;
+        break;
+      case "transfer":
+        transfers += tx.amount;
+        break;
+      case "adjustment":
+        adjustments += tx.amount;
+        break;
+      default:
+        // uncategorized: fall back to sign-based grouping
+        if (tx.amount > 0) income += tx.amount;
+        else expenses += tx.amount;
+        break;
+    }
+  }
+
+  const net = income + expenses;
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
       <SummaryCard
-        label="Total Income"
-        value={totalIncome}
+        label="Income"
+        value={income}
         colorClass="text-green-600 dark:text-green-400"
       />
       <SummaryCard
-        label="Total Expenses"
-        value={totalExpenses}
+        label="Expenses"
+        value={expenses}
         colorClass="text-red-600 dark:text-red-400"
       />
       <SummaryCard
@@ -59,13 +97,13 @@ export default function MonthlySummary({
         }
       />
       <SummaryCard
-        label="Business Income"
-        value={businessIncome}
+        label="Transfers"
+        value={transfers}
         colorClass="text-blue-600 dark:text-blue-400"
       />
       <SummaryCard
-        label="Business Expenses"
-        value={businessExpenses}
+        label="Adjustments"
+        value={adjustments}
         colorClass="text-orange-600 dark:text-orange-400"
       />
     </div>

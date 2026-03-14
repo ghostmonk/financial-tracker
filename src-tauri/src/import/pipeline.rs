@@ -119,7 +119,8 @@ pub fn execute_import(
             payee: tx.payee.clone(),
             account_id: account_id.to_string(),
             category_id: None,
-            is_business: None,
+            merchant: Some(tx.description.clone()),
+            is_recurring: None,
             tax_deductible: None,
             gst_amount: None,
             qst_amount: None,
@@ -248,7 +249,7 @@ mod tests {
             currency: None,
             transactions: vec![
                 make_parsed_tx("2025-01-15", -42.50, "GROCERY STORE", Some("FIT001")), // duplicate by fitid+hash
-                make_parsed_tx("2025-01-20", -15.00, "COFFEE SHOP", None),              // new
+                make_parsed_tx("2025-01-20", -15.00, "COFFEE SHOP", None),             // new
             ],
         };
 
@@ -268,20 +269,10 @@ mod tests {
         ];
         // Compute hashes
         for tx in &mut txns {
-            tx.import_hash =
-                compute_import_hash(&tx.date, tx.amount, &tx.description, "acct-1");
+            tx.import_hash = compute_import_hash(&tx.date, tx.amount, &tx.description, "acct-1");
         }
 
-        let result = execute_import(
-            &conn,
-            "acct-1",
-            "test.ofx",
-            "ofx",
-            &txns,
-            &[],
-            &[],
-        )
-        .unwrap();
+        let result = execute_import(&conn, "acct-1", "test.ofx", "ofx", &txns, &[], &[]).unwrap();
 
         assert_eq!(result.imported_count, 2);
         assert_eq!(result.skipped_count, 0);
@@ -292,6 +283,16 @@ mod tests {
             .query_row("SELECT COUNT(*) FROM transactions", [], |row| row.get(0))
             .unwrap();
         assert_eq!(count, 2);
+
+        // Verify merchant is populated from description
+        let merchant: String = conn
+            .query_row(
+                "SELECT merchant FROM transactions WHERE description = 'GROCERY STORE'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(merchant, "GROCERY STORE");
 
         // Verify import record exists
         let record_count: i64 = conn
@@ -320,8 +321,7 @@ mod tests {
             make_parsed_tx("2025-01-22", -8.00, "BUS FARE", Some("FIT002")),
         ];
         for tx in &mut txns {
-            tx.import_hash =
-                compute_import_hash(&tx.date, tx.amount, &tx.description, "acct-1");
+            tx.import_hash = compute_import_hash(&tx.date, tx.amount, &tx.description, "acct-1");
         }
 
         let hash_to_skip = txns[1].import_hash.clone();

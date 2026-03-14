@@ -18,6 +18,7 @@ import type {
   CreateRuleParams,
   UpdateRuleParams,
   UncategorizedGroup,
+  Tag,
 } from "./types";
 
 export type {
@@ -39,6 +40,7 @@ export type {
   CreateRuleParams,
   UpdateRuleParams,
   UncategorizedGroup,
+  Tag,
 };
 
 // Database
@@ -128,9 +130,7 @@ export async function deleteTransaction(id: string): Promise<void> {
 
 // Import
 
-export async function previewCsvFile(
-  fileContent: string,
-): Promise<CsvPreview> {
+export async function previewCsvFile(fileContent: string): Promise<CsvPreview> {
   return invoke("preview_csv_file", { file_content: fileContent });
 }
 
@@ -176,9 +176,7 @@ export async function executeImport(
 
 // Categorization Rules
 
-export async function listCategorizationRules(): Promise<
-  CategorizationRule[]
-> {
+export async function listCategorizationRules(): Promise<CategorizationRule[]> {
   return invoke("list_categorization_rules");
 }
 
@@ -207,6 +205,16 @@ export async function getUncategorizedGroups(
   });
 }
 
+export async function getGroupTransactions(
+  normalizedName: string,
+  accountId?: string,
+): Promise<Transaction[]> {
+  return invoke("get_group_transactions", {
+    normalized_name: normalizedName,
+    account_id: accountId ?? null,
+  });
+}
+
 export async function countUncategorizedGroups(): Promise<number> {
   return invoke("count_uncategorized_groups");
 }
@@ -221,4 +229,36 @@ export async function applyRulesToTransactionIds(
 
 export async function reapplyAllRules(): Promise<number> {
   return invoke("reapply_all_rules");
+}
+
+// Tags
+
+export async function listTags(): Promise<Tag[]> {
+  return invoke("list_tags");
+}
+
+export async function createTag(name: string): Promise<Tag> {
+  return invoke("create_tag", { name });
+}
+
+export async function deleteTag(id: string): Promise<void> {
+  return invoke("delete_tag", { id });
+}
+
+export async function setTransactionTags(
+  transactionId: string,
+  tagIds: string[],
+): Promise<void> {
+  return invoke("set_transaction_tags", {
+    transaction_id: transactionId,
+    tag_ids: tagIds,
+  });
+}
+
+export async function getTransactionTags(
+  transactionId: string,
+): Promise<Tag[]> {
+  return invoke("get_transaction_tags", {
+    transaction_id: transactionId,
+  });
 }

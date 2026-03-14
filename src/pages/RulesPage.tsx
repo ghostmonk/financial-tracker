@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   listCategorizationRules,
   createCategorizationRule,
@@ -13,6 +13,7 @@ import type {
   UpdateRuleParams,
   Category,
 } from "../lib/types";
+import CategorySelect from "../components/transactions/CategorySelect";
 
 export default function RulesPage() {
   const [rules, setRules] = useState<CategorizationRule[]>([]);
@@ -27,6 +28,25 @@ export default function RulesPage() {
   );
   const [error, setError] = useState<string | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
+
+  type SortField = "pattern" | "match_field" | "match_type" | "category" | "priority" | "auto_apply";
+  type SortDir = "asc" | "desc";
+  const [sortField, setSortField] = useState<SortField>("priority");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  function toggleSort(field: SortField) {
+    if (sortField === field) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDir("desc");
+    }
+  }
+
+  function sortIndicator(field: SortField) {
+    if (sortField !== field) return "";
+    return sortDir === "asc" ? " ▲" : " ▼";
+  }
 
   const fetchRules = useCallback(async () => {
     setLoading(true);
@@ -45,7 +65,45 @@ export default function RulesPage() {
     listCategories().then(setCategories).catch(console.error);
   }, [fetchRules]);
 
-  const categoryMap = new Map(categories.map((c) => [c.id, c.name]));
+  const categoryMap = new Map(
+    categories.map((c) => {
+      if (c.parent_id) {
+        const parent = categories.find((p) => p.id === c.parent_id);
+        return [c.id, parent ? `${parent.name} > ${c.name}` : c.name];
+      }
+      return [c.id, c.name];
+    }),
+  );
+
+  const sortedRules = useMemo(() => {
+    const sorted = [...rules].sort((a, b) => {
+      let cmp = 0;
+      switch (sortField) {
+        case "pattern":
+          cmp = a.pattern.localeCompare(b.pattern);
+          break;
+        case "match_field":
+          cmp = a.match_field.localeCompare(b.match_field);
+          break;
+        case "match_type":
+          cmp = a.match_type.localeCompare(b.match_type);
+          break;
+        case "category":
+          cmp = (categoryMap.get(a.category_id) ?? "").localeCompare(
+            categoryMap.get(b.category_id) ?? "",
+          );
+          break;
+        case "priority":
+          cmp = a.priority - b.priority;
+          break;
+        case "auto_apply":
+          cmp = Number(a.auto_apply) - Number(b.auto_apply);
+          break;
+      }
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return sorted;
+  }, [rules, sortField, sortDir, categoryMap]);
 
   async function handleReapply() {
     setBanner(null);
@@ -144,20 +202,21 @@ export default function RulesPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                <th className="px-4 py-3">Pattern</th>
-                <th className="px-4 py-3">Field</th>
-                <th className="px-4 py-3">Match</th>
-                <th className="px-4 py-3">Category</th>
-                <th className="px-4 py-3 text-right">Priority</th>
-                <th className="px-4 py-3">Auto</th>
+                <th className="px-4 py-3 cursor-pointer select-none" onClick={() => toggleSort("pattern")}>Pattern{sortIndicator("pattern")}</th>
+                <th className="px-4 py-3 cursor-pointer select-none" onClick={() => toggleSort("match_field")}>Field{sortIndicator("match_field")}</th>
+                <th className="px-4 py-3 cursor-pointer select-none" onClick={() => toggleSort("match_type")}>Match{sortIndicator("match_type")}</th>
+                <th className="px-4 py-3 cursor-pointer select-none" onClick={() => toggleSort("category")}>Category{sortIndicator("category")}</th>
+                <th className="px-4 py-3">Amount</th>
+                <th className="px-4 py-3 text-right cursor-pointer select-none" onClick={() => toggleSort("priority")}>Priority{sortIndicator("priority")}</th>
+                <th className="px-4 py-3 cursor-pointer select-none" onClick={() => toggleSort("auto_apply")}>Auto{sortIndicator("auto_apply")}</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-              {rules.map((rule) => (
+              {sortedRules.map((rule) => (
                 <tr
                   key={rule.id}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-750"
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
                 >
                   <td className="px-4 py-3 font-mono text-xs">
                     {rule.pattern}
@@ -166,6 +225,15 @@ export default function RulesPage() {
                   <td className="px-4 py-3">{rule.match_type}</td>
                   <td className="px-4 py-3">
                     {categoryMap.get(rule.category_id) ?? "Unknown"}
+                  </td>
+                  <td className="px-4 py-3 text-xs tabular-nums">
+                    {rule.amount_min != null && rule.amount_max != null
+                      ? `$${rule.amount_min.toFixed(2)} - $${rule.amount_max.toFixed(2)}`
+                      : rule.amount_min != null
+                        ? `>= $${rule.amount_min.toFixed(2)}`
+                        : rule.amount_max != null
+                          ? `<= $${rule.amount_max.toFixed(2)}`
+                          : "\u2014"}
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums">
                     {rule.priority}
@@ -258,19 +326,18 @@ function RuleForm({
   const [matchType, setMatchType] = useState(
     editingRule?.match_type ?? "contains",
   );
-  const [categoryId, setCategoryId] = useState(
-    editingRule?.category_id ?? "",
+  const [categoryId, setCategoryId] = useState<string | null>(
+    editingRule?.category_id ?? null,
+  );
+  const [amountMin, setAmountMin] = useState(
+    editingRule?.amount_min?.toString() ?? "",
+  );
+  const [amountMax, setAmountMax] = useState(
+    editingRule?.amount_max?.toString() ?? "",
   );
   const [priority, setPriority] = useState(editingRule?.priority ?? 0);
   const [autoApply, setAutoApply] = useState(
     editingRule?.auto_apply ?? true,
-  );
-
-  const incomeCategories = categories.filter(
-    (c) => c.category_type === "income",
-  );
-  const expenseCategories = categories.filter(
-    (c) => c.category_type !== "income",
   );
 
   function handleSubmit(e: React.FormEvent & { currentTarget: HTMLFormElement }) {
@@ -281,6 +348,8 @@ function RuleForm({
       match_field: matchField,
       match_type: matchType,
       category_id: categoryId,
+      amount_min: amountMin ? parseFloat(amountMin) : undefined,
+      amount_max: amountMax ? parseFloat(amountMax) : undefined,
       priority,
       auto_apply: autoApply,
     });
@@ -338,34 +407,36 @@ function RuleForm({
 
         <div>
           <label className="block text-sm font-medium mb-1">Category</label>
-          <select
+          <CategorySelect
+            categories={categories}
             value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-            className={inputClass}
-            required
-          >
-            <option value="">Select a category</option>
-            {incomeCategories.length > 0 && (
-              <optgroup label="Income">
-                {incomeCategories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.is_business_default ? "\u25C6 " : ""}
-                    {c.name}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-            {expenseCategories.length > 0 && (
-              <optgroup label="Expense">
-                {expenseCategories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.is_business_default ? "\u25C6 " : ""}
-                    {c.name}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-          </select>
+            onChange={(catId) => setCategoryId(catId)}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm font-medium mb-1">Min Amount</label>
+            <input
+              type="number"
+              step="0.01"
+              placeholder="Any"
+              value={amountMin}
+              onChange={(e) => setAmountMin(e.target.value)}
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Max Amount</label>
+            <input
+              type="number"
+              step="0.01"
+              placeholder="Any"
+              value={amountMax}
+              onChange={(e) => setAmountMax(e.target.value)}
+              className={inputClass}
+            />
+          </div>
         </div>
 
         <div>

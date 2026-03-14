@@ -4,8 +4,11 @@ import {
   createCategory,
   updateCategory,
   deleteCategory,
+  listTags,
+  createTag,
+  deleteTag,
 } from "../lib/tauri";
-import type { Category, CreateCategoryParams } from "../lib/types";
+import type { Category, CreateCategoryParams, Tag } from "../lib/types";
 import CategoryList from "../components/categories/CategoryList";
 import CategoryForm from "../components/categories/CategoryForm";
 
@@ -18,6 +21,19 @@ export default function CategoriesPage() {
     null,
   );
   const [error, setError] = useState<string | null>(null);
+
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [newTagName, setNewTagName] = useState("");
+  const [tagError, setTagError] = useState<string | null>(null);
+
+  const fetchTags = useCallback(async () => {
+    try {
+      const result = await listTags();
+      setTags(result);
+    } catch (err) {
+      console.error("Failed to fetch tags:", err);
+    }
+  }, []);
 
   const fetchCategories = useCallback(async () => {
     setLoading(true);
@@ -33,7 +49,8 @@ export default function CategoriesPage() {
 
   useEffect(() => {
     fetchCategories();
-  }, [fetchCategories]);
+    fetchTags();
+  }, [fetchCategories, fetchTags]);
 
   async function handleSubmit(params: CreateCategoryParams) {
     setError(null);
@@ -67,6 +84,29 @@ export default function CategoriesPage() {
     } catch (err) {
       setError(typeof err === "string" ? err : "Failed to delete category.");
       setDeletingCategory(null);
+    }
+  }
+
+  async function handleAddTag() {
+    const trimmed = newTagName.trim();
+    if (!trimmed) return;
+    setTagError(null);
+    try {
+      await createTag(trimmed);
+      setNewTagName("");
+      fetchTags();
+    } catch (err) {
+      setTagError(typeof err === "string" ? err : "Failed to create tag.");
+    }
+  }
+
+  async function handleDeleteTag(id: string) {
+    setTagError(null);
+    try {
+      await deleteTag(id);
+      fetchTags();
+    } catch (err) {
+      setTagError(typeof err === "string" ? err : "Failed to delete tag.");
     }
   }
 
@@ -142,6 +182,67 @@ export default function CategoriesPage() {
           </div>
         </div>
       )}
+
+      <hr className="border-gray-200 dark:border-gray-700" />
+
+      <div className="space-y-3">
+        <div className="flex items-baseline justify-between">
+          <div>
+            <h2 className="text-xl font-semibold mb-1">Tags</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {tags.length} tag{tags.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={newTagName}
+            onChange={(e) => setNewTagName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleAddTag();
+            }}
+            placeholder="New tag name"
+            className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <button
+            onClick={handleAddTag}
+            disabled={!newTagName.trim()}
+            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Add Tag
+          </button>
+        </div>
+
+        {tagError && (
+          <p className="text-sm text-red-600 dark:text-red-400">{tagError}</p>
+        )}
+
+        {tags.length === 0 ? (
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            No tags yet.
+          </p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {tags.map((tag) => (
+              <span
+                key={tag.id}
+                className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 rounded-full"
+              >
+                {tag.name}
+                <button
+                  onClick={() => handleDeleteTag(tag.id)}
+                  className="ml-1 text-gray-400 hover:text-red-500 transition-colors"
+                  title={`Delete tag "${tag.name}"`}
+                >
+                  &times;
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

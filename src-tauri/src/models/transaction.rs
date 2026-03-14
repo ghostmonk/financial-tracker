@@ -11,9 +11,10 @@ pub struct Transaction {
     pub amount: f64,
     pub description: String,
     pub payee: Option<String>,
+    pub merchant: Option<String>,
     pub account_id: String,
     pub category_id: Option<String>,
-    pub is_business: bool,
+    pub is_recurring: bool,
     pub tax_deductible: bool,
     pub gst_amount: Option<f64>,
     pub qst_amount: Option<f64>,
@@ -32,9 +33,10 @@ pub struct CreateTransactionParams {
     pub amount: f64,
     pub description: String,
     pub payee: Option<String>,
+    pub merchant: Option<String>,
     pub account_id: String,
     pub category_id: Option<String>,
-    pub is_business: Option<bool>,
+    pub is_recurring: Option<bool>,
     pub tax_deductible: Option<bool>,
     pub gst_amount: Option<f64>,
     pub qst_amount: Option<f64>,
@@ -50,8 +52,9 @@ pub struct UpdateTransactionParams {
     pub amount: Option<f64>,
     pub description: Option<String>,
     pub payee: Option<Option<String>>,
+    pub merchant: Option<Option<String>>,
     pub category_id: Option<Option<String>>,
-    pub is_business: Option<bool>,
+    pub is_recurring: Option<bool>,
     pub tax_deductible: Option<bool>,
     pub gst_amount: Option<Option<f64>>,
     pub qst_amount: Option<Option<f64>>,
@@ -63,40 +66,47 @@ pub struct UpdateTransactionParams {
 pub struct TransactionFilters {
     pub account_id: Option<String>,
     pub category_id: Option<String>,
-    pub is_business: Option<bool>,
+    pub direction: Option<String>,
+    pub is_recurring: Option<bool>,
     pub date_from: Option<String>,
     pub date_to: Option<String>,
     pub search: Option<String>,
     pub uncategorized_only: Option<bool>,
+    pub amount_min: Option<f64>,
+    pub amount_max: Option<f64>,
+    pub sort_field: Option<String>,
+    pub sort_dir: Option<String>,
     pub limit: Option<u32>,
     pub offset: Option<u32>,
 }
 
-const SELECT_COLS: &str = "id, date, amount, description, payee, account_id, category_id, \
-                           is_business, tax_deductible, gst_amount, qst_amount, notes, \
+pub const SELECT_COLS: &str =
+    "id, date, amount, description, payee, merchant, account_id, category_id, \
+                           is_recurring, tax_deductible, gst_amount, qst_amount, notes, \
                            import_hash, fitid, transaction_type, categorized_by_rule, \
                            created_at, updated_at";
 
-fn row_to_transaction(row: &rusqlite::Row) -> rusqlite::Result<Transaction> {
+pub fn row_to_transaction(row: &rusqlite::Row) -> rusqlite::Result<Transaction> {
     Ok(Transaction {
         id: row.get(0)?,
         date: row.get(1)?,
         amount: row.get(2)?,
         description: row.get(3)?,
         payee: row.get(4)?,
-        account_id: row.get(5)?,
-        category_id: row.get(6)?,
-        is_business: row.get(7)?,
-        tax_deductible: row.get(8)?,
-        gst_amount: row.get(9)?,
-        qst_amount: row.get(10)?,
-        notes: row.get(11)?,
-        import_hash: row.get(12)?,
-        fitid: row.get(13)?,
-        transaction_type: row.get(14)?,
-        categorized_by_rule: row.get(15)?,
-        created_at: row.get(16)?,
-        updated_at: row.get(17)?,
+        merchant: row.get(5)?,
+        account_id: row.get(6)?,
+        category_id: row.get(7)?,
+        is_recurring: row.get(8)?,
+        tax_deductible: row.get(9)?,
+        gst_amount: row.get(10)?,
+        qst_amount: row.get(11)?,
+        notes: row.get(12)?,
+        import_hash: row.get(13)?,
+        fitid: row.get(14)?,
+        transaction_type: row.get(15)?,
+        categorized_by_rule: row.get(16)?,
+        created_at: row.get(17)?,
+        updated_at: row.get(18)?,
     })
 }
 
@@ -105,21 +115,22 @@ pub fn create_transaction(
     params: CreateTransactionParams,
 ) -> Result<Transaction, DbError> {
     let id = Uuid::new_v4().to_string();
-    let is_business = params.is_business.unwrap_or(false);
+    let is_recurring = params.is_recurring.unwrap_or(false);
     let tax_deductible = params.tax_deductible.unwrap_or(false);
     conn.execute(
-        "INSERT INTO transactions (id, date, amount, description, payee, account_id, category_id, \
-         is_business, tax_deductible, gst_amount, qst_amount, notes, import_hash, fitid, transaction_type) \
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
+        "INSERT INTO transactions (id, date, amount, description, payee, merchant, account_id, category_id, \
+         is_recurring, tax_deductible, gst_amount, qst_amount, notes, import_hash, fitid, transaction_type) \
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
         rusqlite::params![
             id,
             params.date,
             params.amount,
             params.description,
             params.payee,
+            params.merchant,
             params.account_id,
             params.category_id,
-            is_business,
+            is_recurring,
             tax_deductible,
             params.gst_amount,
             params.qst_amount,
@@ -145,21 +156,22 @@ pub fn create_transactions_batch(
     let mut count = 0usize;
     for params in &batch {
         let id = Uuid::new_v4().to_string();
-        let is_business = params.is_business.unwrap_or(false);
+        let is_recurring = params.is_recurring.unwrap_or(false);
         let tax_deductible = params.tax_deductible.unwrap_or(false);
         let result = conn.execute(
-            "INSERT INTO transactions (id, date, amount, description, payee, account_id, category_id, \
-             is_business, tax_deductible, gst_amount, qst_amount, notes, import_hash, fitid, transaction_type) \
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
+            "INSERT INTO transactions (id, date, amount, description, payee, merchant, account_id, category_id, \
+             is_recurring, tax_deductible, gst_amount, qst_amount, notes, import_hash, fitid, transaction_type) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
             rusqlite::params![
                 id,
                 params.date,
                 params.amount,
                 params.description,
                 params.payee,
+                params.merchant,
                 params.account_id,
                 params.category_id,
-                is_business,
+                is_recurring,
                 tax_deductible,
                 params.gst_amount,
                 params.qst_amount,
@@ -188,42 +200,59 @@ pub fn list_transactions(
     let mut conditions = Vec::new();
     let mut values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
     let mut param_idx = 1;
+    let mut use_direction_join = false;
 
     if let Some(ref account_id) = filters.account_id {
-        conditions.push(format!("account_id = ?{}", param_idx));
+        conditions.push(format!("t.account_id = ?{}", param_idx));
         values.push(Box::new(account_id.clone()));
         param_idx += 1;
     }
     if let Some(ref category_id) = filters.category_id {
-        conditions.push(format!("category_id = ?{}", param_idx));
+        conditions.push(format!("t.category_id = ?{}", param_idx));
         values.push(Box::new(category_id.clone()));
         param_idx += 1;
     }
-    if let Some(is_business) = filters.is_business {
-        conditions.push(format!("is_business = ?{}", param_idx));
-        values.push(Box::new(is_business));
+    if let Some(ref direction) = filters.direction {
+        use_direction_join = true;
+        conditions.push(format!("c.direction = ?{}", param_idx));
+        values.push(Box::new(direction.clone()));
+        param_idx += 1;
+    }
+    if let Some(is_recurring) = filters.is_recurring {
+        conditions.push(format!("t.is_recurring = ?{}", param_idx));
+        values.push(Box::new(is_recurring));
         param_idx += 1;
     }
     if let Some(ref date_from) = filters.date_from {
-        conditions.push(format!("date >= ?{}", param_idx));
+        conditions.push(format!("t.date >= ?{}", param_idx));
         values.push(Box::new(date_from.clone()));
         param_idx += 1;
     }
     if let Some(ref date_to) = filters.date_to {
-        conditions.push(format!("date <= ?{}", param_idx));
+        conditions.push(format!("t.date <= ?{}", param_idx));
         values.push(Box::new(date_to.clone()));
         param_idx += 1;
     }
     if let Some(ref search) = filters.search {
         conditions.push(format!(
-            "(description LIKE ?{0} OR payee LIKE ?{0})",
+            "(t.description LIKE ?{0} OR t.payee LIKE ?{0})",
             param_idx
         ));
         values.push(Box::new(format!("%{}%", search)));
         param_idx += 1;
     }
     if filters.uncategorized_only == Some(true) {
-        conditions.push("category_id IS NULL".to_string());
+        conditions.push("t.category_id IS NULL".to_string());
+    }
+    if let Some(amount_min) = filters.amount_min {
+        conditions.push(format!("ABS(t.amount) >= ?{}", param_idx));
+        values.push(Box::new(amount_min));
+        param_idx += 1;
+    }
+    if let Some(amount_max) = filters.amount_max {
+        conditions.push(format!("ABS(t.amount) <= ?{}", param_idx));
+        values.push(Box::new(amount_max));
+        param_idx += 1;
     }
 
     let where_clause = if conditions.is_empty() {
@@ -232,19 +261,43 @@ pub fn list_transactions(
         format!("WHERE {}", conditions.join(" AND "))
     };
 
+    let join_clause = if use_direction_join {
+        "INNER JOIN categories c ON t.category_id = c.id"
+    } else {
+        ""
+    };
+
     let limit = filters.limit.unwrap_or(50);
     let offset = filters.offset.unwrap_or(0);
 
+    let select_cols = SELECT_COLS
+        .split(", ")
+        .map(|col| format!("t.{}", col.trim()))
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    let order_col = match filters.sort_field.as_deref() {
+        Some("description") => "t.description",
+        Some("merchant") => "t.merchant",
+        Some("payee") => "t.payee",
+        Some("amount") => "t.amount",
+        Some("account") => "t.account_id",
+        _ => "t.date",
+    };
+    let order_dir = match filters.sort_dir.as_deref() {
+        Some("asc") => "ASC",
+        _ => "DESC",
+    };
+
     let sql = format!(
-        "SELECT {} FROM transactions {} ORDER BY date DESC, created_at DESC LIMIT ?{} OFFSET ?{}",
-        SELECT_COLS, where_clause, param_idx, param_idx + 1
+        "SELECT {} FROM transactions t {} {} ORDER BY {} {}, t.created_at DESC LIMIT ?{} OFFSET ?{}",
+        select_cols, join_clause, where_clause, order_col, order_dir, param_idx, param_idx + 1
     );
 
     values.push(Box::new(limit));
     values.push(Box::new(offset));
 
-    let param_refs: Vec<&dyn rusqlite::types::ToSql> =
-        values.iter().map(|v| v.as_ref()).collect();
+    let param_refs: Vec<&dyn rusqlite::types::ToSql> = values.iter().map(|v| v.as_ref()).collect();
 
     let mut stmt = conn.prepare(&sql)?;
     let transactions = stmt
@@ -277,13 +330,17 @@ pub fn update_transaction(
         sets.push("payee = ?");
         values.push(Box::new(payee.clone()));
     }
+    if let Some(ref merchant) = params.merchant {
+        sets.push("merchant = ?");
+        values.push(Box::new(merchant.clone()));
+    }
     if let Some(ref category_id) = params.category_id {
         sets.push("category_id = ?");
         values.push(Box::new(category_id.clone()));
     }
-    if let Some(is_business) = params.is_business {
-        sets.push("is_business = ?");
-        values.push(Box::new(is_business));
+    if let Some(is_recurring) = params.is_recurring {
+        sets.push("is_recurring = ?");
+        values.push(Box::new(is_recurring));
     }
     if let Some(tax_deductible) = params.tax_deductible {
         sets.push("tax_deductible = ?");
@@ -340,17 +397,13 @@ pub fn update_transactions_category(
     for id in ids {
         values.push(Box::new(id.clone()));
     }
-    let param_refs: Vec<&dyn rusqlite::types::ToSql> =
-        values.iter().map(|v| v.as_ref()).collect();
+    let param_refs: Vec<&dyn rusqlite::types::ToSql> = values.iter().map(|v| v.as_ref()).collect();
     conn.execute(&sql, param_refs.as_slice())?;
     Ok(())
 }
 
 pub fn delete_transaction(conn: &Connection, id: &str) -> Result<(), DbError> {
-    conn.execute(
-        "DELETE FROM transactions WHERE id = ?1",
-        params![id],
-    )?;
+    conn.execute("DELETE FROM transactions WHERE id = ?1", params![id])?;
     Ok(())
 }
 
@@ -396,8 +449,7 @@ pub fn check_duplicates_by_fitid(
     for fitid in fitids {
         values.push(Box::new(fitid.clone()));
     }
-    let param_refs: Vec<&dyn rusqlite::types::ToSql> =
-        values.iter().map(|v| v.as_ref()).collect();
+    let param_refs: Vec<&dyn rusqlite::types::ToSql> = values.iter().map(|v| v.as_ref()).collect();
     let mut stmt = conn.prepare(&sql)?;
     let existing = stmt
         .query_map(param_refs.as_slice(), |row| row.get::<_, String>(0))?
@@ -421,8 +473,7 @@ pub fn check_duplicates_by_hash(
     for hash in hashes {
         values.push(Box::new(hash.clone()));
     }
-    let param_refs: Vec<&dyn rusqlite::types::ToSql> =
-        values.iter().map(|v| v.as_ref()).collect();
+    let param_refs: Vec<&dyn rusqlite::types::ToSql> = values.iter().map(|v| v.as_ref()).collect();
     let mut stmt = conn.prepare(&sql)?;
     let existing = stmt
         .query_map(param_refs.as_slice(), |row| row.get::<_, String>(0))?

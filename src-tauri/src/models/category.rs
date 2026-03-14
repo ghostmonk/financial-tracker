@@ -7,41 +7,363 @@ use crate::db::DbError;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Category {
     pub id: String,
+    pub slug: String,
     pub name: String,
     pub parent_id: Option<String>,
-    pub category_type: String,
-    pub is_business_default: bool,
+    pub direction: String,
     pub sort_order: i32,
+    pub created_at: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct CreateCategoryParams {
+    pub slug: String,
     pub name: String,
     pub parent_id: Option<String>,
-    pub category_type: String,
-    pub is_business_default: bool,
-    pub sort_order: i32,
+    pub direction: String,
+    pub sort_order: Option<i32>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct UpdateCategoryParams {
+    pub slug: Option<String>,
     pub name: Option<String>,
     pub parent_id: Option<Option<String>>,
-    pub category_type: Option<String>,
-    pub is_business_default: Option<bool>,
+    pub direction: Option<String>,
     pub sort_order: Option<i32>,
 }
+
+const SELECT_COLS: &str = "id, slug, name, parent_id, direction, sort_order, created_at";
 
 fn row_to_category(row: &rusqlite::Row) -> rusqlite::Result<Category> {
     Ok(Category {
         id: row.get(0)?,
-        name: row.get(1)?,
-        parent_id: row.get(2)?,
-        category_type: row.get(3)?,
-        is_business_default: row.get(4)?,
+        slug: row.get(1)?,
+        name: row.get(2)?,
+        parent_id: row.get(3)?,
+        direction: row.get(4)?,
         sort_order: row.get(5)?,
+        created_at: row.get(6)?,
     })
 }
+
+struct SeedCategory {
+    slug: &'static str,
+    name: &'static str,
+    direction: &'static str,
+    children: &'static [(&'static str, &'static str)],
+}
+
+static SEED_CATEGORIES: &[SeedCategory] = &[
+    SeedCategory {
+        slug: "income",
+        name: "Income",
+        direction: "income",
+        children: &[
+            ("salary", "Salary"),
+            ("bonus", "Bonus"),
+            ("freelance", "Freelance"),
+            ("interest_income", "Interest Income"),
+            ("dividend_income", "Dividend Income"),
+            ("refund_reimbursement", "Refund & Reimbursement"),
+            ("other_income", "Other Income"),
+        ],
+    },
+    SeedCategory {
+        slug: "housing",
+        name: "Housing",
+        direction: "expense",
+        children: &[
+            ("rent", "Rent"),
+            ("mortgage", "Mortgage"),
+            ("property_tax", "Property Tax"),
+            ("home_insurance", "Home Insurance"),
+            ("maintenance_repairs", "Maintenance & Repairs"),
+            ("furniture", "Furniture"),
+            ("household_supplies", "Household Supplies"),
+            ("other_housing", "Other Housing"),
+        ],
+    },
+    SeedCategory {
+        slug: "utilities",
+        name: "Utilities",
+        direction: "expense",
+        children: &[
+            ("electricity", "Electricity"),
+            ("gas_heating", "Gas & Heating"),
+            ("water_sewer", "Water & Sewer"),
+            ("internet", "Internet"),
+            ("mobile_phone", "Mobile Phone"),
+            ("streaming", "Streaming"),
+            ("other_utilities", "Other Utilities"),
+        ],
+    },
+    SeedCategory {
+        slug: "food_dining",
+        name: "Food & Dining",
+        direction: "expense",
+        children: &[
+            ("groceries", "Groceries"),
+            ("restaurants", "Restaurants"),
+            ("fast_food", "Fast Food"),
+            ("coffee", "Coffee"),
+            ("takeout_delivery", "Takeout & Delivery"),
+            ("alcohol", "Alcohol"),
+            ("other_food", "Other Food"),
+        ],
+    },
+    SeedCategory {
+        slug: "transportation",
+        name: "Transportation",
+        direction: "expense",
+        children: &[
+            ("fuel", "Fuel"),
+            ("public_transit", "Public Transit"),
+            ("taxi_rideshare", "Taxi & Rideshare"),
+            ("parking", "Parking"),
+            ("vehicle_payment", "Vehicle Payment"),
+            ("vehicle_insurance", "Vehicle Insurance"),
+            ("vehicle_maintenance", "Vehicle Maintenance"),
+            ("other_transportation", "Other Transportation"),
+        ],
+    },
+    SeedCategory {
+        slug: "health_medical",
+        name: "Health & Medical",
+        direction: "expense",
+        children: &[
+            ("health_insurance", "Health Insurance"),
+            ("doctor", "Doctor"),
+            ("dentist", "Dentist"),
+            ("pharmacy", "Pharmacy"),
+            ("fitness_gym", "Fitness & Gym"),
+            ("other_health", "Other Health"),
+        ],
+    },
+    SeedCategory {
+        slug: "personal_care",
+        name: "Personal Care",
+        direction: "expense",
+        children: &[
+            ("haircuts", "Haircuts"),
+            ("skincare", "Skincare"),
+            ("spa", "Spa"),
+            ("other_personal_care", "Other Personal Care"),
+        ],
+    },
+    SeedCategory {
+        slug: "shopping",
+        name: "Shopping",
+        direction: "expense",
+        children: &[
+            ("clothing", "Clothing"),
+            ("shoes", "Shoes"),
+            ("electronics", "Electronics"),
+            ("software_apps", "Software & Apps"),
+            ("books", "Books"),
+            ("home_decor", "Home Decor"),
+            ("general_merchandise", "General Merchandise"),
+            ("other_shopping", "Other Shopping"),
+        ],
+    },
+    SeedCategory {
+        slug: "entertainment",
+        name: "Entertainment",
+        direction: "expense",
+        children: &[
+            ("movies", "Movies"),
+            ("music", "Music"),
+            ("games", "Games"),
+            ("events_tickets", "Events & Tickets"),
+            ("subscriptions", "Subscriptions"),
+            ("hobbies", "Hobbies"),
+            ("sports_recreation", "Sports & Recreation"),
+            ("other_entertainment", "Other Entertainment"),
+        ],
+    },
+    SeedCategory {
+        slug: "travel",
+        name: "Travel",
+        direction: "expense",
+        children: &[
+            ("flights", "Flights"),
+            ("hotels", "Hotels"),
+            ("vacation_rentals", "Vacation Rentals"),
+            ("car_rental", "Car Rental"),
+            ("dining_travel", "Dining (Travel)"),
+            ("transit_travel", "Transit (Travel)"),
+            ("other_travel", "Other Travel"),
+        ],
+    },
+    SeedCategory {
+        slug: "family_childcare",
+        name: "Family & Childcare",
+        direction: "expense",
+        children: &[
+            ("childcare", "Childcare"),
+            ("school_tuition", "School Tuition"),
+            ("kids_activities", "Kids Activities"),
+            ("child_support", "Child Support"),
+            ("other_family", "Other Family"),
+        ],
+    },
+    SeedCategory {
+        slug: "education",
+        name: "Education",
+        direction: "expense",
+        children: &[
+            ("tuition", "Tuition"),
+            ("courses", "Courses"),
+            ("certifications", "Certifications"),
+            ("books_materials", "Books & Materials"),
+            ("student_loan_payment", "Student Loan Payment"),
+            ("other_education", "Other Education"),
+        ],
+    },
+    SeedCategory {
+        slug: "pets",
+        name: "Pets",
+        direction: "expense",
+        children: &[
+            ("pet_food", "Pet Food"),
+            ("vet", "Vet"),
+            ("pet_grooming", "Pet Grooming"),
+            ("pet_insurance", "Pet Insurance"),
+            ("other_pets", "Other Pets"),
+        ],
+    },
+    SeedCategory {
+        slug: "financial",
+        name: "Financial",
+        direction: "expense",
+        children: &[
+            ("bank_fees", "Bank Fees"),
+            ("atm_fees", "ATM Fees"),
+            ("credit_card_interest", "Credit Card Interest"),
+            ("loan_interest", "Loan Interest"),
+            ("loan_principal", "Loan Principal"),
+            ("investment_fees", "Investment Fees"),
+            ("currency_exchange", "Currency Exchange"),
+            ("other_financial", "Other Financial"),
+        ],
+    },
+    SeedCategory {
+        slug: "savings_investments",
+        name: "Savings & Investments",
+        direction: "expense",
+        children: &[
+            ("savings_contribution", "Savings Contribution"),
+            ("retirement_contribution", "Retirement Contribution"),
+            ("brokerage_contribution", "Brokerage Contribution"),
+            ("tfsa_savings", "TFSA Savings"),
+            ("other_investing", "Other Investing"),
+        ],
+    },
+    SeedCategory {
+        slug: "taxes",
+        name: "Taxes",
+        direction: "expense",
+        children: &[
+            ("income_tax", "Income Tax"),
+            ("sales_tax", "Sales Tax"),
+            ("property_tax_payment", "Property Tax Payment"),
+            ("tax_preparation", "Tax Preparation"),
+            ("other_taxes", "Other Taxes"),
+        ],
+    },
+    SeedCategory {
+        slug: "insurance",
+        name: "Insurance",
+        direction: "expense",
+        children: &[
+            ("life_insurance", "Life Insurance"),
+            ("disability_insurance", "Disability Insurance"),
+            ("umbrella_insurance", "Umbrella Insurance"),
+            ("other_insurance", "Other Insurance"),
+        ],
+    },
+    SeedCategory {
+        slug: "gifts_donations",
+        name: "Gifts & Donations",
+        direction: "expense",
+        children: &[
+            ("gifts_given", "Gifts Given"),
+            ("charity", "Charity"),
+            ("religious_giving", "Religious Giving"),
+            ("other_giving", "Other Giving"),
+        ],
+    },
+    SeedCategory {
+        slug: "business_expenses",
+        name: "Business Expenses",
+        direction: "expense",
+        children: &[
+            ("office_supplies", "Office Supplies"),
+            ("software_saas", "Software & SaaS"),
+            ("hosting_cloud", "Hosting & Cloud"),
+            ("advertising", "Advertising"),
+            ("contractors", "Contractors"),
+            ("professional_services", "Professional Services"),
+            ("travel_business", "Travel (Business)"),
+            ("meals_business", "Meals (Business)"),
+            ("shipping", "Shipping"),
+            ("equipment", "Equipment"),
+            ("rent_coworking", "Rent & Coworking"),
+            ("telecom", "Telecom"),
+            ("other_business", "Other Business"),
+        ],
+    },
+    SeedCategory {
+        slug: "government_fees",
+        name: "Government & Fees",
+        direction: "expense",
+        children: &[
+            ("license_permit", "License & Permit"),
+            ("registration_fees", "Registration Fees"),
+            ("legal_fees", "Legal Fees"),
+            ("fines", "Fines"),
+            ("other_government", "Other Government"),
+        ],
+    },
+    SeedCategory {
+        slug: "transfer",
+        name: "Transfer",
+        direction: "transfer",
+        children: &[
+            ("account_transfer", "Account Transfer"),
+            ("credit_card_payment", "Credit Card Payment"),
+            ("cash_withdrawal", "Cash Withdrawal"),
+            ("cash_deposit", "Cash Deposit"),
+            ("brokerage_transfer", "Brokerage Transfer"),
+            ("savings_transfer", "Savings Transfer"),
+            ("loan_payment_transfer", "Loan Payment Transfer"),
+        ],
+    },
+    SeedCategory {
+        slug: "adjustment",
+        name: "Adjustment",
+        direction: "adjustment",
+        children: &[
+            ("refund_reversal", "Refund & Reversal"),
+            ("chargeback", "Chargeback"),
+            ("correction", "Correction"),
+            ("balance_adjustment", "Balance Adjustment"),
+            ("opening_balance", "Opening Balance"),
+            ("write_off", "Write-off"),
+            ("other_adjustment", "Other Adjustment"),
+        ],
+    },
+    SeedCategory {
+        slug: "uncategorized",
+        name: "Uncategorized",
+        direction: "expense",
+        children: &[
+            ("needs_review", "Needs Review"),
+            ("unknown_merchant", "Unknown Merchant"),
+            ("other", "Other"),
+        ],
+    },
+];
 
 pub fn seed_default_categories(conn: &Connection) -> Result<(), DbError> {
     let count: i64 = conn.query_row("SELECT COUNT(*) FROM categories", [], |row| row.get(0))?;
@@ -50,73 +372,41 @@ pub fn seed_default_categories(conn: &Connection) -> Result<(), DbError> {
     }
 
     let mut sort = 0i32;
-    let mut insert = |name: &str,
-                      parent_id: Option<&str>,
-                      cat_type: &str,
-                      is_business: bool|
-     -> Result<(), DbError> {
+
+    for seed in SEED_CATEGORIES {
+        let parent_id = Uuid::new_v4().to_string();
         conn.execute(
-            "INSERT INTO categories (id, name, parent_id, category_type, is_business_default, sort_order) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-            params![
-                Uuid::new_v4().to_string(),
-                name,
-                parent_id,
-                cat_type,
-                is_business,
-                sort,
-            ],
+            "INSERT INTO categories (id, slug, name, parent_id, direction, sort_order) VALUES (?1, ?2, ?3, NULL, ?4, ?5)",
+            params![parent_id, seed.slug, seed.name, seed.direction, sort],
         )?;
         sort += 1;
-        Ok(())
-    };
 
-    // Income
-    insert("Employment", None, "income", false)?;
-    insert("Freelance/Contract", None, "income", true)?;
-    insert("Investment Income", None, "income", false)?;
-    insert("Refunds", None, "income", false)?;
-    insert("Other Income", None, "income", false)?;
-
-    // Expense — Personal
-    insert("Groceries", None, "expense", false)?;
-    insert("Dining Out", None, "expense", false)?;
-    insert("Rent/Mortgage", None, "expense", false)?;
-    insert("Utilities", None, "expense", false)?;
-    insert("Transportation", None, "expense", false)?;
-    insert("Gas", None, "expense", false)?;
-    insert("Insurance", None, "expense", false)?;
-    insert("Healthcare", None, "expense", false)?;
-    insert("Clothing", None, "expense", false)?;
-    insert("Entertainment", None, "expense", false)?;
-    insert("Subscriptions", None, "expense", false)?;
-    insert("Personal Care", None, "expense", false)?;
-    insert("Education", None, "expense", false)?;
-    insert("Gifts", None, "expense", false)?;
-    insert("Home Maintenance", None, "expense", false)?;
-    insert("Pet", None, "expense", false)?;
-    insert("Travel", None, "expense", false)?;
-    insert("Miscellaneous", None, "expense", false)?;
-
-    // Expense — Business
-    insert("Software & Tools", None, "expense", true)?;
-    insert("Hardware & Equipment", None, "expense", true)?;
-    insert("Office Supplies", None, "expense", true)?;
-    insert("Professional Services", None, "expense", true)?;
-    insert("Advertising & Marketing", None, "expense", true)?;
-    insert("Travel (Business)", None, "expense", true)?;
-    insert("Meals (Business)", None, "expense", true)?;
-    insert("Internet & Phone", None, "expense", true)?;
-    insert("Professional Development", None, "expense", true)?;
-    insert("Bank & Service Fees", None, "expense", true)?;
+        for (child_slug, child_name) in seed.children {
+            conn.execute(
+                "INSERT INTO categories (id, slug, name, parent_id, direction, sort_order) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                params![
+                    Uuid::new_v4().to_string(),
+                    child_slug,
+                    child_name,
+                    parent_id,
+                    seed.direction,
+                    sort,
+                ],
+            )?;
+            sort += 1;
+        }
+    }
 
     Ok(())
 }
 
 pub fn list_categories(conn: &Connection) -> Result<Vec<Category>, DbError> {
-    let mut stmt = conn.prepare(
-        "SELECT id, name, parent_id, category_type, is_business_default, sort_order FROM categories ORDER BY sort_order",
-    )?;
-    let categories = stmt.query_map([], row_to_category)?
+    let mut stmt = conn.prepare(&format!(
+        "SELECT {} FROM categories ORDER BY sort_order",
+        SELECT_COLS
+    ))?;
+    let categories = stmt
+        .query_map([], row_to_category)?
         .collect::<rusqlite::Result<Vec<_>>>()?;
     Ok(categories)
 }
@@ -126,25 +416,24 @@ pub fn create_category(
     params: CreateCategoryParams,
 ) -> Result<Category, DbError> {
     let id = Uuid::new_v4().to_string();
+    let sort_order = params.sort_order.unwrap_or(0);
     conn.execute(
-        "INSERT INTO categories (id, name, parent_id, category_type, is_business_default, sort_order) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        "INSERT INTO categories (id, slug, name, parent_id, direction, sort_order) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
         rusqlite::params![
             id,
+            params.slug,
             params.name,
             params.parent_id,
-            params.category_type,
-            params.is_business_default,
-            params.sort_order,
+            params.direction,
+            sort_order,
         ],
     )?;
-    Ok(Category {
-        id,
-        name: params.name,
-        parent_id: params.parent_id,
-        category_type: params.category_type,
-        is_business_default: params.is_business_default,
-        sort_order: params.sort_order,
-    })
+
+    let mut stmt = conn.prepare(&format!(
+        "SELECT {} FROM categories WHERE id = ?1",
+        SELECT_COLS
+    ))?;
+    Ok(stmt.query_row(rusqlite::params![id], row_to_category)?)
 }
 
 pub fn update_category(
@@ -155,6 +444,10 @@ pub fn update_category(
     let mut sets = Vec::new();
     let mut values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
 
+    if let Some(ref slug) = params.slug {
+        sets.push("slug = ?");
+        values.push(Box::new(slug.clone()));
+    }
     if let Some(ref name) = params.name {
         sets.push("name = ?");
         values.push(Box::new(name.clone()));
@@ -163,13 +456,9 @@ pub fn update_category(
         sets.push("parent_id = ?");
         values.push(Box::new(parent_id.clone()));
     }
-    if let Some(ref category_type) = params.category_type {
-        sets.push("category_type = ?");
-        values.push(Box::new(category_type.clone()));
-    }
-    if let Some(is_business_default) = params.is_business_default {
-        sets.push("is_business_default = ?");
-        values.push(Box::new(is_business_default));
+    if let Some(ref direction) = params.direction {
+        sets.push("direction = ?");
+        values.push(Box::new(direction.clone()));
     }
     if let Some(sort_order) = params.sort_order {
         sets.push("sort_order = ?");
@@ -177,27 +466,42 @@ pub fn update_category(
     }
 
     if sets.is_empty() {
-        let mut stmt = conn.prepare(
-            "SELECT id, name, parent_id, category_type, is_business_default, sort_order FROM categories WHERE id = ?1",
-        )?;
+        let mut stmt = conn.prepare(&format!(
+            "SELECT {} FROM categories WHERE id = ?1",
+            SELECT_COLS
+        ))?;
         return Ok(stmt.query_row(rusqlite::params![id], row_to_category)?);
     }
 
     values.push(Box::new(id.to_string()));
-    let sql = format!(
-        "UPDATE categories SET {} WHERE id = ?",
-        sets.join(", ")
-    );
+    let sql = format!("UPDATE categories SET {} WHERE id = ?", sets.join(", "));
     let param_refs: Vec<&dyn rusqlite::types::ToSql> = values.iter().map(|v| v.as_ref()).collect();
     conn.execute(&sql, param_refs.as_slice())?;
 
-    let mut stmt = conn.prepare(
-        "SELECT id, name, parent_id, category_type, is_business_default, sort_order FROM categories WHERE id = ?1",
-    )?;
+    let mut stmt = conn.prepare(&format!(
+        "SELECT {} FROM categories WHERE id = ?1",
+        SELECT_COLS
+    ))?;
     Ok(stmt.query_row(rusqlite::params![id], row_to_category)?)
 }
 
 pub fn delete_category(conn: &Connection, id: &str) -> Result<(), DbError> {
-    conn.execute("DELETE FROM categories WHERE id = ?1", rusqlite::params![id])?;
+    conn.execute(
+        "DELETE FROM categories WHERE id = ?1",
+        rusqlite::params![id],
+    )?;
     Ok(())
+}
+
+pub fn get_category_by_slug(conn: &Connection, slug: &str) -> Result<Option<Category>, DbError> {
+    let mut stmt = conn.prepare(&format!(
+        "SELECT {} FROM categories WHERE slug = ?1",
+        SELECT_COLS
+    ))?;
+    let result = stmt.query_row(rusqlite::params![slug], row_to_category);
+    match result {
+        Ok(cat) => Ok(Some(cat)),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(e) => Err(DbError::from(e)),
+    }
 }

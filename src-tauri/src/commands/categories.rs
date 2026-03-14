@@ -1,8 +1,6 @@
 use tauri::State;
 
-use crate::models::category::{
-    self, Category, CreateCategoryParams, UpdateCategoryParams,
-};
+use crate::models::category::{self, Category, CreateCategoryParams, UpdateCategoryParams};
 use crate::AppState;
 
 use super::with_db_conn;

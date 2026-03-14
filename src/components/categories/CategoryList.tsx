@@ -6,12 +6,11 @@ interface CategoryListProps {
   onDelete: (category: Category) => void;
 }
 
-type GroupLabel = "Income" | "Personal Expense" | "Business Expense";
-
-const TYPE_ORDER: { type: string; label: GroupLabel }[] = [
-  { type: "income", label: "Income" },
-  { type: "expense", label: "Personal Expense" },
-  { type: "business_expense", label: "Business Expense" },
+const DIRECTION_ORDER: { direction: Category["direction"]; label: string }[] = [
+  { direction: "income", label: "Income" },
+  { direction: "expense", label: "Expense" },
+  { direction: "transfer", label: "Transfer" },
+  { direction: "adjustment", label: "Adjustment" },
 ];
 
 export default function CategoryList({
@@ -30,9 +29,9 @@ export default function CategoryList({
 
   const grouped = new Map<string, Category[]>();
   for (const cat of categories) {
-    const list = grouped.get(cat.category_type) ?? [];
+    const list = grouped.get(cat.direction) ?? [];
     list.push(cat);
-    grouped.set(cat.category_type, list);
+    grouped.set(cat.direction, list);
   }
 
   function buildTree(cats: Category[]) {
@@ -62,26 +61,18 @@ export default function CategoryList({
         className="hover:bg-gray-50 dark:hover:bg-gray-800/50"
       >
         <td className={`${tdClass} text-gray-900 dark:text-gray-100`}>
-          {indent && (
-            <span className="text-gray-400 dark:text-gray-600 mr-2">
-              └
+          <div>
+            {indent && (
+              <span className="text-gray-400 dark:text-gray-600 mr-2">
+                └
+              </span>
+            )}
+            {cat.name}
+            <span className="block text-xs text-gray-500 dark:text-gray-400 ml-0">
+              {indent && <span className="inline-block w-5" />}
+              {cat.slug}
             </span>
-          )}
-          {cat.name}
-        </td>
-        <td className={`${tdClass} text-gray-600 dark:text-gray-400`}>
-          {cat.category_type === "income"
-            ? "Income"
-            : cat.category_type === "business_expense"
-              ? "Business Expense"
-              : "Expense"}
-        </td>
-        <td className={`${tdClass} text-center`}>
-          {cat.is_business_default && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">
-              Biz Default
-            </span>
-          )}
+          </div>
         </td>
         <td className={`${tdClass} text-right`}>
           <button
@@ -103,13 +94,13 @@ export default function CategoryList({
 
   return (
     <div className="space-y-6">
-      {TYPE_ORDER.map(({ type, label }) => {
-        const cats = grouped.get(type);
+      {DIRECTION_ORDER.map(({ direction, label }) => {
+        const cats = grouped.get(direction);
         if (!cats || cats.length === 0) return null;
         const { topLevel, children } = buildTree(cats);
 
         return (
-          <div key={type}>
+          <div key={direction}>
             <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               {label}
             </h3>
@@ -118,8 +109,6 @@ export default function CategoryList({
                 <thead>
                   <tr>
                     <th className={thClass}>Name</th>
-                    <th className={thClass}>Type</th>
-                    <th className={`${thClass} text-center`}>Flags</th>
                     <th className={`${thClass} text-right`}>Actions</th>
                   </tr>
                 </thead>

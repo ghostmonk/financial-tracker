@@ -58,7 +58,10 @@ pub fn create_account(conn: &Connection, params: CreateAccountParams) -> Result<
         rusqlite::params![id, params.name, params.institution, params.account_type, currency, params.credit_limit],
     )?;
 
-    let mut stmt = conn.prepare(&format!("SELECT {} FROM accounts WHERE id = ?1", SELECT_COLS))?;
+    let mut stmt = conn.prepare(&format!(
+        "SELECT {} FROM accounts WHERE id = ?1",
+        SELECT_COLS
+    ))?;
     Ok(stmt.query_row(params![&id], row_to_account)?)
 }
 

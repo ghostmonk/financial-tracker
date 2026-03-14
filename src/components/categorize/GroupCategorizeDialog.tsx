@@ -4,6 +4,7 @@ import type {
   Category,
   CreateRuleParams,
 } from "../../lib/types";
+import CategorySelect from "../transactions/CategorySelect";
 
 interface GroupCategorizeDialogProps {
   group: UncategorizedGroup;
@@ -18,15 +19,8 @@ export default function GroupCategorizeDialog({
   onConfirm,
   onCancel,
 }: GroupCategorizeDialogProps) {
-  const [categoryId, setCategoryId] = useState("");
+  const [categoryId, setCategoryId] = useState<string | null>(null);
   const [matchType, setMatchType] = useState("contains");
-
-  const incomeCategories = categories.filter(
-    (c) => c.category_type === "income",
-  );
-  const expenseCategories = categories.filter(
-    (c) => c.category_type !== "income",
-  );
 
   function handleSubmit(e: React.FormEvent & { currentTarget: HTMLFormElement }) {
     e.preventDefault();
@@ -60,34 +54,11 @@ export default function GroupCategorizeDialog({
 
         <div>
           <label className="block text-sm font-medium mb-1">Category</label>
-          <select
+          <CategorySelect
+            categories={categories}
             value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-            className={inputClass}
-            required
-          >
-            <option value="">Select a category</option>
-            {incomeCategories.length > 0 && (
-              <optgroup label="Income">
-                {incomeCategories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.is_business_default ? "\u25C6 " : ""}
-                    {c.name}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-            {expenseCategories.length > 0 && (
-              <optgroup label="Expense">
-                {expenseCategories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.is_business_default ? "\u25C6 " : ""}
-                    {c.name}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-          </select>
+            onChange={(catId) => setCategoryId(catId)}
+          />
         </div>
 
         <div>
@@ -113,7 +84,8 @@ export default function GroupCategorizeDialog({
           </button>
           <button
             type="submit"
-            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors"
+            disabled={!categoryId}
+            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Create Rule &amp; Categorize
           </button>

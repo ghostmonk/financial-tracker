@@ -3,6 +3,7 @@ pub mod categories;
 pub mod database;
 pub mod import;
 pub mod rules;
+pub mod tags;
 pub mod transactions;
 
 use crate::AppState;

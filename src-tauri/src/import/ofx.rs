@@ -36,10 +36,7 @@ fn find_statement_block(body: &str) -> Option<String> {
     let upper = body.to_uppercase();
 
     // Try bank statement first, then credit card
-    for (open, close) in &[
-        ("<STMTRS>", "</STMTRS>"),
-        ("<CCSTMTRS>", "</CCSTMTRS>"),
-    ] {
+    for (open, close) in &[("<STMTRS>", "</STMTRS>"), ("<CCSTMTRS>", "</CCSTMTRS>")] {
         if let Some(start) = upper.find(open) {
             let content_start = start + open.len();
             let end = upper[content_start..]
@@ -137,8 +134,8 @@ fn parse_single_transaction(block: &str) -> Result<ParsedTransaction, String> {
         .ok_or_else(|| "STMTTRN missing DTPOSTED".to_string())?;
     let date = parse_ofx_date(&raw_date)?;
 
-    let raw_amount = extract_tag_value(block, "TRNAMT")
-        .ok_or_else(|| "STMTTRN missing TRNAMT".to_string())?;
+    let raw_amount =
+        extract_tag_value(block, "TRNAMT").ok_or_else(|| "STMTTRN missing TRNAMT".to_string())?;
     let amount: f64 = raw_amount
         .parse()
         .map_err(|e| format!("Invalid TRNAMT '{}': {}", raw_amount, e))?;
@@ -184,7 +181,9 @@ fn parse_ofx_date(raw: &str) -> Result<String, String> {
     let day = &date_part[6..8];
 
     // Basic validation
-    let _y: u32 = year.parse().map_err(|_| format!("Invalid year in '{}'", raw))?;
+    let _y: u32 = year
+        .parse()
+        .map_err(|_| format!("Invalid year in '{}'", raw))?;
     let m: u32 = month
         .parse()
         .map_err(|_| format!("Invalid month in '{}'", raw))?;
