@@ -137,8 +137,7 @@ pub fn update_rule(
         "UPDATE categorization_rules SET {} WHERE id = ?",
         sets.join(", ")
     );
-    let param_refs: Vec<&dyn rusqlite::types::ToSql> =
-        values.iter().map(|v| v.as_ref()).collect();
+    let param_refs: Vec<&dyn rusqlite::types::ToSql> = values.iter().map(|v| v.as_ref()).collect();
     conn.execute(&sql, param_refs.as_slice())?;
 
     let mut stmt = conn.prepare(&format!(
@@ -168,13 +167,13 @@ mod tests {
         conn.execute_batch(schema).unwrap();
         // Insert a test category for FK constraint
         conn.execute(
-            "INSERT INTO categories (id, name, category_type, sort_order) VALUES (?1, ?2, ?3, ?4)",
-            params!["cat-1", "Groceries", "expense", 0],
+            "INSERT INTO categories (id, slug, name, direction, sort_order) VALUES (?1, ?2, ?3, ?4, ?5)",
+            params!["cat-1", "groceries", "Groceries", "expense", 0],
         )
         .unwrap();
         conn.execute(
-            "INSERT INTO categories (id, name, category_type, sort_order) VALUES (?1, ?2, ?3, ?4)",
-            params!["cat-2", "Dining Out", "expense", 1],
+            "INSERT INTO categories (id, slug, name, direction, sort_order) VALUES (?1, ?2, ?3, ?4, ?5)",
+            params!["cat-2", "dining_out", "Dining Out", "expense", 1],
         )
         .unwrap();
         conn

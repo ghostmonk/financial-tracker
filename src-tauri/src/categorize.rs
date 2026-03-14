@@ -4,10 +4,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::LazyLock;
 
-static RE_STORE_NUMBER: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\s*#\d+\s*$").unwrap());
-static RE_LONG_NUMBER: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\s+\d{9,}\s*$").unwrap());
+static RE_STORE_NUMBER: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\s*#\d+\s*$").unwrap());
+static RE_LONG_NUMBER: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\s+\d{9,}\s*$").unwrap());
 
 use crate::db::DbError;
 use crate::models::categorization_rule::CategorizationRule;
@@ -114,15 +112,15 @@ pub fn get_uncategorized_groups(
 
     for (_id, description, payee, acct_id, amount) in rows {
         let normalized = normalize_merchant_name(&description, payee.as_deref());
-        let group = groups.entry(normalized.clone()).or_insert_with(|| {
-            UncategorizedGroup {
+        let group = groups
+            .entry(normalized.clone())
+            .or_insert_with(|| UncategorizedGroup {
                 normalized_name: normalized,
                 transaction_count: 0,
                 total_amount: 0.0,
                 sample_description: description.clone(),
                 account_ids: Vec::new(),
-            }
-        });
+            });
         group.transaction_count += 1;
         group.total_amount += amount;
         if !group.account_ids.contains(&acct_id) {
@@ -163,8 +161,7 @@ pub fn apply_rules_to_transactions(
     for id in transaction_ids {
         values.push(Box::new(id.clone()));
     }
-    let param_refs: Vec<&dyn rusqlite::types::ToSql> =
-        values.iter().map(|v| v.as_ref()).collect();
+    let param_refs: Vec<&dyn rusqlite::types::ToSql> = values.iter().map(|v| v.as_ref()).collect();
 
     let mut stmt = conn.prepare(&sql)?;
     let txns: Vec<(String, String, Option<String>)> = stmt
@@ -210,12 +207,10 @@ pub fn reapply_all_rules(conn: &Connection) -> Result<usize, DbError> {
     }
 
     // Fetch all uncategorized transactions
-    let mut stmt = conn.prepare(
-        "SELECT id, description, payee FROM transactions WHERE category_id IS NULL",
-    )?;
+    let mut stmt =
+        conn.prepare("SELECT id, description, payee FROM transactions WHERE category_id IS NULL")?;
     let txns: Vec<(String, String, Option<String>)> = stmt
-        .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))
-        ?
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))?
         .collect::<rusqlite::Result<Vec<_>>>()?;
 
     let mut count = 0usize;
@@ -238,12 +233,10 @@ pub fn reapply_all_rules(conn: &Connection) -> Result<usize, DbError> {
 
 /// Count distinct normalized merchant names where category_id IS NULL.
 pub fn count_uncategorized_groups(conn: &Connection) -> Result<i64, DbError> {
-    let mut stmt = conn.prepare(
-        "SELECT description, payee FROM transactions WHERE category_id IS NULL",
-    )?;
+    let mut stmt =
+        conn.prepare("SELECT description, payee FROM transactions WHERE category_id IS NULL")?;
     let rows: Vec<(String, Option<String>)> = stmt
-        .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
-        ?
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
         .collect::<rusqlite::Result<Vec<_>>>()?;
 
     let mut names: std::collections::HashSet<String> = std::collections::HashSet::new();
@@ -303,18 +296,18 @@ mod tests {
 
         // Test categories
         conn.execute(
-            "INSERT INTO categories (id, name, category_type, sort_order) VALUES (?1, ?2, ?3, ?4)",
-            params!["cat-dining", "Dining", "expense", 0],
+            "INSERT INTO categories (id, slug, name, direction, sort_order) VALUES (?1, ?2, ?3, ?4, ?5)",
+            params!["cat-dining", "dining", "Dining", "expense", 0],
         )
         .unwrap();
         conn.execute(
-            "INSERT INTO categories (id, name, category_type, sort_order) VALUES (?1, ?2, ?3, ?4)",
-            params!["cat-groceries", "Groceries", "expense", 1],
+            "INSERT INTO categories (id, slug, name, direction, sort_order) VALUES (?1, ?2, ?3, ?4, ?5)",
+            params!["cat-groceries", "groceries", "Groceries", "expense", 1],
         )
         .unwrap();
         conn.execute(
-            "INSERT INTO categories (id, name, category_type, sort_order) VALUES (?1, ?2, ?3, ?4)",
-            params!["cat-gas", "Gas", "expense", 2],
+            "INSERT INTO categories (id, slug, name, direction, sort_order) VALUES (?1, ?2, ?3, ?4, ?5)",
+            params!["cat-gas", "gas", "Gas", "expense", 2],
         )
         .unwrap();
 
