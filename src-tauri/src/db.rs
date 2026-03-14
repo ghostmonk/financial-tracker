@@ -41,11 +41,11 @@ impl Database {
         let schema = include_str!("schema.sql");
 
         // Migration: category redesign
-        // Check if slug column exists on categories
+        // Check if categories table exists with old schema (no slug column)
+        let table_exists: bool = conn.prepare("SELECT 1 FROM categories LIMIT 1").is_ok();
         let has_slug: bool = conn.prepare("SELECT slug FROM categories LIMIT 1").is_ok();
 
-        if !has_slug {
-            // Drop old categories (clear dependent rows first)
+        if table_exists && !has_slug {
             conn.execute_batch("DELETE FROM categorization_rules; DELETE FROM categories;")?;
             conn.execute_batch("DROP TABLE IF EXISTS categories;")?;
         }
