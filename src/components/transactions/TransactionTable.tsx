@@ -1,6 +1,9 @@
 import { useState } from "react";
 import type { Transaction, Account, Category } from "../../lib/types";
 import { updateTransaction, updateTransactionsCategory } from "../../lib/tauri";
+import { formatAmount } from "../../lib/utils";
+import { btnClass } from "../../lib/styles";
+import { Th, Td } from "../shared/Table";
 import CategorySelect from "./CategorySelect";
 
 type SortField = "date" | "description" | "merchant" | "payee" | "amount" | "category" | "account";
@@ -17,11 +20,6 @@ interface TransactionTableProps {
   sortField?: SortField;
   sortDir?: SortDir;
   onSortChange?: (field: string, dir: string) => void;
-}
-
-function formatAmount(amount: number): string {
-  const abs = Math.abs(amount).toFixed(2);
-  return amount < 0 ? `-$${abs}` : `$${abs}`;
 }
 
 export default function TransactionTable({
@@ -158,11 +156,6 @@ export default function TransactionTable({
     );
   }
 
-  const thClass =
-    "px-3 py-2 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800";
-  const tdClass =
-    "px-3 py-1.5 text-sm border-b border-gray-100 dark:border-gray-800";
-
   return (
     <div>
       {selectedIds.size > 0 && (
@@ -200,7 +193,7 @@ export default function TransactionTable({
         <table className="min-w-full">
           <thead>
             <tr>
-              <th className={`${thClass} w-8`}>
+              <Th className="w-8">
                 <input
                   type="checkbox"
                   checked={
@@ -209,28 +202,28 @@ export default function TransactionTable({
                   onChange={toggleSelectAll}
                   className="rounded border-gray-300 dark:border-gray-600"
                 />
-              </th>
-              <th className={`${thClass} cursor-pointer select-none`} onClick={() => toggleSort("date")}>
+              </Th>
+              <Th className="cursor-pointer select-none" onClick={() => toggleSort("date")}>
                 Date{sortIndicator("date")}
-              </th>
-              <th className={`${thClass} cursor-pointer select-none`} onClick={() => toggleSort("description")}>
+              </Th>
+              <Th className="cursor-pointer select-none" onClick={() => toggleSort("description")}>
                 Description{sortIndicator("description")}
-              </th>
-              <th className={`${thClass} cursor-pointer select-none`} onClick={() => toggleSort("merchant")}>
+              </Th>
+              <Th className="cursor-pointer select-none" onClick={() => toggleSort("merchant")}>
                 Merchant{sortIndicator("merchant")}
-              </th>
-              <th className={`${thClass} cursor-pointer select-none`} onClick={() => toggleSort("payee")}>
+              </Th>
+              <Th className="cursor-pointer select-none" onClick={() => toggleSort("payee")}>
                 Payee{sortIndicator("payee")}
-              </th>
-              <th className={`${thClass} text-right cursor-pointer select-none`} onClick={() => toggleSort("amount")}>
+              </Th>
+              <Th align="right" className="cursor-pointer select-none" onClick={() => toggleSort("amount")}>
                 Amount{sortIndicator("amount")}
-              </th>
-              <th className={`${thClass} cursor-pointer select-none`} onClick={() => toggleSort("category")}>
+              </Th>
+              <Th className="cursor-pointer select-none" onClick={() => toggleSort("category")}>
                 Category{sortIndicator("category")}
-              </th>
-              <th className={`${thClass} cursor-pointer select-none`} onClick={() => toggleSort("account")}>
+              </Th>
+              <Th className="cursor-pointer select-none" onClick={() => toggleSort("account")}>
                 Account{sortIndicator("account")}
-              </th>
+              </Th>
             </tr>
           </thead>
           <tbody>
@@ -247,22 +240,18 @@ export default function TransactionTable({
                       : ""
                   }`}
                 >
-                  <td className={tdClass}>
+                  <Td>
                     <input
                       type="checkbox"
                       checked={selectedIds.has(tx.id)}
                       onChange={() => toggleSelect(tx.id)}
                       className="rounded border-gray-300 dark:border-gray-600"
                     />
-                  </td>
-                  <td
-                    className={`${tdClass} whitespace-nowrap text-gray-700 dark:text-gray-300`}
-                  >
+                  </Td>
+                  <Td className="whitespace-nowrap text-gray-700 dark:text-gray-300">
                     {tx.date}
-                  </td>
-                  <td
-                    className={`${tdClass} max-w-xs text-gray-900 dark:text-gray-100`}
-                  >
+                  </Td>
+                  <Td className="max-w-xs text-gray-900 dark:text-gray-100">
                     <div className="flex items-center gap-1.5">
                       <span className="truncate" title={tx.description}>
                         {tx.description}
@@ -276,29 +265,25 @@ export default function TransactionTable({
                         </span>
                       )}
                     </div>
-                  </td>
-                  <td
-                    className={`${tdClass} max-w-[10rem] truncate text-gray-600 dark:text-gray-400`}
-                    title={tx.merchant ?? ""}
-                  >
+                  </Td>
+                  <Td truncate className="text-gray-600 dark:text-gray-400" title={tx.merchant ?? ""}>
                     {tx.merchant ?? "--"}
-                  </td>
-                  <td
-                    className={`${tdClass} max-w-[10rem] truncate text-gray-600 dark:text-gray-400`}
-                    title={tx.payee ?? ""}
-                  >
+                  </Td>
+                  <Td truncate className="text-gray-600 dark:text-gray-400" title={tx.payee ?? ""}>
                     {tx.payee ?? "--"}
-                  </td>
-                  <td
-                    className={`${tdClass} text-right whitespace-nowrap font-mono tabular-nums ${
+                  </Td>
+                  <Td
+                    align="right"
+                    mono
+                    className={`whitespace-nowrap tabular-nums ${
                       tx.amount < 0
                         ? "text-red-600 dark:text-red-400"
                         : "text-green-600 dark:text-green-400"
                     }`}
                   >
                     {formatAmount(tx.amount)}
-                  </td>
-                  <td className={`${tdClass} relative`}>
+                  </Td>
+                  <Td className="relative">
                     {editingCategoryId === tx.id ? (
                       <CategorySelect
                         categories={categories}
@@ -321,12 +306,10 @@ export default function TransactionTable({
                         {categoryDisplay(cat)}
                       </button>
                     )}
-                  </td>
-                  <td
-                    className={`${tdClass} text-gray-600 dark:text-gray-400 whitespace-nowrap`}
-                  >
+                  </Td>
+                  <Td className="text-gray-600 dark:text-gray-400 whitespace-nowrap">
                     {accountMap.get(tx.account_id) ?? "Unknown"}
-                  </td>
+                  </Td>
                 </tr>
               );
             })}
@@ -339,7 +322,7 @@ export default function TransactionTable({
           <button
             onClick={onLoadMore}
             disabled={loading}
-            className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+            className={btnClass}
           >
             {loading ? "Loading..." : "Load more"}
           </button>

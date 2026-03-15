@@ -1,30 +1,15 @@
 use tauri::State;
 
+use crate::db_command;
 use crate::models::tag::{self, Tag};
 use crate::AppState;
 
 use super::with_db_conn;
 
-#[tauri::command(rename_all = "snake_case")]
-pub fn list_tags(state: State<'_, AppState>) -> Result<Vec<Tag>, String> {
-    with_db_conn(&state, |conn| {
-        tag::list_tags(conn).map_err(|e| e.to_string())
-    })
-}
-
-#[tauri::command(rename_all = "snake_case")]
-pub fn create_tag(state: State<'_, AppState>, name: String) -> Result<Tag, String> {
-    with_db_conn(&state, |conn| {
-        tag::get_or_create_tag(conn, &name).map_err(|e| e.to_string())
-    })
-}
-
-#[tauri::command(rename_all = "snake_case")]
-pub fn delete_tag(state: State<'_, AppState>, id: String) -> Result<(), String> {
-    with_db_conn(&state, |conn| {
-        tag::delete_tag(conn, &id).map_err(|e| e.to_string())
-    })
-}
+db_command!(list_tags -> Vec<Tag>, tag::list_tags);
+db_command!(create_tag -> Tag, tag::get_or_create_tag, name: String);
+db_command!(delete_tag -> (), tag::delete_tag, id: String);
+db_command!(get_transaction_tags -> Vec<Tag>, tag::get_transaction_tags, transaction_id: String);
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn set_transaction_tags(
@@ -34,15 +19,5 @@ pub fn set_transaction_tags(
 ) -> Result<(), String> {
     with_db_conn(&state, |conn| {
         tag::set_transaction_tags(conn, &transaction_id, &tag_ids).map_err(|e| e.to_string())
-    })
-}
-
-#[tauri::command(rename_all = "snake_case")]
-pub fn get_transaction_tags(
-    state: State<'_, AppState>,
-    transaction_id: String,
-) -> Result<Vec<Tag>, String> {
-    with_db_conn(&state, |conn| {
-        tag::get_transaction_tags(conn, &transaction_id).map_err(|e| e.to_string())
     })
 }

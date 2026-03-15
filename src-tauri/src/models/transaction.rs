@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::db::DbError;
+use crate::db_utils::{in_clause, UpdateBuilder};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Transaction {
@@ -108,44 +109,6 @@ pub fn row_to_transaction(row: &rusqlite::Row) -> rusqlite::Result<Transaction> 
         created_at: row.get(17)?,
         updated_at: row.get(18)?,
     })
-}
-
-pub fn create_transaction(
-    conn: &Connection,
-    params: CreateTransactionParams,
-) -> Result<Transaction, DbError> {
-    let id = Uuid::new_v4().to_string();
-    let is_recurring = params.is_recurring.unwrap_or(false);
-    let tax_deductible = params.tax_deductible.unwrap_or(false);
-    conn.execute(
-        "INSERT INTO transactions (id, date, amount, description, payee, merchant, account_id, category_id, \
-         is_recurring, tax_deductible, gst_amount, qst_amount, notes, import_hash, fitid, transaction_type) \
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
-        rusqlite::params![
-            id,
-            params.date,
-            params.amount,
-            params.description,
-            params.payee,
-            params.merchant,
-            params.account_id,
-            params.category_id,
-            is_recurring,
-            tax_deductible,
-            params.gst_amount,
-            params.qst_amount,
-            params.notes,
-            params.import_hash,
-            params.fitid,
-            params.transaction_type,
-        ],
-    )?;
-
-    let mut stmt = conn.prepare(&format!(
-        "SELECT {} FROM transactions WHERE id = ?1",
-        SELECT_COLS
-    ))?;
-    Ok(stmt.query_row(rusqlite::params![&id], row_to_transaction)?)
 }
 
 pub fn create_transactions_batch(
@@ -311,66 +274,21 @@ pub fn update_transaction(
     id: &str,
     params: UpdateTransactionParams,
 ) -> Result<Transaction, DbError> {
-    let mut sets = Vec::new();
-    let mut values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
-
-    if let Some(ref date) = params.date {
-        sets.push("date = ?");
-        values.push(Box::new(date.clone()));
-    }
-    if let Some(amount) = params.amount {
-        sets.push("amount = ?");
-        values.push(Box::new(amount));
-    }
-    if let Some(ref description) = params.description {
-        sets.push("description = ?");
-        values.push(Box::new(description.clone()));
-    }
-    if let Some(ref payee) = params.payee {
-        sets.push("payee = ?");
-        values.push(Box::new(payee.clone()));
-    }
-    if let Some(ref merchant) = params.merchant {
-        sets.push("merchant = ?");
-        values.push(Box::new(merchant.clone()));
-    }
-    if let Some(ref category_id) = params.category_id {
-        sets.push("category_id = ?");
-        values.push(Box::new(category_id.clone()));
-    }
-    if let Some(is_recurring) = params.is_recurring {
-        sets.push("is_recurring = ?");
-        values.push(Box::new(is_recurring));
-    }
-    if let Some(tax_deductible) = params.tax_deductible {
-        sets.push("tax_deductible = ?");
-        values.push(Box::new(tax_deductible));
-    }
-    if let Some(ref gst_amount) = params.gst_amount {
-        sets.push("gst_amount = ?");
-        values.push(Box::new(*gst_amount));
-    }
-    if let Some(ref qst_amount) = params.qst_amount {
-        sets.push("qst_amount = ?");
-        values.push(Box::new(*qst_amount));
-    }
-    if let Some(ref notes) = params.notes {
-        sets.push("notes = ?");
-        values.push(Box::new(notes.clone()));
-    }
-    if let Some(ref transaction_type) = params.transaction_type {
-        sets.push("transaction_type = ?");
-        values.push(Box::new(transaction_type.clone()));
-    }
-
-    if !sets.is_empty() {
-        sets.push("updated_at = datetime('now')");
-        values.push(Box::new(id.to_string()));
-        let sql = format!("UPDATE transactions SET {} WHERE id = ?", sets.join(", "));
-        let param_refs: Vec<&dyn rusqlite::types::ToSql> =
-            values.iter().map(|v| v.as_ref()).collect();
-        conn.execute(&sql, param_refs.as_slice())?;
-    }
+    let mut builder = UpdateBuilder::new();
+    builder
+        .set_if("date", &params.date)
+        .set_if("amount", &params.amount)
+        .set_if("description", &params.description)
+        .set_nullable("payee", &params.payee)
+        .set_nullable("merchant", &params.merchant)
+        .set_nullable("category_id", &params.category_id)
+        .set_if("is_recurring", &params.is_recurring)
+        .set_if("tax_deductible", &params.tax_deductible)
+        .set_nullable("gst_amount", &params.gst_amount)
+        .set_nullable("qst_amount", &params.qst_amount)
+        .set_nullable("notes", &params.notes)
+        .set_nullable("transaction_type", &params.transaction_type);
+    builder.execute(conn, "transactions", id, true)?;
 
     let mut stmt = conn.prepare(&format!(
         "SELECT {} FROM transactions WHERE id = ?1",
@@ -387,16 +305,14 @@ pub fn update_transactions_category(
     if ids.is_empty() {
         return Ok(());
     }
-    let placeholders: Vec<String> = (0..ids.len()).map(|i| format!("?{}", i + 2)).collect();
+    let (placeholders, mut in_values) = in_clause(ids, 2);
     let sql = format!(
         "UPDATE transactions SET category_id = ?1, categorized_by_rule = 0, updated_at = datetime('now') WHERE id IN ({})",
-        placeholders.join(", ")
+        placeholders
     );
     let mut values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
     values.push(Box::new(category_id.map(|s| s.to_string())));
-    for id in ids {
-        values.push(Box::new(id.clone()));
-    }
+    values.append(&mut in_values);
     let param_refs: Vec<&dyn rusqlite::types::ToSql> = values.iter().map(|v| v.as_ref()).collect();
     conn.execute(&sql, param_refs.as_slice())?;
     Ok(())
@@ -414,15 +330,11 @@ pub fn get_transaction_ids_by_hashes(
     if hashes.is_empty() {
         return Ok(Vec::new());
     }
-    let placeholders: Vec<String> = (0..hashes.len()).map(|i| format!("?{}", i + 1)).collect();
+    let (placeholders, values) = in_clause(hashes, 1);
     let sql = format!(
         "SELECT id FROM transactions WHERE import_hash IN ({})",
-        placeholders.join(", ")
+        placeholders
     );
-    let mut values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
-    for hash in hashes {
-        values.push(Box::new(hash.clone()));
-    }
     let param_refs: Vec<&dyn rusqlite::types::ToSql> = values.iter().map(|v| v.as_ref()).collect();
     let mut stmt = conn.prepare(&sql)?;
     let ids = stmt
@@ -439,16 +351,14 @@ pub fn check_duplicates_by_fitid(
     if fitids.is_empty() {
         return Ok(Vec::new());
     }
-    let placeholders: Vec<String> = (0..fitids.len()).map(|i| format!("?{}", i + 2)).collect();
+    let (placeholders, mut in_values) = in_clause(fitids, 2);
     let sql = format!(
         "SELECT fitid FROM transactions WHERE account_id = ?1 AND fitid IN ({})",
-        placeholders.join(", ")
+        placeholders
     );
     let mut values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
     values.push(Box::new(account_id.to_string()));
-    for fitid in fitids {
-        values.push(Box::new(fitid.clone()));
-    }
+    values.append(&mut in_values);
     let param_refs: Vec<&dyn rusqlite::types::ToSql> = values.iter().map(|v| v.as_ref()).collect();
     let mut stmt = conn.prepare(&sql)?;
     let existing = stmt
@@ -464,15 +374,11 @@ pub fn check_duplicates_by_hash(
     if hashes.is_empty() {
         return Ok(Vec::new());
     }
-    let placeholders: Vec<String> = (0..hashes.len()).map(|i| format!("?{}", i + 1)).collect();
+    let (placeholders, values) = in_clause(hashes, 1);
     let sql = format!(
         "SELECT import_hash FROM transactions WHERE import_hash IN ({})",
-        placeholders.join(", ")
+        placeholders
     );
-    let mut values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
-    for hash in hashes {
-        values.push(Box::new(hash.clone()));
-    }
     let param_refs: Vec<&dyn rusqlite::types::ToSql> = values.iter().map(|v| v.as_ref()).collect();
     let mut stmt = conn.prepare(&sql)?;
     let existing = stmt

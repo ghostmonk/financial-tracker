@@ -13,6 +13,10 @@ import type {
   UpdateRuleParams,
   Category,
 } from "../lib/types";
+import { parseError } from "../lib/utils";
+import { inputClass, btnClass, btnPrimaryClass, btnDangerClass } from "../lib/styles";
+import Modal from "../components/shared/Modal";
+import FormField from "../components/shared/FormField";
 import CategorySelect from "../components/transactions/CategorySelect";
 
 export default function RulesPage() {
@@ -112,7 +116,7 @@ export default function RulesPage() {
       const count = await reapplyAllRules();
       setBanner(`Re-applied rules: ${count} transaction${count !== 1 ? "s" : ""} categorized.`);
     } catch (err) {
-      setError(typeof err === "string" ? err : "Failed to re-apply rules.");
+      setError(parseError(err));
     }
   }
 
@@ -129,7 +133,7 @@ export default function RulesPage() {
       setEditingRule(null);
       fetchRules();
     } catch (err) {
-      setError(typeof err === "string" ? err : "Failed to save rule.");
+      setError(parseError(err));
     }
   }
 
@@ -147,7 +151,7 @@ export default function RulesPage() {
       setDeletingRule(null);
       fetchRules();
     } catch (err) {
-      setError(typeof err === "string" ? err : "Failed to delete rule.");
+      setError(parseError(err));
       setDeletingRule(null);
     }
   }
@@ -164,7 +168,7 @@ export default function RulesPage() {
         <div className="flex gap-2">
           <button
             onClick={handleReapply}
-            className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className={btnClass}
           >
             Re-apply All Rules
           </button>
@@ -174,7 +178,7 @@ export default function RulesPage() {
               setShowForm(true);
               setError(null);
             }}
-            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors"
+            className={btnPrimaryClass}
           >
             Add Rule
           </button>
@@ -276,30 +280,30 @@ export default function RulesPage() {
         />
       )}
 
-      {deletingRule && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm space-y-4">
-            <h2 className="text-lg font-semibold">Delete Rule</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Delete rule for pattern &quot;{deletingRule.pattern}&quot;?
-            </p>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setDeletingRule(null)}
-                className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmDelete}
-                className="px-4 py-2 text-sm bg-red-600 text-white rounded-md font-medium hover:bg-red-700 transition-colors"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
+      <Modal
+        open={!!deletingRule}
+        onClose={() => setDeletingRule(null)}
+        title="Delete Rule"
+        width="sm"
+      >
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Delete rule for pattern &quot;{deletingRule?.pattern}&quot;?
+        </p>
+        <div className="flex justify-end gap-2 mt-4">
+          <button
+            onClick={() => setDeletingRule(null)}
+            className={btnClass}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleConfirmDelete}
+            className={btnDangerClass}
+          >
+            Delete
+          </button>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }
@@ -340,7 +344,7 @@ function RuleForm({
     editingRule?.auto_apply ?? true,
   );
 
-  function handleSubmit(e: React.FormEvent & { currentTarget: HTMLFormElement }) {
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!pattern.trim() || !categoryId) return;
     onSubmit({
@@ -355,21 +359,10 @@ function RuleForm({
     });
   }
 
-  const inputClass =
-    "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500";
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md space-y-4"
-      >
-        <h2 className="text-lg font-semibold">
-          {editingRule ? "Edit Rule" : "Add Rule"}
-        </h2>
-
-        <div>
-          <label className="block text-sm font-medium mb-1">Pattern</label>
+    <Modal open={true} onClose={onCancel} title={editingRule ? "Edit Rule" : "Add Rule"}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <FormField label="Pattern">
           <input
             type="text"
             value={pattern}
@@ -378,10 +371,9 @@ function RuleForm({
             autoFocus
             required
           />
-        </div>
+        </FormField>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Field</label>
+        <FormField label="Field">
           <select
             value={matchField}
             onChange={(e) => setMatchField(e.target.value)}
@@ -390,10 +382,9 @@ function RuleForm({
             <option value="description">Description</option>
             <option value="payee">Payee</option>
           </select>
-        </div>
+        </FormField>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Match Type</label>
+        <FormField label="Match Type">
           <select
             value={matchType}
             onChange={(e) => setMatchType(e.target.value)}
@@ -403,20 +394,18 @@ function RuleForm({
             <option value="starts_with">Starts with</option>
             <option value="exact">Exact match</option>
           </select>
-        </div>
+        </FormField>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Category</label>
+        <FormField label="Category">
           <CategorySelect
             categories={categories}
             value={categoryId}
             onChange={(catId) => setCategoryId(catId)}
           />
-        </div>
+        </FormField>
 
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium mb-1">Min Amount</label>
+          <FormField label="Min Amount">
             <input
               type="number"
               step="0.01"
@@ -425,9 +414,8 @@ function RuleForm({
               onChange={(e) => setAmountMin(e.target.value)}
               className={inputClass}
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Max Amount</label>
+          </FormField>
+          <FormField label="Max Amount">
             <input
               type="number"
               step="0.01"
@@ -436,18 +424,17 @@ function RuleForm({
               onChange={(e) => setAmountMax(e.target.value)}
               className={inputClass}
             />
-          </div>
+          </FormField>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Priority</label>
+        <FormField label="Priority">
           <input
             type="number"
             value={priority}
             onChange={(e) => setPriority(parseInt(e.target.value) || 0)}
             className={inputClass}
           />
-        </div>
+        </FormField>
 
         <label className="flex items-center gap-2 text-sm">
           <input
@@ -463,18 +450,18 @@ function RuleForm({
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className={btnClass}
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors"
+            className={btnPrimaryClass}
           >
             {editingRule ? "Update" : "Create"}
           </button>
         </div>
       </form>
-    </div>
+    </Modal>
   );
 }

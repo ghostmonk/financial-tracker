@@ -1,4 +1,5 @@
 import type { Category } from "../../lib/types";
+import { Th, Td } from "../shared/Table";
 
 interface CategoryListProps {
   categories: Category[];
@@ -49,18 +50,13 @@ export default function CategoryList({
     return { topLevel, children };
   }
 
-  const thClass =
-    "px-3 py-2 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800";
-  const tdClass =
-    "px-3 py-2 text-sm border-b border-gray-100 dark:border-gray-800";
-
   function renderRow(cat: Category, indent: boolean) {
     return (
       <tr
         key={cat.id}
         className="hover:bg-gray-50 dark:hover:bg-gray-800/50"
       >
-        <td className={`${tdClass} text-gray-900 dark:text-gray-100`}>
+        <Td className="text-gray-900 dark:text-gray-100">
           <div>
             {indent && (
               <span className="text-gray-400 dark:text-gray-600 mr-2">
@@ -73,8 +69,8 @@ export default function CategoryList({
               {cat.slug}
             </span>
           </div>
-        </td>
-        <td className={`${tdClass} text-right`}>
+        </Td>
+        <Td align="right">
           <button
             onClick={() => onEdit(cat)}
             className="text-xs px-2 py-1 text-blue-600 dark:text-blue-400 hover:underline"
@@ -87,7 +83,7 @@ export default function CategoryList({
           >
             Delete
           </button>
-        </td>
+        </Td>
       </tr>
     );
   }
@@ -108,8 +104,8 @@ export default function CategoryList({
               <table className="min-w-full">
                 <thead>
                   <tr>
-                    <th className={thClass}>Name</th>
-                    <th className={`${thClass} text-right`}>Actions</th>
+                    <Th>Name</Th>
+                    <Th align="right">Actions</Th>
                   </tr>
                 </thead>
                 <tbody>

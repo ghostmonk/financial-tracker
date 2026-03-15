@@ -9,6 +9,9 @@ import type {
   Category,
   UncategorizedGroup,
 } from "../../lib/types";
+import { formatAmount } from "../../lib/utils";
+import { inputSmClass, btnClass, btnPrimaryClass } from "../../lib/styles";
+import { Th, Td } from "../shared/Table";
 import CategorySelect from "../transactions/CategorySelect";
 
 interface GroupDrillDownProps {
@@ -17,11 +20,6 @@ interface GroupDrillDownProps {
   accountId?: string;
   onBack: () => void;
   onRefresh: () => void;
-}
-
-function formatAmount(amount: number): string {
-  const abs = Math.abs(amount).toFixed(2);
-  return amount < 0 ? `-$${abs}` : `$${abs}`;
 }
 
 export default function GroupDrillDown({
@@ -179,20 +177,13 @@ export default function GroupDrillDown({
   const allFilteredSelected =
     filtered.length > 0 && filtered.every((tx) => selectedIds.has(tx.id));
 
-  const thClass =
-    "px-3 py-2 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800";
-  const tdClass =
-    "px-3 py-1.5 text-sm border-b border-gray-100 dark:border-gray-800";
-  const inputClass =
-    "px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500";
-
   return (
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center gap-3">
         <button
           onClick={onBack}
-          className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          className={btnClass}
         >
           Back
         </button>
@@ -220,14 +211,14 @@ export default function GroupDrillDown({
           placeholder="Search descriptions..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className={`${inputClass} w-64`}
+          className={`${inputSmClass} w-64`}
         />
         <input
           type="number"
           placeholder="Min $"
           value={amountMin}
           onChange={(e) => setAmountMin(e.target.value)}
-          className={`${inputClass} w-24`}
+          className={`${inputSmClass} w-24`}
           step="0.01"
           min="0"
         />
@@ -236,7 +227,7 @@ export default function GroupDrillDown({
           placeholder="Max $"
           value={amountMax}
           onChange={(e) => setAmountMax(e.target.value)}
-          className={`${inputClass} w-24`}
+          className={`${inputSmClass} w-24`}
           step="0.01"
           min="0"
         />
@@ -287,7 +278,7 @@ export default function GroupDrillDown({
               <select
                 value={matchType}
                 onChange={(e) => setMatchType(e.target.value)}
-                className={inputClass}
+                className={inputSmClass}
               >
                 <option value="contains">Contains</option>
                 <option value="starts_with">Starts with</option>
@@ -298,7 +289,7 @@ export default function GroupDrillDown({
                 placeholder="Rule min $"
                 value={ruleAmountMin}
                 onChange={(e) => setRuleAmountMin(e.target.value)}
-                className={`${inputClass} w-28`}
+                className={`${inputSmClass} w-28`}
                 step="0.01"
                 min="0"
               />
@@ -307,7 +298,7 @@ export default function GroupDrillDown({
                 placeholder="Rule max $"
                 value={ruleAmountMax}
                 onChange={(e) => setRuleAmountMax(e.target.value)}
-                className={`${inputClass} w-28`}
+                className={`${inputSmClass} w-28`}
                 step="0.01"
                 min="0"
               />
@@ -317,7 +308,7 @@ export default function GroupDrillDown({
           <button
             onClick={handleAssign}
             disabled={!selectedCategoryId || assigning}
-            className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className={btnPrimaryClass}
           >
             {assigning ? "Assigning..." : "Assign"}
           </button>
@@ -343,18 +334,18 @@ export default function GroupDrillDown({
           <table className="min-w-full">
             <thead>
               <tr>
-                <th className={`${thClass} w-8`}>
+                <Th className="w-8">
                   <input
                     type="checkbox"
                     checked={allFilteredSelected}
                     onChange={toggleSelectAll}
                     className="rounded border-gray-300 dark:border-gray-600"
                   />
-                </th>
-                <th className={`${thClass} cursor-pointer select-none`} onClick={() => toggleSort("date")}>Date{sortIndicator("date")}</th>
-                <th className={`${thClass} cursor-pointer select-none`} onClick={() => toggleSort("description")}>Description{sortIndicator("description")}</th>
-                <th className={`${thClass} text-right cursor-pointer select-none`} onClick={() => toggleSort("amount")}>Amount{sortIndicator("amount")}</th>
-                <th className={thClass}>Category</th>
+                </Th>
+                <Th className="cursor-pointer select-none" onClick={() => toggleSort("date")}>Date{sortIndicator("date")}</Th>
+                <Th className="cursor-pointer select-none" onClick={() => toggleSort("description")}>Description{sortIndicator("description")}</Th>
+                <Th align="right" className="cursor-pointer select-none" onClick={() => toggleSort("amount")}>Amount{sortIndicator("amount")}</Th>
+                <Th>Category</Th>
               </tr>
             </thead>
             <tbody>
@@ -371,40 +362,36 @@ export default function GroupDrillDown({
                         : ""
                     }`}
                   >
-                    <td className={tdClass}>
+                    <Td>
                       <input
                         type="checkbox"
                         checked={selectedIds.has(tx.id)}
                         onChange={() => toggleSelect(tx.id)}
                         className="rounded border-gray-300 dark:border-gray-600"
                       />
-                    </td>
-                    <td
-                      className={`${tdClass} whitespace-nowrap text-gray-700 dark:text-gray-300`}
-                    >
+                    </Td>
+                    <Td className="whitespace-nowrap text-gray-700 dark:text-gray-300">
                       {tx.date}
-                    </td>
-                    <td
-                      className={`${tdClass} max-w-xs text-gray-900 dark:text-gray-100`}
-                    >
+                    </Td>
+                    <Td className="max-w-xs text-gray-900 dark:text-gray-100">
                       <span className="truncate block" title={tx.description}>
                         {tx.description}
                       </span>
-                    </td>
-                    <td
-                      className={`${tdClass} text-right whitespace-nowrap font-mono tabular-nums ${
+                    </Td>
+                    <Td
+                      align="right"
+                      mono
+                      className={`whitespace-nowrap tabular-nums ${
                         tx.amount < 0
                           ? "text-red-600 dark:text-red-400"
                           : "text-green-600 dark:text-green-400"
                       }`}
                     >
                       {formatAmount(tx.amount)}
-                    </td>
-                    <td
-                      className={`${tdClass} text-gray-500 dark:text-gray-400`}
-                    >
+                    </Td>
+                    <Td className="text-gray-500 dark:text-gray-400">
                       {cat ? cat.name : "Uncategorized"}
-                    </td>
+                    </Td>
                   </tr>
                 );
               })}

@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::db::DbError;
+use crate::db_utils::UpdateBuilder;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Category {
@@ -441,42 +442,14 @@ pub fn update_category(
     id: &str,
     params: UpdateCategoryParams,
 ) -> Result<Category, DbError> {
-    let mut sets = Vec::new();
-    let mut values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
-
-    if let Some(ref slug) = params.slug {
-        sets.push("slug = ?");
-        values.push(Box::new(slug.clone()));
-    }
-    if let Some(ref name) = params.name {
-        sets.push("name = ?");
-        values.push(Box::new(name.clone()));
-    }
-    if let Some(ref parent_id) = params.parent_id {
-        sets.push("parent_id = ?");
-        values.push(Box::new(parent_id.clone()));
-    }
-    if let Some(ref direction) = params.direction {
-        sets.push("direction = ?");
-        values.push(Box::new(direction.clone()));
-    }
-    if let Some(sort_order) = params.sort_order {
-        sets.push("sort_order = ?");
-        values.push(Box::new(sort_order));
-    }
-
-    if sets.is_empty() {
-        let mut stmt = conn.prepare(&format!(
-            "SELECT {} FROM categories WHERE id = ?1",
-            SELECT_COLS
-        ))?;
-        return Ok(stmt.query_row(rusqlite::params![id], row_to_category)?);
-    }
-
-    values.push(Box::new(id.to_string()));
-    let sql = format!("UPDATE categories SET {} WHERE id = ?", sets.join(", "));
-    let param_refs: Vec<&dyn rusqlite::types::ToSql> = values.iter().map(|v| v.as_ref()).collect();
-    conn.execute(&sql, param_refs.as_slice())?;
+    let mut builder = UpdateBuilder::new();
+    builder
+        .set_if("slug", &params.slug)
+        .set_if("name", &params.name)
+        .set_nullable("parent_id", &params.parent_id)
+        .set_if("direction", &params.direction)
+        .set_if("sort_order", &params.sort_order);
+    builder.execute(conn, "categories", id, false)?;
 
     let mut stmt = conn.prepare(&format!(
         "SELECT {} FROM categories WHERE id = ?1",
@@ -491,17 +464,4 @@ pub fn delete_category(conn: &Connection, id: &str) -> Result<(), DbError> {
         rusqlite::params![id],
     )?;
     Ok(())
-}
-
-pub fn get_category_by_slug(conn: &Connection, slug: &str) -> Result<Option<Category>, DbError> {
-    let mut stmt = conn.prepare(&format!(
-        "SELECT {} FROM categories WHERE slug = ?1",
-        SELECT_COLS
-    ))?;
-    let result = stmt.query_row(rusqlite::params![slug], row_to_category);
-    match result {
-        Ok(cat) => Ok(Some(cat)),
-        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-        Err(e) => Err(DbError::from(e)),
-    }
 }

@@ -6,6 +6,9 @@ import {
   deleteAccount,
 } from "../lib/tauri";
 import type { Account, CreateAccountParams } from "../lib/types";
+import { parseError } from "../lib/utils";
+import { btnClass, btnPrimaryClass, btnDangerClass } from "../lib/styles";
+import Modal from "../components/shared/Modal";
 import AccountList from "../components/accounts/AccountList";
 import AccountForm from "../components/accounts/AccountForm";
 
@@ -50,7 +53,7 @@ export default function AccountsPage() {
       setEditingAccount(null);
       fetchAccounts();
     } catch (err) {
-      setError(typeof err === "string" ? err : "Failed to save account.");
+      setError(parseError(err));
     }
   }
 
@@ -68,7 +71,7 @@ export default function AccountsPage() {
       setDeletingAccount(null);
       fetchAccounts();
     } catch (err) {
-      setError(typeof err === "string" ? err : "Failed to delete account.");
+      setError(parseError(err));
       setDeletingAccount(null);
     }
   }
@@ -88,7 +91,7 @@ export default function AccountsPage() {
             setShowForm(true);
             setError(null);
           }}
-          className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors"
+          className={btnPrimaryClass}
         >
           Add Account
         </button>
@@ -119,31 +122,31 @@ export default function AccountsPage() {
         />
       )}
 
-      {deletingAccount && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm space-y-4">
-            <h2 className="text-lg font-semibold">Delete Account</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Delete &quot;{deletingAccount.name}&quot;? All transactions
-              associated with this account will also be deleted.
-            </p>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setDeletingAccount(null)}
-                className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmDelete}
-                className="px-4 py-2 text-sm bg-red-600 text-white rounded-md font-medium hover:bg-red-700 transition-colors"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
+      <Modal
+        open={!!deletingAccount}
+        onClose={() => setDeletingAccount(null)}
+        title="Delete Account"
+        width="sm"
+      >
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Delete &quot;{deletingAccount?.name}&quot;? All transactions
+          associated with this account will also be deleted.
+        </p>
+        <div className="flex justify-end gap-2 mt-4">
+          <button
+            onClick={() => setDeletingAccount(null)}
+            className={btnClass}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleConfirmDelete}
+            className={btnDangerClass}
+          >
+            Delete
+          </button>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

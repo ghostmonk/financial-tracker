@@ -1,13 +1,9 @@
 import type { Category, Transaction } from "../../lib/types";
+import { formatAmount } from "../../lib/utils";
 
 interface MonthlySummaryProps {
   transactions: Transaction[];
   categories: Category[];
-}
-
-function formatCurrency(amount: number): string {
-  const abs = Math.abs(amount).toFixed(2);
-  return amount < 0 ? `-$${abs}` : `$${abs}`;
 }
 
 interface CardProps {
@@ -23,7 +19,7 @@ function SummaryCard({ label, value, colorClass }: CardProps) {
         {label}
       </p>
       <p className={`text-2xl font-semibold mt-1 tabular-nums ${colorClass}`}>
-        {formatCurrency(value)}
+        {formatAmount(value)}
       </p>
     </div>
   );

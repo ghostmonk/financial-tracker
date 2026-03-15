@@ -4,6 +4,9 @@ import type {
   Category,
   CreateRuleParams,
 } from "../../lib/types";
+import { inputClass, btnClass, btnPrimaryClass } from "../../lib/styles";
+import Modal from "../shared/Modal";
+import FormField from "../shared/FormField";
 import CategorySelect from "../transactions/CategorySelect";
 
 interface GroupCategorizeDialogProps {
@@ -22,7 +25,7 @@ export default function GroupCategorizeDialog({
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [matchType, setMatchType] = useState("contains");
 
-  function handleSubmit(e: React.FormEvent & { currentTarget: HTMLFormElement }) {
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!categoryId) return;
     onConfirm({
@@ -34,35 +37,24 @@ export default function GroupCategorizeDialog({
     });
   }
 
-  const inputClass =
-    "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500";
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md space-y-4"
-      >
-        <div>
-          <h2 className="text-lg font-semibold">Categorize Group</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            &quot;{group.normalized_name}&quot; &mdash;{" "}
-            {group.transaction_count} transaction
-            {group.transaction_count !== 1 ? "s" : ""}
-          </p>
-        </div>
+    <Modal open={true} onClose={onCancel} title="Categorize Group">
+      <p className="text-sm text-gray-500 dark:text-gray-400 -mt-2 mb-4">
+        &quot;{group.normalized_name}&quot; &mdash;{" "}
+        {group.transaction_count} transaction
+        {group.transaction_count !== 1 ? "s" : ""}
+      </p>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Category</label>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <FormField label="Category">
           <CategorySelect
             categories={categories}
             value={categoryId}
             onChange={(catId) => setCategoryId(catId)}
           />
-        </div>
+        </FormField>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Match Type</label>
+        <FormField label="Match Type">
           <select
             value={matchType}
             onChange={(e) => setMatchType(e.target.value)}
@@ -72,25 +64,25 @@ export default function GroupCategorizeDialog({
             <option value="starts_with">Starts with</option>
             <option value="exact">Exact match</option>
           </select>
-        </div>
+        </FormField>
 
         <div className="flex justify-end gap-2 pt-2">
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className={btnClass}
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={!categoryId}
-            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className={btnPrimaryClass}
           >
             Create Rule &amp; Categorize
           </button>
         </div>
       </form>
-    </div>
+    </Modal>
   );
 }

@@ -1,4 +1,5 @@
 import type { Account } from "../../lib/types";
+import { Th, Td } from "../shared/Table";
 
 interface AccountListProps {
   accounts: Account[];
@@ -27,21 +28,16 @@ export default function AccountList({
     );
   }
 
-  const thClass =
-    "px-3 py-2 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800";
-  const tdClass =
-    "px-3 py-2 text-sm border-b border-gray-100 dark:border-gray-800";
-
   return (
     <div className="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-md">
       <table className="min-w-full">
         <thead>
           <tr>
-            <th className={thClass}>Name</th>
-            <th className={thClass}>Institution</th>
-            <th className={thClass}>Type</th>
-            <th className={thClass}>Currency</th>
-            <th className={`${thClass} text-right`}>Actions</th>
+            <Th>Name</Th>
+            <Th>Institution</Th>
+            <Th>Type</Th>
+            <Th>Currency</Th>
+            <Th align="right">Actions</Th>
           </tr>
         </thead>
         <tbody>
@@ -50,21 +46,19 @@ export default function AccountList({
               key={account.id}
               className="hover:bg-gray-50 dark:hover:bg-gray-800/50"
             >
-              <td
-                className={`${tdClass} text-gray-900 dark:text-gray-100 font-medium`}
-              >
+              <Td className="text-gray-900 dark:text-gray-100 font-medium">
                 {account.name}
-              </td>
-              <td className={`${tdClass} text-gray-600 dark:text-gray-400`}>
+              </Td>
+              <Td className="text-gray-600 dark:text-gray-400">
                 {account.institution ?? "--"}
-              </td>
-              <td className={`${tdClass} text-gray-600 dark:text-gray-400`}>
+              </Td>
+              <Td className="text-gray-600 dark:text-gray-400">
                 {formatType(account.account_type)}
-              </td>
-              <td className={`${tdClass} text-gray-600 dark:text-gray-400`}>
+              </Td>
+              <Td className="text-gray-600 dark:text-gray-400">
                 {account.currency}
-              </td>
-              <td className={`${tdClass} text-right`}>
+              </Td>
+              <Td align="right">
                 <button
                   onClick={() => onEdit(account)}
                   className="text-xs px-2 py-1 text-blue-600 dark:text-blue-400 hover:underline"
@@ -77,7 +71,7 @@ export default function AccountList({
                 >
                   Delete
                 </button>
-              </td>
+              </Td>
             </tr>
           ))}
         </tbody>

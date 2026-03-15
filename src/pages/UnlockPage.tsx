@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { unlockDatabase, isDatabaseInitialized } from "../lib/tauri";
 import { useDatabase } from "../contexts/DatabaseContext";
+import { parseError } from "../lib/utils";
+import { inputClass, btnPrimaryClass } from "../lib/styles";
 
 export default function UnlockPage() {
   const [password, setPassword] = useState("");
@@ -28,7 +30,7 @@ export default function UnlockPage() {
       setUnlocked(true);
       navigate("/transactions", { replace: true });
     } catch (err) {
-      setError(typeof err === "string" ? err : "Failed to unlock database");
+      setError(parseError(err));
     } finally {
       setLoading(false);
     }
@@ -56,7 +58,7 @@ export default function UnlockPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder={isFirstLaunch ? "Choose a password" : "Enter password"}
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={inputClass}
             autoFocus
           />
           {error && (
@@ -65,7 +67,7 @@ export default function UnlockPage() {
           <button
             type="submit"
             disabled={loading || !password}
-            className="w-full py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className={`w-full ${btnPrimaryClass}`}
           >
             {loading ? "Unlocking..." : "Unlock"}
           </button>

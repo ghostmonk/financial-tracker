@@ -3,6 +3,9 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { readTextFile } from "@tauri-apps/plugin-fs";
 import { listAccounts, createAccount } from "../../lib/tauri";
 import type { Account } from "../../lib/types";
+import { parseError } from "../../lib/utils";
+import { inputClass, btnClass, btnPrimaryClass } from "../../lib/styles";
+import FormField from "../shared/FormField";
 
 interface FileSelectorProps {
   onFileSelected: (
@@ -70,7 +73,7 @@ export default function FileSelector({ onFileSelected }: FileSelectorProps) {
 
       onFileSelected(content, ext as "csv" | "ofx" | "qfx", name, accountId);
     } catch (err) {
-      setError(typeof err === "string" ? err : "Failed to read file.");
+      setError(parseError(err));
     } finally {
       setLoading(false);
     }
@@ -92,23 +95,20 @@ export default function FileSelector({ onFileSelected }: FileSelectorProps) {
       setNewAccountName("");
       return account.id;
     } catch (err) {
-      setError(
-        typeof err === "string" ? err : "Failed to create account.",
-      );
+      setError(parseError(err));
       return null;
     }
   }
 
   return (
     <div className="max-w-lg space-y-6">
-      <div>
-        <label className="block text-sm font-medium mb-1">Account</label>
+      <FormField label="Account">
         {!creatingAccount ? (
           <div className="space-y-2">
             <select
               value={selectedAccountId}
               onChange={(e) => setSelectedAccountId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={inputClass}
             >
               {accounts.length === 0 && (
                 <option value="">No accounts</option>
@@ -135,13 +135,13 @@ export default function FileSelector({ onFileSelected }: FileSelectorProps) {
               value={newAccountName}
               onChange={(e) => setNewAccountName(e.target.value)}
               placeholder="Account name"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={inputClass}
               autoFocus
             />
             <select
               value={newAccountType}
               onChange={(e) => setNewAccountType(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={inputClass}
             >
               <option value="checking">Checking</option>
               <option value="savings">Savings</option>
@@ -152,21 +152,21 @@ export default function FileSelector({ onFileSelected }: FileSelectorProps) {
               <button
                 type="button"
                 onClick={() => setCreatingAccount(false)}
-                className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+                className={btnClass}
               >
                 Cancel
               </button>
             </div>
           </div>
         )}
-      </div>
+      </FormField>
 
       <div>
         <button
           type="button"
           onClick={handleSelectFile}
           disabled={loading || (!selectedAccountId && !creatingAccount)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className={btnPrimaryClass}
         >
           {loading ? "Reading file..." : "Select File"}
         </button>

@@ -1,16 +1,12 @@
 import { useState, useMemo } from "react";
 import type { UncategorizedGroup, Account } from "../../lib/types";
+import { formatAmount } from "../../lib/utils";
 
 interface UncategorizedGroupListProps {
   groups: UncategorizedGroup[];
   accounts: Account[];
   onCategorize: (group: UncategorizedGroup) => void;
   onDrillDown: (group: UncategorizedGroup) => void;
-}
-
-function formatAmount(amount: number): string {
-  const abs = Math.abs(amount).toFixed(2);
-  return amount < 0 ? `-$${abs}` : `$${abs}`;
 }
 
 export default function UncategorizedGroupList({

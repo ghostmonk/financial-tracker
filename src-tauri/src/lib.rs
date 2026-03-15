@@ -1,9 +1,12 @@
 mod categorize;
 mod commands;
 mod db;
+pub mod db_utils;
 mod import;
 mod models;
 mod tax;
+#[cfg(test)]
+mod test_utils;
 
 use db::Database;
 use std::sync::Mutex;

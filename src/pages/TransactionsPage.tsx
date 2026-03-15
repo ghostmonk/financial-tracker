@@ -2,14 +2,13 @@ import { useState, useEffect, useCallback } from "react";
 import {
   listTransactions,
   listAccounts,
-  listCategories,
 } from "../lib/tauri";
 import type {
   Transaction,
   TransactionFilters as Filters,
   Account,
-  Category,
 } from "../lib/types";
+import { useCategoryMap } from "../lib/hooks";
 import TransactionFiltersBar from "../components/transactions/TransactionFilters";
 import TransactionTable from "../components/transactions/TransactionTable";
 
@@ -18,7 +17,7 @@ const PAGE_SIZE = 50;
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const { categories } = useCategoryMap();
   const [filters, setFilters] = useState<Filters>({
     limit: PAGE_SIZE,
     offset: 0,
@@ -29,7 +28,6 @@ export default function TransactionsPage() {
 
   useEffect(() => {
     listAccounts().then(setAccounts).catch(console.error);
-    listCategories().then(setCategories).catch(console.error);
   }, []);
 
   const fetchTransactions = useCallback(

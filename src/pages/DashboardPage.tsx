@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
-import { listTransactions, listCategories } from "../lib/tauri";
-import type { Transaction, Category } from "../lib/types";
+import { listTransactions } from "../lib/tauri";
+import type { Transaction } from "../lib/types";
+import { btnClass } from "../lib/styles";
+import { useCategoryMap } from "../lib/hooks";
 import MonthlySummary from "../components/dashboard/MonthlySummary";
 import CategoryBreakdown from "../components/dashboard/CategoryBreakdown";
 
@@ -22,12 +24,8 @@ export default function DashboardPage() {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    listCategories().then(setCategories).catch(console.error);
-  }, []);
+  const { categories } = useCategoryMap();
 
   const fetchMonth = useCallback(async (y: number, m: number) => {
     setLoading(true);
@@ -80,7 +78,7 @@ export default function DashboardPage() {
       <div className="flex items-center gap-4">
         <button
           onClick={prevMonth}
-          className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          className={btnClass}
         >
           &larr;
         </button>
@@ -90,7 +88,7 @@ export default function DashboardPage() {
         <button
           onClick={nextMonth}
           disabled={atCurrentMonth}
-          className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          className={`${btnClass} disabled:opacity-30 disabled:cursor-not-allowed`}
         >
           &rarr;
         </button>

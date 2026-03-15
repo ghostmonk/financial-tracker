@@ -1,5 +1,7 @@
 import { useState } from "react";
 import type { Category, Transaction } from "../../lib/types";
+import { formatAmount } from "../../lib/utils";
+import { Th, Td } from "../shared/Table";
 
 type Direction = Category["direction"];
 
@@ -28,11 +30,6 @@ const DIRECTION_ORDER: Direction[] = [
   "transfer",
   "adjustment",
 ];
-
-function formatCurrency(amount: number): string {
-  const abs = Math.abs(amount).toFixed(2);
-  return amount < 0 ? `-$${abs}` : `$${abs}`;
-}
 
 function computeTotals(
   transactions: Transaction[],
@@ -108,11 +105,6 @@ export default function CategoryBreakdown({
     activeDirection,
   );
 
-  const thClass =
-    "px-3 py-2 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800";
-  const tdClass =
-    "px-3 py-2 text-sm border-b border-gray-100 dark:border-gray-800";
-
   return (
     <div className="space-y-4">
       <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700">
@@ -145,9 +137,9 @@ export default function CategoryBreakdown({
           <table className="min-w-full">
             <thead>
               <tr>
-                <th className={thClass}>Category</th>
-                <th className={`${thClass} text-right`}>Amount</th>
-                <th className={`${thClass} text-right`}>%</th>
+                <Th>Category</Th>
+                <Th align="right">Amount</Th>
+                <Th align="right">%</Th>
               </tr>
             </thead>
             <tbody>
@@ -156,21 +148,15 @@ export default function CategoryBreakdown({
                   key={row.categoryId ?? "__none__"}
                   className="hover:bg-gray-50 dark:hover:bg-gray-800/50"
                 >
-                  <td
-                    className={`${tdClass} text-gray-900 dark:text-gray-100`}
-                  >
+                  <Td className="text-gray-900 dark:text-gray-100">
                     {row.name}
-                  </td>
-                  <td
-                    className={`${tdClass} text-right font-mono tabular-nums text-gray-900 dark:text-gray-100`}
-                  >
-                    {formatCurrency(row.total)}
-                  </td>
-                  <td
-                    className={`${tdClass} text-right text-gray-500 dark:text-gray-400`}
-                  >
+                  </Td>
+                  <Td align="right" mono className="tabular-nums text-gray-900 dark:text-gray-100">
+                    {formatAmount(row.total)}
+                  </Td>
+                  <Td align="right" className="text-gray-500 dark:text-gray-400">
                     {row.percentage.toFixed(1)}%
-                  </td>
+                  </Td>
                 </tr>
               ))}
             </tbody>

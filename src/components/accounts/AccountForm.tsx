@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
 import type { Account, CreateAccountParams } from "../../lib/types";
+import { inputClass, btnClass, btnPrimaryClass } from "../../lib/styles";
+import Modal from "../shared/Modal";
+import FormField from "../shared/FormField";
 
 interface AccountFormProps {
   editingAccount?: Account | null;
@@ -51,21 +54,10 @@ export default function AccountForm({
     });
   }
 
-  const inputClass =
-    "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500";
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md space-y-4"
-      >
-        <h2 className="text-lg font-semibold">
-          {editingAccount ? "Edit Account" : "Add Account"}
-        </h2>
-
-        <div>
-          <label className="block text-sm font-medium mb-1">Name</label>
+    <Modal open={true} onClose={onCancel} title={editingAccount ? "Edit Account" : "Add Account"}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <FormField label="Name">
           <input
             type="text"
             value={name}
@@ -74,10 +66,9 @@ export default function AccountForm({
             autoFocus
             required
           />
-        </div>
+        </FormField>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Institution</label>
+        <FormField label="Institution">
           <input
             type="text"
             value={institution}
@@ -85,10 +76,9 @@ export default function AccountForm({
             placeholder="e.g. TD Bank, Desjardins"
             className={inputClass}
           />
-        </div>
+        </FormField>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Type</label>
+        <FormField label="Type">
           <select
             value={accountType}
             onChange={(e) => setAccountType(e.target.value)}
@@ -100,10 +90,9 @@ export default function AccountForm({
               </option>
             ))}
           </select>
-        </div>
+        </FormField>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Currency</label>
+        <FormField label="Currency">
           <select
             value={currency}
             onChange={(e) => setCurrency(e.target.value)}
@@ -115,24 +104,24 @@ export default function AccountForm({
               </option>
             ))}
           </select>
-        </div>
+        </FormField>
 
         <div className="flex justify-end gap-2 pt-2">
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className={btnClass}
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors"
+            className={btnPrimaryClass}
           >
             {editingAccount ? "Update" : "Create"}
           </button>
         </div>
       </form>
-    </div>
+    </Modal>
   );
 }

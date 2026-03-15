@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import type { ImportResult } from "../../lib/types";
+import { btnClass, btnPrimaryClass } from "../../lib/styles";
 
 interface ImportResultStepProps {
   result: ImportResult;
@@ -34,13 +35,13 @@ export default function ImportResultStep({
       <div className="flex gap-3">
         <button
           onClick={onReset}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors"
+          className={btnPrimaryClass}
         >
           Import Another File
         </button>
         <button
           onClick={() => navigate("/transactions")}
-          className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+          className={btnClass}
         >
           View Transactions
         </button>

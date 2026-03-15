@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::db::DbError;
+use crate::db_utils::{in_clause, UpdateBuilder};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaxLineItem {
@@ -98,53 +99,17 @@ pub fn update_tax_line_item(
     id: &str,
     params: UpdateTaxLineItemParams,
 ) -> Result<TaxLineItem, DbError> {
-    let mut sets = Vec::new();
-    let mut values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
-
-    if let Some(ref date) = params.date {
-        sets.push("date = ?");
-        values.push(Box::new(date.clone()));
-    }
-    if let Some(ref description) = params.description {
-        sets.push("description = ?");
-        values.push(Box::new(description.clone()));
-    }
-    if let Some(amount) = params.amount {
-        sets.push("amount = ?");
-        values.push(Box::new(amount));
-    }
-    if let Some(ref category_id) = params.category_id {
-        sets.push("category_id = ?");
-        values.push(Box::new(category_id.clone()));
-    }
-    if let Some(has_receipt) = params.has_receipt {
-        sets.push("has_receipt = ?");
-        values.push(Box::new(has_receipt));
-    }
-    if let Some(ref receipt_path) = params.receipt_path {
-        sets.push("receipt_path = ?");
-        values.push(Box::new(receipt_path.clone()));
-    }
-    if let Some(ref notes) = params.notes {
-        sets.push("notes = ?");
-        values.push(Box::new(notes.clone()));
-    }
-    if let Some(fiscal_year) = params.fiscal_year {
-        sets.push("fiscal_year = ?");
-        values.push(Box::new(fiscal_year));
-    }
-
-    if !sets.is_empty() {
-        sets.push("updated_at = datetime('now')");
-        values.push(Box::new(id.to_string()));
-        let sql = format!(
-            "UPDATE tax_line_items SET {} WHERE id = ?",
-            sets.join(", ")
-        );
-        let param_refs: Vec<&dyn rusqlite::types::ToSql> =
-            values.iter().map(|v| v.as_ref()).collect();
-        conn.execute(&sql, param_refs.as_slice())?;
-    }
+    let mut builder = UpdateBuilder::new();
+    builder
+        .set_if("date", &params.date)
+        .set_if("description", &params.description)
+        .set_if("amount", &params.amount)
+        .set_nullable("category_id", &params.category_id)
+        .set_if("has_receipt", &params.has_receipt)
+        .set_nullable("receipt_path", &params.receipt_path)
+        .set_nullable("notes", &params.notes)
+        .set_if("fiscal_year", &params.fiscal_year);
+    builder.execute(conn, "tax_line_items", id, true)?;
 
     let mut stmt = conn.prepare(&format!(
         "SELECT {} FROM tax_line_items WHERE id = ?1",
@@ -175,18 +140,110 @@ pub fn list_tax_line_items_by_year(
     Ok(items)
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub enum TaxItemSource {
+    Transaction,
+    TaxLineItem,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct TaxWorkspaceItem {
+    pub id: String,
+    pub source: TaxItemSource,
+    pub date: String,
+    pub description: String,
+    pub amount: f64,
+    pub category_id: Option<String>,
+    pub has_receipt: bool,
+    pub receipt_path: Option<String>,
+    pub notes: Option<String>,
+}
+
+/// Query all tax-relevant workspace items for a fiscal year.
+/// Combines transactions with tax-mapped categories and manual tax line items.
+pub fn get_tax_workspace_items(
+    conn: &Connection,
+    fiscal_year: i32,
+    tax_category_slugs: &[String],
+) -> Result<Vec<TaxWorkspaceItem>, DbError> {
+    let date_from = format!("{}-01-01", fiscal_year);
+    let date_to = format!("{}-12-31", fiscal_year);
+
+    let mut items: Vec<TaxWorkspaceItem> = Vec::new();
+
+    // Get category IDs for tax-mapped slugs
+    if !tax_category_slugs.is_empty() {
+        let (slug_placeholders, slug_values) = in_clause(tax_category_slugs, 1);
+        let cat_sql = format!(
+            "SELECT id FROM categories WHERE slug IN ({})",
+            slug_placeholders
+        );
+        let slug_refs: Vec<&dyn rusqlite::types::ToSql> =
+            slug_values.iter().map(|v| v.as_ref()).collect();
+        let mut cat_stmt = conn.prepare(&cat_sql)?;
+        let category_ids: Vec<String> = cat_stmt
+            .query_map(slug_refs.as_slice(), |row| row.get::<_, String>(0))?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+
+        if !category_ids.is_empty() {
+            let (cat_placeholders, cat_values) = in_clause(&category_ids, 3);
+            let t_sql = format!(
+                "SELECT id, date, description, amount, category_id, has_receipt, receipt_path, notes \
+                 FROM transactions \
+                 WHERE date >= ?1 AND date <= ?2 AND category_id IN ({}) \
+                 ORDER BY date ASC",
+                cat_placeholders
+            );
+            let mut t_values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
+            t_values.push(Box::new(date_from.clone()));
+            t_values.push(Box::new(date_to.clone()));
+            t_values.extend(cat_values);
+            let t_refs: Vec<&dyn rusqlite::types::ToSql> =
+                t_values.iter().map(|v| v.as_ref()).collect();
+            let mut t_stmt = conn.prepare(&t_sql)?;
+            let txn_items: Vec<TaxWorkspaceItem> = t_stmt
+                .query_map(t_refs.as_slice(), |row| {
+                    Ok(TaxWorkspaceItem {
+                        id: row.get(0)?,
+                        source: TaxItemSource::Transaction,
+                        date: row.get(1)?,
+                        description: row.get(2)?,
+                        amount: row.get(3)?,
+                        category_id: row.get(4)?,
+                        has_receipt: row.get(5)?,
+                        receipt_path: row.get(6)?,
+                        notes: row.get(7)?,
+                    })
+                })?
+                .collect::<rusqlite::Result<Vec<_>>>()?;
+            items.extend(txn_items);
+        }
+    }
+
+    // Add tax_line_items for the fiscal year
+    let line_items = list_tax_line_items_by_year(conn, fiscal_year)?;
+    for li in line_items {
+        items.push(TaxWorkspaceItem {
+            id: li.id,
+            source: TaxItemSource::TaxLineItem,
+            date: li.date,
+            description: li.description,
+            amount: li.amount,
+            category_id: li.category_id,
+            has_receipt: li.has_receipt,
+            receipt_path: li.receipt_path,
+            notes: li.notes,
+        });
+    }
+
+    items.sort_by(|a, b| a.date.cmp(&b.date));
+    Ok(items)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rusqlite::Connection;
-
-    fn setup_db() -> Connection {
-        let conn = Connection::open_in_memory().unwrap();
-        conn.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
-        let schema = include_str!("../schema.sql");
-        conn.execute_batch(schema).unwrap();
-        conn
-    }
+    use crate::test_utils::fixtures::setup_db;
 
     fn make_params(date: &str, desc: &str, amount: f64, year: i32) -> CreateTaxLineItemParams {
         CreateTaxLineItemParams {

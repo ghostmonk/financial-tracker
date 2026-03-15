@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import type { TaxRules, FiscalYearSettings } from "../../lib/types";
 import { upsertFiscalYearSettings } from "../../lib/tauri";
+import { inputClass, btnClass, btnPrimaryClass } from "../../lib/styles";
+import Modal from "../shared/Modal";
+import FormField from "../shared/FormField";
 
 interface ProrationSettingsModalProps {
   open: boolean;
@@ -70,19 +73,9 @@ export default function ProrationSettingsModal({
     }
   }
 
-  const inputClass =
-    "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500";
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-lg space-y-6"
-      >
-        <h2 className="text-lg font-semibold">
-          Proration Settings &mdash; {fiscalYear}
-        </h2>
-
+    <Modal open={open} onClose={onClose} title={`Proration Settings \u2014 ${fiscalYear}`} width="lg">
+      <form onSubmit={handleSubmit} className="space-y-6">
         {/* Vehicle section */}
         {vehicleConfig && (
           <div className="space-y-3">
@@ -93,10 +86,7 @@ export default function ProrationSettingsModal({
               {vehicleConfig.hint}
             </p>
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Total km
-                </label>
+              <FormField label="Total km">
                 <input
                   type="number"
                   step="1"
@@ -105,11 +95,8 @@ export default function ProrationSettingsModal({
                   onChange={(e) => setVehicleTotalKm(e.target.value)}
                   className={inputClass}
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Business km
-                </label>
+              </FormField>
+              <FormField label="Business km">
                 <input
                   type="number"
                   step="1"
@@ -118,7 +105,7 @@ export default function ProrationSettingsModal({
                   onChange={(e) => setVehicleBusinessKm(e.target.value)}
                   className={inputClass}
                 />
-              </div>
+              </FormField>
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Business-use:{" "}
@@ -139,10 +126,7 @@ export default function ProrationSettingsModal({
               {homeConfig.hint}
             </p>
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Total sq ft
-                </label>
+              <FormField label="Total sq ft">
                 <input
                   type="number"
                   step="1"
@@ -151,11 +135,8 @@ export default function ProrationSettingsModal({
                   onChange={(e) => setHomeTotalSqft(e.target.value)}
                   className={inputClass}
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Office sq ft
-                </label>
+              </FormField>
+              <FormField label="Office sq ft">
                 <input
                   type="number"
                   step="1"
@@ -164,7 +145,7 @@ export default function ProrationSettingsModal({
                   onChange={(e) => setHomeOfficeSqft(e.target.value)}
                   className={inputClass}
                 />
-              </div>
+              </FormField>
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Office %:{" "}
@@ -179,19 +160,19 @@ export default function ProrationSettingsModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className={btnClass}
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={saving}
-            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className={btnPrimaryClass}
           >
             {saving ? "Saving..." : "Save"}
           </button>
         </div>
       </form>
-    </div>
+    </Modal>
   );
 }

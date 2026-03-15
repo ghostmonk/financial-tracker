@@ -5,6 +5,9 @@ import type {
   TaxLineItem,
 } from "../../lib/types";
 import { createTaxLineItem, updateTaxLineItem } from "../../lib/tauri";
+import { inputClass, btnClass, btnPrimaryClass } from "../../lib/styles";
+import Modal from "../shared/Modal";
+import FormField from "../shared/FormField";
 
 interface TaxLineItemFormProps {
   open: boolean;
@@ -93,21 +96,10 @@ export default function TaxLineItemForm({
     }
   }
 
-  const inputClass =
-    "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500";
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md space-y-4"
-      >
-        <h2 className="text-lg font-semibold">
-          {editItem ? "Edit Line Item" : "Add Line Item"}
-        </h2>
-
-        <div>
-          <label className="block text-sm font-medium mb-1">Date</label>
+    <Modal open={open} onClose={onClose} title={editItem ? "Edit Line Item" : "Add Line Item"}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <FormField label="Date">
           <input
             type="date"
             value={date}
@@ -115,10 +107,9 @@ export default function TaxLineItemForm({
             required
             className={inputClass}
           />
-        </div>
+        </FormField>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Description</label>
+        <FormField label="Description">
           <input
             type="text"
             value={description}
@@ -126,10 +117,9 @@ export default function TaxLineItemForm({
             required
             className={inputClass}
           />
-        </div>
+        </FormField>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Amount</label>
+        <FormField label="Amount">
           <input
             type="number"
             step="0.01"
@@ -139,10 +129,9 @@ export default function TaxLineItemForm({
             required
             className={inputClass}
           />
-        </div>
+        </FormField>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Category</label>
+        <FormField label="Category">
           <select
             value={categoryId || ""}
             onChange={(e) => setCategoryId(e.target.value || null)}
@@ -167,37 +156,34 @@ export default function TaxLineItemForm({
               </p>
             ) : null;
           })()}
-        </div>
+        </FormField>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Notes (optional)
-          </label>
+        <FormField label="Notes (optional)">
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
             className={inputClass}
           />
-        </div>
+        </FormField>
 
         <div className="flex justify-end gap-2 pt-2">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className={btnClass}
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={saving || !description || !amount || !categoryId}
-            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className={btnPrimaryClass}
           >
             {saving ? "Saving..." : editItem ? "Update" : "Add"}
           </button>
         </div>
       </form>
-    </div>
+    </Modal>
   );
 }

@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::db::DbError;
+use crate::db_utils::UpdateBuilder;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Account {
@@ -81,38 +82,14 @@ pub fn update_account(
     id: &str,
     params: UpdateAccountParams,
 ) -> Result<Account, DbError> {
-    let mut sets = Vec::new();
-    let mut values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
-
-    if let Some(ref name) = params.name {
-        sets.push("name = ?");
-        values.push(Box::new(name.clone()));
-    }
-    if let Some(ref institution) = params.institution {
-        sets.push("institution = ?");
-        values.push(Box::new(institution.clone()));
-    }
-    if let Some(ref account_type) = params.account_type {
-        sets.push("account_type = ?");
-        values.push(Box::new(account_type.clone()));
-    }
-    if let Some(ref currency) = params.currency {
-        sets.push("currency = ?");
-        values.push(Box::new(currency.clone()));
-    }
-    if let Some(ref credit_limit) = params.credit_limit {
-        sets.push("credit_limit = ?");
-        values.push(Box::new(*credit_limit));
-    }
-
-    if !sets.is_empty() {
-        sets.push("updated_at = datetime('now')");
-        values.push(Box::new(id.to_string()));
-        let sql = format!("UPDATE accounts SET {} WHERE id = ?", sets.join(", "));
-        let param_refs: Vec<&dyn rusqlite::types::ToSql> =
-            values.iter().map(|v| v.as_ref()).collect();
-        conn.execute(&sql, param_refs.as_slice())?;
-    }
+    let mut builder = UpdateBuilder::new();
+    builder
+        .set_if("name", &params.name)
+        .set_nullable("institution", &params.institution)
+        .set_if("account_type", &params.account_type)
+        .set_if("currency", &params.currency)
+        .set_nullable("credit_limit", &params.credit_limit);
+    builder.execute(conn, "accounts", id, true)?;
 
     let mut stmt = conn.prepare(&format!(
         "SELECT {} FROM accounts WHERE id = ?1",
@@ -124,20 +101,4 @@ pub fn update_account(
 pub fn delete_account(conn: &Connection, id: &str) -> Result<(), DbError> {
     conn.execute("DELETE FROM accounts WHERE id = ?1", params![id])?;
     Ok(())
-}
-
-pub fn get_account_by_institution_number(
-    conn: &Connection,
-    institution: &str,
-    _account_number: &str,
-) -> Result<Option<Account>, DbError> {
-    let mut stmt = conn.prepare(&format!(
-        "SELECT {} FROM accounts WHERE institution = ?1",
-        SELECT_COLS
-    ))?;
-    match stmt.query_row(params![institution], row_to_account) {
-        Ok(account) => Ok(Some(account)),
-        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-        Err(e) => Err(DbError::from(e)),
-    }
 }

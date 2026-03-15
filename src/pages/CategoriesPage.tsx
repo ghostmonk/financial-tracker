@@ -9,6 +9,9 @@ import {
   deleteTag,
 } from "../lib/tauri";
 import type { Category, CreateCategoryParams, Tag } from "../lib/types";
+import { parseError } from "../lib/utils";
+import { btnClass, btnPrimaryClass, btnDangerClass } from "../lib/styles";
+import Modal from "../components/shared/Modal";
 import CategoryList from "../components/categories/CategoryList";
 import CategoryForm from "../components/categories/CategoryForm";
 
@@ -64,7 +67,7 @@ export default function CategoriesPage() {
       setEditingCategory(null);
       fetchCategories();
     } catch (err) {
-      setError(typeof err === "string" ? err : "Failed to save category.");
+      setError(parseError(err));
     }
   }
 
@@ -82,7 +85,7 @@ export default function CategoriesPage() {
       setDeletingCategory(null);
       fetchCategories();
     } catch (err) {
-      setError(typeof err === "string" ? err : "Failed to delete category.");
+      setError(parseError(err));
       setDeletingCategory(null);
     }
   }
@@ -96,7 +99,7 @@ export default function CategoriesPage() {
       setNewTagName("");
       fetchTags();
     } catch (err) {
-      setTagError(typeof err === "string" ? err : "Failed to create tag.");
+      setTagError(parseError(err));
     }
   }
 
@@ -106,7 +109,7 @@ export default function CategoriesPage() {
       await deleteTag(id);
       fetchTags();
     } catch (err) {
-      setTagError(typeof err === "string" ? err : "Failed to delete tag.");
+      setTagError(parseError(err));
     }
   }
 
@@ -125,7 +128,7 @@ export default function CategoriesPage() {
             setShowForm(true);
             setError(null);
           }}
-          className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors"
+          className={btnPrimaryClass}
         >
           Add Category
         </button>
@@ -157,31 +160,31 @@ export default function CategoriesPage() {
         />
       )}
 
-      {deletingCategory && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm space-y-4">
-            <h2 className="text-lg font-semibold">Delete Category</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Delete &quot;{deletingCategory.name}&quot;? Transactions using
-              this category will become uncategorized.
-            </p>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setDeletingCategory(null)}
-                className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmDelete}
-                className="px-4 py-2 text-sm bg-red-600 text-white rounded-md font-medium hover:bg-red-700 transition-colors"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
+      <Modal
+        open={!!deletingCategory}
+        onClose={() => setDeletingCategory(null)}
+        title="Delete Category"
+        width="sm"
+      >
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Delete &quot;{deletingCategory?.name}&quot;? Transactions using
+          this category will become uncategorized.
+        </p>
+        <div className="flex justify-end gap-2 mt-4">
+          <button
+            onClick={() => setDeletingCategory(null)}
+            className={btnClass}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleConfirmDelete}
+            className={btnDangerClass}
+          >
+            Delete
+          </button>
         </div>
-      )}
+      </Modal>
 
       <hr className="border-gray-200 dark:border-gray-700" />
 
@@ -209,7 +212,7 @@ export default function CategoriesPage() {
           <button
             onClick={handleAddTag}
             disabled={!newTagName.trim()}
-            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className={btnPrimaryClass}
           >
             Add Tag
           </button>

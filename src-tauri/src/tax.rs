@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::OnceLock;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaxRules {
@@ -61,9 +62,13 @@ pub struct InfoSection {
     pub body: String,
 }
 
-pub fn load_tax_rules() -> TaxRules {
-    let json = include_str!("tax-rules.json");
-    serde_json::from_str(json).expect("Failed to parse tax-rules.json")
+static TAX_RULES: OnceLock<TaxRules> = OnceLock::new();
+
+pub fn load_tax_rules() -> &'static TaxRules {
+    TAX_RULES.get_or_init(|| {
+        let json = include_str!("tax-rules.json");
+        serde_json::from_str(json).expect("Failed to parse tax-rules.json")
+    })
 }
 
 #[cfg(test)]

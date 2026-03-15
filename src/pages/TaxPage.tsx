@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   getTaxRules,
-  listCategories,
   getTaxWorkspaceItems,
   getFiscalYearSettings,
   updateTaxLineItem,
@@ -15,6 +14,8 @@ import type {
   FiscalYearSettings,
   LineMapping,
 } from "../lib/types";
+import { btnClass } from "../lib/styles";
+import { useCategoryMap } from "../lib/hooks";
 import TaxLineItemForm from "../components/tax/TaxLineItemForm";
 import ReceiptCell from "../components/tax/ReceiptCell";
 import ProrationSettingsModal from "../components/tax/ProrationSettingsModal";
@@ -60,7 +61,7 @@ export default function TaxPage() {
   const [fiscalYear, setFiscalYear] = useState(CURRENT_YEAR);
   const [activeTab, setActiveTab] = useState<TabDirection>("expense");
   const [taxRules, setTaxRules] = useState<TaxRules | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const { categories, categoryMap } = useCategoryMap();
   const [items, setItems] = useState<TaxWorkspaceItem[]>([]);
   const [settings, setSettings] = useState<FiscalYearSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -70,10 +71,9 @@ export default function TaxPage() {
   const [showInfo, setShowInfo] = useState(false);
   const [editItem, setEditItem] = useState<TaxWorkspaceItem | null>(null);
 
-  // Load tax rules and categories once
+  // Load tax rules once
   useEffect(() => {
     getTaxRules().then(setTaxRules).catch(console.error);
-    listCategories().then(setCategories).catch(console.error);
   }, []);
 
   // Load workspace items and settings when fiscal year changes
@@ -96,13 +96,6 @@ export default function TaxPage() {
   useEffect(() => {
     fetchYearData(fiscalYear);
   }, [fiscalYear, fetchYearData]);
-
-  // Build lookup maps
-  const categoryMap = useMemo(() => {
-    const m = new Map<string, Category>();
-    for (const c of categories) m.set(c.id, c);
-    return m;
-  }, [categories]);
 
   const lineMappingBySlug = useMemo(() => {
     if (!taxRules) return new Map<string, LineMapping>();
@@ -237,9 +230,6 @@ export default function TaxPage() {
   const handleDataUpdated = useCallback(() => {
     fetchYearData(fiscalYear);
   }, [fiscalYear, fetchYearData]);
-
-  const btnClass =
-    "px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors";
 
   return (
     <div className="space-y-4">

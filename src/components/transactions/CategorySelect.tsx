@@ -1,5 +1,6 @@
-import { useRef, useEffect, useState, useMemo } from "react";
+import { useRef, useState, useMemo, useCallback } from "react";
 import type { Category } from "../../lib/types";
+import { useClickOutside } from "../../lib/hooks";
 
 interface CategorySelectProps {
   categories: Category[];
@@ -36,19 +37,15 @@ export default function CategorySelect({
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        if (inline) {
-          onClose?.();
-        } else {
-          setOpen(false);
-        }
-      }
+  const handleClickOutside = useCallback(() => {
+    if (inline) {
+      onClose?.();
+    } else {
+      setOpen(false);
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [inline, onClose]);
+
+  useClickOutside(ref, handleClickOutside);
 
   function handleSelect(categoryId: string | null) {
     onChange(categoryId);

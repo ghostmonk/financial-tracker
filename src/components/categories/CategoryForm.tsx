@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
 import type { Category, CreateCategoryParams } from "../../lib/types";
+import { inputClass, btnClass, btnPrimaryClass } from "../../lib/styles";
+import Modal from "../shared/Modal";
+import FormField from "../shared/FormField";
 
 interface CategoryFormProps {
   categories: Category[];
@@ -60,7 +63,7 @@ export default function CategoryForm({
     }
   }
 
-  function handleSubmit(e: React.FormEvent & { currentTarget: HTMLFormElement }) {
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!name.trim() || !slug.trim()) return;
     onSubmit({
@@ -72,21 +75,10 @@ export default function CategoryForm({
     });
   }
 
-  const inputClass =
-    "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500";
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md space-y-4"
-      >
-        <h2 className="text-lg font-semibold">
-          {editingCategory ? "Edit Category" : "Add Category"}
-        </h2>
-
-        <div>
-          <label className="block text-sm font-medium mb-1">Name</label>
+    <Modal open={true} onClose={onCancel} title={editingCategory ? "Edit Category" : "Add Category"}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <FormField label="Name">
           <input
             type="text"
             value={name}
@@ -95,10 +87,9 @@ export default function CategoryForm({
             autoFocus
             required
           />
-        </div>
+        </FormField>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Slug</label>
+        <FormField label="Slug" hint="Auto-generated from name. Edit to customize.">
           <input
             type="text"
             value={slug}
@@ -109,13 +100,9 @@ export default function CategoryForm({
             className={inputClass}
             required
           />
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            Auto-generated from name. Edit to customize.
-          </p>
-        </div>
+        </FormField>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Direction</label>
+        <FormField label="Direction">
           <select
             value={direction}
             onChange={(e) => {
@@ -129,12 +116,9 @@ export default function CategoryForm({
             <option value="transfer">Transfer</option>
             <option value="adjustment">Adjustment</option>
           </select>
-        </div>
+        </FormField>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Parent Category
-          </label>
+        <FormField label="Parent Category">
           <select
             value={parentId ?? ""}
             onChange={(e) => setParentId(e.target.value || null)}
@@ -147,34 +131,33 @@ export default function CategoryForm({
               </option>
             ))}
           </select>
-        </div>
+        </FormField>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Sort Order</label>
+        <FormField label="Sort Order">
           <input
             type="number"
             value={sortOrder}
             onChange={(e) => setSortOrder(parseInt(e.target.value) || 0)}
             className={inputClass}
           />
-        </div>
+        </FormField>
 
         <div className="flex justify-end gap-2 pt-2">
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className={btnClass}
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors"
+            className={btnPrimaryClass}
           >
             {editingCategory ? "Update" : "Create"}
           </button>
         </div>
       </form>
-    </div>
+    </Modal>
   );
 }

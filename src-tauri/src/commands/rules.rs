@@ -1,6 +1,7 @@
 use tauri::State;
 
 use crate::categorize::{self, UncategorizedGroup};
+use crate::db_command;
 use crate::models::categorization_rule::{
     self, CategorizationRule, CreateRuleParams, UpdateRuleParams,
 };
@@ -8,42 +9,10 @@ use crate::AppState;
 
 use super::with_db_conn;
 
-#[tauri::command(rename_all = "snake_case")]
-pub fn list_categorization_rules(
-    state: State<'_, AppState>,
-) -> Result<Vec<CategorizationRule>, String> {
-    with_db_conn(&state, |conn| {
-        categorization_rule::list_rules(conn).map_err(|e| e.to_string())
-    })
-}
-
-#[tauri::command(rename_all = "snake_case")]
-pub fn create_categorization_rule(
-    state: State<'_, AppState>,
-    params: CreateRuleParams,
-) -> Result<CategorizationRule, String> {
-    with_db_conn(&state, |conn| {
-        categorization_rule::create_rule(conn, params).map_err(|e| e.to_string())
-    })
-}
-
-#[tauri::command(rename_all = "snake_case")]
-pub fn update_categorization_rule(
-    state: State<'_, AppState>,
-    id: String,
-    params: UpdateRuleParams,
-) -> Result<CategorizationRule, String> {
-    with_db_conn(&state, |conn| {
-        categorization_rule::update_rule(conn, &id, params).map_err(|e| e.to_string())
-    })
-}
-
-#[tauri::command(rename_all = "snake_case")]
-pub fn delete_categorization_rule(state: State<'_, AppState>, id: String) -> Result<(), String> {
-    with_db_conn(&state, |conn| {
-        categorization_rule::delete_rule(conn, &id).map_err(|e| e.to_string())
-    })
-}
+db_command!(list_categorization_rules -> Vec<CategorizationRule>, categorization_rule::list_rules);
+db_command!(create_categorization_rule -> CategorizationRule, categorization_rule::create_rule, params: CreateRuleParams => move);
+db_command!(update_categorization_rule -> CategorizationRule, categorization_rule::update_rule, id: String, params: UpdateRuleParams => move);
+db_command!(delete_categorization_rule -> (), categorization_rule::delete_rule, id: String);
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn get_uncategorized_groups(

@@ -343,47 +343,20 @@ fn load_auto_rules(conn: &Connection) -> Result<Vec<CategorizationRule>, DbError
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rusqlite::Connection;
+    use crate::test_utils::fixtures::{insert_test_account, insert_test_category, setup_db};
 
-    fn setup_db() -> Connection {
-        let conn = Connection::open_in_memory().unwrap();
-        conn.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
-        let schema = include_str!("schema.sql");
-        conn.execute_batch(schema).unwrap();
-
-        // Test accounts
-        conn.execute(
-            "INSERT INTO accounts (id, name, account_type) VALUES (?1, ?2, ?3)",
-            params!["acct-1", "Checking", "checking"],
-        )
-        .unwrap();
-        conn.execute(
-            "INSERT INTO accounts (id, name, account_type) VALUES (?1, ?2, ?3)",
-            params!["acct-2", "Credit Card", "credit_card"],
-        )
-        .unwrap();
-
-        // Test categories
-        conn.execute(
-            "INSERT INTO categories (id, slug, name, direction, sort_order) VALUES (?1, ?2, ?3, ?4, ?5)",
-            params!["cat-dining", "dining", "Dining", "expense", 0],
-        )
-        .unwrap();
-        conn.execute(
-            "INSERT INTO categories (id, slug, name, direction, sort_order) VALUES (?1, ?2, ?3, ?4, ?5)",
-            params!["cat-groceries", "groceries", "Groceries", "expense", 1],
-        )
-        .unwrap();
-        conn.execute(
-            "INSERT INTO categories (id, slug, name, direction, sort_order) VALUES (?1, ?2, ?3, ?4, ?5)",
-            params!["cat-gas", "gas", "Gas", "expense", 2],
-        )
-        .unwrap();
-
+    fn setup_categorize_db() -> Connection {
+        let conn = setup_db();
+        insert_test_account(&conn, "acct-1");
+        insert_test_account(&conn, "acct-2");
+        insert_test_category(&conn, "cat-dining", "dining");
+        insert_test_category(&conn, "cat-groceries", "groceries");
+        insert_test_category(&conn, "cat-gas", "gas");
         conn
     }
 
     fn insert_tx(conn: &Connection, id: &str, desc: &str, payee: Option<&str>, account: &str) {
+        insert_test_account(conn, account);
         conn.execute(
             "INSERT INTO transactions (id, date, amount, description, payee, account_id) \
              VALUES (?1, '2025-01-15', -10.00, ?2, ?3, ?4)",
@@ -513,7 +486,7 @@ mod tests {
 
     #[test]
     fn test_apply_rules_to_transactions() {
-        let conn = setup_db();
+        let conn = setup_categorize_db();
 
         insert_tx(&conn, "tx-1", "MCDONALD'S #148", None, "acct-1");
         insert_tx(&conn, "tx-2", "MAXI ST-LAMBERT", None, "acct-1");
@@ -568,7 +541,7 @@ mod tests {
 
     #[test]
     fn test_reapply_all_rules() {
-        let conn = setup_db();
+        let conn = setup_categorize_db();
 
         insert_tx(&conn, "tx-1", "MCDONALD'S #148", None, "acct-1");
         insert_tx(&conn, "tx-2", "MAXI ST-LAMBERT", None, "acct-1");
@@ -640,7 +613,7 @@ mod tests {
 
     #[test]
     fn test_uncategorized_groups() {
-        let conn = setup_db();
+        let conn = setup_categorize_db();
 
         // Two McDonalds from different accounts
         insert_tx(&conn, "tx-1", "MCDONALD'S #148", None, "acct-1");
@@ -662,7 +635,7 @@ mod tests {
 
     #[test]
     fn test_uncategorized_groups_filter_by_account() {
-        let conn = setup_db();
+        let conn = setup_categorize_db();
 
         insert_tx(&conn, "tx-1", "MCDONALD'S #148", None, "acct-1");
         insert_tx(&conn, "tx-2", "MCDONALD'S #22", None, "acct-2");
@@ -676,7 +649,7 @@ mod tests {
 
     #[test]
     fn test_count_uncategorized_groups() {
-        let conn = setup_db();
+        let conn = setup_categorize_db();
 
         insert_tx(&conn, "tx-1", "MCDONALD'S #148", None, "acct-1");
         insert_tx(&conn, "tx-2", "MCDONALD'S #22", None, "acct-2");
@@ -776,7 +749,7 @@ mod tests {
 
     #[test]
     fn test_get_group_transactions() {
-        let conn = setup_db();
+        let conn = setup_categorize_db();
 
         // Two McDonalds with different store numbers (same normalized name)
         insert_tx(&conn, "tx-1", "MCDONALD'S #148", None, "acct-1");

@@ -10,7 +10,7 @@ pub mod transactions;
 use crate::AppState;
 use tauri::State;
 
-fn with_db_conn<F, T>(state: &State<'_, AppState>, f: F) -> Result<T, String>
+pub fn with_db_conn<F, T>(state: &State<'_, AppState>, f: F) -> Result<T, String>
 where
     F: FnOnce(&rusqlite::Connection) -> Result<T, String>,
 {

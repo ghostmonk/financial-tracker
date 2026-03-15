@@ -9,6 +9,7 @@ import {
   executeImport,
   listAccounts,
 } from "../lib/tauri";
+import { parseError } from "../lib/utils";
 import type {
   CsvColumnMapping,
   ImportPreview,
@@ -71,7 +72,7 @@ export default function ImportPage() {
         setPreview(p);
         setStep("preview");
       } catch (err) {
-        setError(typeof err === "string" ? err : "Failed to parse OFX file.");
+        setError(parseError(err));
       } finally {
         setLoading(false);
       }
@@ -86,7 +87,7 @@ export default function ImportPage() {
       setPreview(p);
       setStep("preview");
     } catch (err) {
-      setError(typeof err === "string" ? err : "Failed to parse CSV.");
+      setError(parseError(err));
     } finally {
       setLoading(false);
     }
@@ -108,7 +109,7 @@ export default function ImportPage() {
       setResult(r);
       setStep("result");
     } catch (err) {
-      setError(typeof err === "string" ? err : "Import failed.");
+      setError(parseError(err));
     } finally {
       setImporting(false);
     }

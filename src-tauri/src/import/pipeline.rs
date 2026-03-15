@@ -164,19 +164,11 @@ pub fn execute_import(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rusqlite::Connection;
+    use crate::test_utils::fixtures::{insert_test_account, setup_db};
 
-    fn setup_db() -> Connection {
-        let conn = Connection::open_in_memory().unwrap();
-        conn.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
-        let schema = include_str!("../schema.sql");
-        conn.execute_batch(schema).unwrap();
-        // Insert a test account
-        conn.execute(
-            "INSERT INTO accounts (id, name, account_type, currency) VALUES (?1, ?2, ?3, ?4)",
-            params!["acct-1", "Test Checking", "checking", "CAD"],
-        )
-        .unwrap();
+    fn setup_import_db() -> Connection {
+        let conn = setup_db();
+        insert_test_account(&conn, "acct-1");
         conn
     }
 
@@ -225,7 +217,7 @@ mod tests {
 
     #[test]
     fn test_preview_import_identifies_duplicates() {
-        let conn = setup_db();
+        let conn = setup_import_db();
 
         // First, insert a transaction directly to create a known duplicate
         conn.execute(
@@ -261,7 +253,7 @@ mod tests {
 
     #[test]
     fn test_execute_import_creates_transactions_and_record() {
-        let conn = setup_db();
+        let conn = setup_import_db();
 
         let mut txns = vec![
             make_parsed_tx("2025-01-15", -42.50, "GROCERY STORE", Some("FIT001")),
@@ -313,7 +305,7 @@ mod tests {
 
     #[test]
     fn test_execute_import_skips_duplicates() {
-        let conn = setup_db();
+        let conn = setup_import_db();
 
         let mut txns = vec![
             make_parsed_tx("2025-01-15", -42.50, "GROCERY STORE", Some("FIT001")),
@@ -349,7 +341,7 @@ mod tests {
 
     #[test]
     fn test_import_same_file_twice_detects_all_duplicates() {
-        let conn = setup_db();
+        let conn = setup_import_db();
 
         let make_parsed = || ParsedImport {
             account_id_hint: None,

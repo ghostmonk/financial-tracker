@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { previewCsvFile } from "../../lib/tauri";
 import type { CsvPreview, CsvColumnMapping } from "../../lib/types";
+import { parseError } from "../../lib/utils";
+import { inputClass, btnClass, btnPrimaryClass } from "../../lib/styles";
+import FormField from "../shared/FormField";
 
 interface CsvMappingStepProps {
   fileContent: string;
@@ -58,7 +61,7 @@ export default function CsvMappingStep({
         }
       })
       .catch((err) => {
-        setError(typeof err === "string" ? err : "Failed to parse CSV.");
+        setError(parseError(err));
       });
   }, [fileContent]);
 
@@ -85,7 +88,7 @@ export default function CsvMappingStep({
         <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
         <button
           onClick={onCancel}
-          className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+          className={btnClass}
         >
           Back
         </button>
@@ -143,75 +146,64 @@ export default function CsvMappingStep({
       </div>
 
       <div className="grid grid-cols-2 gap-4 max-w-lg">
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Date column <span className="text-red-500">*</span>
-          </label>
+        <FormField label="Date column" required>
           <select
             value={dateColumn}
             onChange={(e) => setDateColumn(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={inputClass}
           >
             <option value="">-- Select --</option>
             {columnOptions}
           </select>
-        </div>
+        </FormField>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Amount column <span className="text-red-500">*</span>
-          </label>
+        <FormField label="Amount column" required>
           <select
             value={amountColumn}
             onChange={(e) => setAmountColumn(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={inputClass}
           >
             <option value="">-- Select --</option>
             {columnOptions}
           </select>
-        </div>
+        </FormField>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Description column <span className="text-red-500">*</span>
-          </label>
+        <FormField label="Description column" required>
           <select
             value={descriptionColumn}
             onChange={(e) => setDescriptionColumn(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={inputClass}
           >
             <option value="">-- Select --</option>
             {columnOptions}
           </select>
-        </div>
+        </FormField>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Payee column
-          </label>
+        <FormField label="Payee column">
           <select
             value={payeeColumn}
             onChange={(e) => setPayeeColumn(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={inputClass}
           >
             <option value="">-- None --</option>
             {columnOptions}
           </select>
-        </div>
+        </FormField>
 
         <div className="col-span-2">
-          <label className="block text-sm font-medium mb-1">Date format</label>
-          <select
-            value={dateFormat}
-            onChange={(e) => setDateFormat(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {DATE_FORMATS.map((f) => (
-              <option key={f.value} value={f.value}>
-                {f.label}
-              </option>
-            ))}
-          </select>
+          <FormField label="Date format">
+            <select
+              value={dateFormat}
+              onChange={(e) => setDateFormat(e.target.value)}
+              className={inputClass}
+            >
+              {DATE_FORMATS.map((f) => (
+                <option key={f.value} value={f.value}>
+                  {f.label}
+                </option>
+              ))}
+            </select>
+          </FormField>
         </div>
       </div>
 
@@ -222,13 +214,13 @@ export default function CsvMappingStep({
       <div className="flex gap-3">
         <button
           onClick={handleSubmit}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors"
+          className={btnPrimaryClass}
         >
           Preview Import
         </button>
         <button
           onClick={onCancel}
-          className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+          className={btnClass}
         >
           Back
         </button>

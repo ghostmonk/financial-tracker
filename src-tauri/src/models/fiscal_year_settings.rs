@@ -91,15 +91,7 @@ pub fn get_fiscal_year_settings(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rusqlite::Connection;
-
-    fn setup_db() -> Connection {
-        let conn = Connection::open_in_memory().unwrap();
-        conn.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
-        let schema = include_str!("../schema.sql");
-        conn.execute_batch(schema).unwrap();
-        conn
-    }
+    use crate::test_utils::fixtures::setup_db;
 
     #[test]
     fn upsert_fiscal_year_settings_new_year_creates_record() {

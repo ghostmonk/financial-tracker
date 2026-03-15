@@ -1,5 +1,7 @@
 import { useState } from "react";
 import type { ImportPreview } from "../../lib/types";
+import { formatAmount } from "../../lib/utils";
+import { btnClass, btnPrimaryClass } from "../../lib/styles";
 
 interface ImportPreviewStepProps {
   preview: ImportPreview;
@@ -103,8 +105,7 @@ export default function ImportPreviewStep({
                         : "text-green-600 dark:text-green-400"
                     }`}
                   >
-                    {tx.amount < 0 ? "-" : ""}$
-                    {Math.abs(tx.amount).toFixed(2)}
+                    {formatAmount(tx.amount)}
                   </td>
                   <td className="px-3 py-2 text-gray-500 dark:text-gray-400">
                     {tx.transaction_type ?? "--"}
@@ -151,14 +152,14 @@ export default function ImportPreviewStep({
         <button
           onClick={() => onImport(skipDuplicates)}
           disabled={importing}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className={btnPrimaryClass}
         >
           {importing ? "Importing..." : "Import"}
         </button>
         <button
           onClick={onCancel}
           disabled={importing}
-          className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
+          className={btnClass}
         >
           Cancel
         </button>

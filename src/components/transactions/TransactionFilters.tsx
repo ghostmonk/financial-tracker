@@ -5,6 +5,7 @@ import type {
   Category,
   Transaction,
 } from "../../lib/types";
+import { inputSmClass } from "../../lib/styles";
 import CategorySelect from "../transactions/CategorySelect";
 
 interface TransactionFiltersProps {
@@ -75,10 +76,6 @@ export default function TransactionFilters({
     filters.is_recurring === true ||
     filters.uncategorized_only === true;
 
-  const inputClass =
-    "px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500";
-  const selectClass = inputClass;
-
   return (
     <div className="flex flex-wrap items-end gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
       <div className="flex flex-col">
@@ -90,7 +87,7 @@ export default function TransactionFilters({
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
           placeholder="Description or payee..."
-          className={`${inputClass} w-52`}
+          className={`${inputSmClass} w-52`}
         />
       </div>
 
@@ -104,7 +101,7 @@ export default function TransactionFilters({
           onChange={(e) =>
             updateFilters({ date_from: e.target.value || undefined })
           }
-          className={inputClass}
+          className={inputSmClass}
         />
       </div>
 
@@ -118,7 +115,7 @@ export default function TransactionFilters({
           onChange={(e) =>
             updateFilters({ date_to: e.target.value || undefined })
           }
-          className={inputClass}
+          className={inputSmClass}
         />
       </div>
 
@@ -138,7 +135,7 @@ export default function TransactionFilters({
             })
           }
           step="0.01"
-          className={inputClass}
+          className={inputSmClass}
         />
       </div>
 
@@ -158,7 +155,7 @@ export default function TransactionFilters({
             })
           }
           step="0.01"
-          className={inputClass}
+          className={inputSmClass}
         />
       </div>
 
@@ -171,7 +168,7 @@ export default function TransactionFilters({
           onChange={(e) =>
             updateFilters({ account_id: e.target.value || undefined })
           }
-          className={selectClass}
+          className={inputSmClass}
         >
           <option value="">All accounts</option>
           {accounts.map((a) => (
@@ -191,7 +188,7 @@ export default function TransactionFilters({
           onChange={(e) =>
             updateFilters({ direction: e.target.value || undefined })
           }
-          className={selectClass}
+          className={inputSmClass}
         >
           <option value="">All</option>
           <option value="income">Income</option>

@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::db::DbError;
+use crate::db_utils::UpdateBuilder;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CategorizationRule {
@@ -106,57 +107,17 @@ pub fn update_rule(
     id: &str,
     params: UpdateRuleParams,
 ) -> Result<CategorizationRule, DbError> {
-    let mut sets = Vec::new();
-    let mut values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
-
-    if let Some(ref pattern) = params.pattern {
-        sets.push("pattern = ?");
-        values.push(Box::new(pattern.clone()));
-    }
-    if let Some(ref match_field) = params.match_field {
-        sets.push("match_field = ?");
-        values.push(Box::new(match_field.clone()));
-    }
-    if let Some(ref match_type) = params.match_type {
-        sets.push("match_type = ?");
-        values.push(Box::new(match_type.clone()));
-    }
-    if let Some(ref category_id) = params.category_id {
-        sets.push("category_id = ?");
-        values.push(Box::new(category_id.clone()));
-    }
-    if let Some(priority) = params.priority {
-        sets.push("priority = ?");
-        values.push(Box::new(priority));
-    }
-    if let Some(ref amount_min) = params.amount_min {
-        sets.push("amount_min = ?");
-        values.push(Box::new(*amount_min));
-    }
-    if let Some(ref amount_max) = params.amount_max {
-        sets.push("amount_max = ?");
-        values.push(Box::new(*amount_max));
-    }
-    if let Some(auto_apply) = params.auto_apply {
-        sets.push("auto_apply = ?");
-        values.push(Box::new(auto_apply));
-    }
-
-    if sets.is_empty() {
-        let mut stmt = conn.prepare(&format!(
-            "SELECT {} FROM categorization_rules WHERE id = ?1",
-            SELECT_COLS
-        ))?;
-        return Ok(stmt.query_row(rusqlite::params![id], row_to_rule)?);
-    }
-
-    values.push(Box::new(id.to_string()));
-    let sql = format!(
-        "UPDATE categorization_rules SET {} WHERE id = ?",
-        sets.join(", ")
-    );
-    let param_refs: Vec<&dyn rusqlite::types::ToSql> = values.iter().map(|v| v.as_ref()).collect();
-    conn.execute(&sql, param_refs.as_slice())?;
+    let mut builder = UpdateBuilder::new();
+    builder
+        .set_if("pattern", &params.pattern)
+        .set_if("match_field", &params.match_field)
+        .set_if("match_type", &params.match_type)
+        .set_if("category_id", &params.category_id)
+        .set_if("priority", &params.priority)
+        .set_nullable("amount_min", &params.amount_min)
+        .set_nullable("amount_max", &params.amount_max)
+        .set_if("auto_apply", &params.auto_apply);
+    builder.execute(conn, "categorization_rules", id, false)?;
 
     let mut stmt = conn.prepare(&format!(
         "SELECT {} FROM categorization_rules WHERE id = ?1",
@@ -176,30 +137,18 @@ pub fn delete_rule(conn: &Connection, id: &str) -> Result<(), DbError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rusqlite::Connection;
+    use crate::test_utils::fixtures::{insert_test_category, setup_db};
 
-    fn setup_db() -> Connection {
-        let conn = Connection::open_in_memory().unwrap();
-        conn.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
-        let schema = include_str!("../schema.sql");
-        conn.execute_batch(schema).unwrap();
-        // Insert a test category for FK constraint
-        conn.execute(
-            "INSERT INTO categories (id, slug, name, direction, sort_order) VALUES (?1, ?2, ?3, ?4, ?5)",
-            params!["cat-1", "groceries", "Groceries", "expense", 0],
-        )
-        .unwrap();
-        conn.execute(
-            "INSERT INTO categories (id, slug, name, direction, sort_order) VALUES (?1, ?2, ?3, ?4, ?5)",
-            params!["cat-2", "dining_out", "Dining Out", "expense", 1],
-        )
-        .unwrap();
+    fn setup_db_with_categories() -> rusqlite::Connection {
+        let conn = setup_db();
+        insert_test_category(&conn, "cat-1", "groceries");
+        insert_test_category(&conn, "cat-2", "dining_out");
         conn
     }
 
     #[test]
     fn test_create_and_list_rules() {
-        let conn = setup_db();
+        let conn = setup_db_with_categories();
 
         let rule1 = create_rule(
             &conn,
@@ -249,7 +198,7 @@ mod tests {
 
     #[test]
     fn test_update_rule() {
-        let conn = setup_db();
+        let conn = setup_db_with_categories();
 
         let rule = create_rule(
             &conn,
@@ -296,7 +245,7 @@ mod tests {
 
     #[test]
     fn test_update_rule_no_changes() {
-        let conn = setup_db();
+        let conn = setup_db_with_categories();
 
         let rule = create_rule(
             &conn,
@@ -335,7 +284,7 @@ mod tests {
 
     #[test]
     fn test_create_rule_with_amount_conditions() {
-        let conn = setup_db();
+        let conn = setup_db_with_categories();
 
         let rule = create_rule(
             &conn,
@@ -364,7 +313,7 @@ mod tests {
 
     #[test]
     fn test_update_rule_amount_conditions() {
-        let conn = setup_db();
+        let conn = setup_db_with_categories();
 
         let rule = create_rule(
             &conn,
@@ -427,7 +376,7 @@ mod tests {
 
     #[test]
     fn test_delete_rule() {
-        let conn = setup_db();
+        let conn = setup_db_with_categories();
 
         let rule = create_rule(
             &conn,
