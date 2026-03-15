@@ -148,5 +148,13 @@ export function useKeyboardNav({
     }
   }, [itemCount, focusedIndex]);
 
+  useEffect(() => {
+    if (focusedIndex < 0) return;
+    const el = document.querySelector(`[data-nav-index="${focusedIndex}"]`);
+    if (el) {
+      el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }, [focusedIndex]);
+
   return { focusedIndex, setFocusedIndex, selectedIndices, setSelectedIndices };
 }
