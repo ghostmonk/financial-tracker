@@ -15,6 +15,7 @@ import type {
   LineMapping,
 } from "../lib/types";
 import { btnClass } from "../lib/styles";
+import { formatAmount } from "../lib/utils";
 import { useCategoryMap } from "../lib/hooks";
 import TaxLineItemForm from "../components/tax/TaxLineItemForm";
 import ReceiptCell from "../components/tax/ReceiptCell";
@@ -150,7 +151,7 @@ export default function TaxPage() {
         entry = { mapping, amounts: [], categorySlugs: new Set() };
         byLine.set(key, entry);
       }
-      entry.amounts.push(Math.abs(item.amount));
+      entry.amounts.push(item.amount);
       entry.categorySlugs.add(cat.slug);
     }
 
@@ -310,7 +311,7 @@ export default function TaxPage() {
             <tbody>
               {groupedByMonth.map(([ym, monthItems]) => {
                 const subtotal = monthItems.reduce(
-                  (s, i) => s + Math.abs(i.amount),
+                  (s, i) => s + i.amount,
                   0,
                 );
                 return (
@@ -493,6 +494,7 @@ function MonthGroup({
   onUpdated: () => void;
   onEditItem: (item: TaxWorkspaceItem) => void;
 }) {
+  const [collapsed, setCollapsed] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingNoteValue, setEditingNoteValue] = useState("");
 
@@ -542,18 +544,31 @@ function MonthGroup({
 
   return (
     <>
-      <tr className="bg-gray-50 dark:bg-gray-800">
+      <tr
+        className="bg-gray-50 dark:bg-gray-800 cursor-pointer select-none"
+        onClick={() => setCollapsed((prev) => !prev)}
+      >
         <td
           colSpan={6}
           className="px-3 py-2 font-medium text-gray-700 dark:text-gray-300"
         >
+          <span className="text-gray-400 dark:text-gray-500 text-xs mr-2">
+            {collapsed ? "\u25B6" : "\u25BC"}
+          </span>
           {formatMonthHeader(ym)}
+          <span className="text-gray-400 dark:text-gray-500 text-xs ml-2">
+            ({items.length})
+          </span>
         </td>
-        <td className="px-3 py-2 text-right font-mono text-gray-700 dark:text-gray-300">
-          ${subtotal.toFixed(2)}
+        <td className={`px-3 py-2 text-right font-mono ${
+          subtotal < 0
+            ? "text-red-600 dark:text-red-400"
+            : "text-green-600 dark:text-green-400"
+        }`}>
+          {formatAmount(subtotal)}
         </td>
       </tr>
-      {items.map((item) => {
+      {!collapsed && items.map((item) => {
         const cat = item.category_id
           ? categoryMap.get(item.category_id)
           : null;
@@ -597,14 +612,18 @@ function MonthGroup({
               )}
             </td>
             <td
-              className="px-3 py-1.5 text-right font-mono"
+              className={`px-3 py-1.5 text-right font-mono ${
+                item.amount < 0
+                  ? "text-red-600 dark:text-red-400"
+                  : "text-green-600 dark:text-green-400"
+              }`}
               title={
                 cat?.slug === "meals_business"
                   ? "Only 50% of meal/entertainment expenses are deductible"
                   : undefined
               }
             >
-              ${Math.abs(item.amount).toFixed(2)}
+              {formatAmount(item.amount)}
               {cat?.slug === "meals_business" && (
                 <span className="text-orange-500 dark:text-orange-400 text-xs ml-1">
                   (50%)
