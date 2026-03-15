@@ -73,6 +73,14 @@ export interface Transaction {
   updated_at: string;
 }
 
+export interface TransactionSummary {
+  total_count: number;
+  total_debit: number;
+  total_credit: number;
+  parent_category_count: number;
+  child_category_count: number;
+}
+
 export interface TransactionFilters {
   account_id?: string;
   category_id?: string;

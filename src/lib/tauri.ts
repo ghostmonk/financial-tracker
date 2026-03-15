@@ -8,6 +8,7 @@ import type {
   UpdateCategoryParams,
   Transaction,
   TransactionFilters,
+  TransactionSummary,
   UpdateTransactionParams,
   CsvColumnMapping,
   CsvPreview,
@@ -39,6 +40,7 @@ export type {
   UpdateCategoryParams,
   Transaction,
   TransactionFilters,
+  TransactionSummary,
   UpdateTransactionParams,
   CsvColumnMapping,
   CsvPreview,
@@ -123,6 +125,12 @@ export async function listTransactions(
   filters: TransactionFilters,
 ): Promise<Transaction[]> {
   return invoke("list_transactions", { filters });
+}
+
+export async function getTransactionSummary(
+  filters: TransactionFilters,
+): Promise<TransactionSummary> {
+  return invoke("get_transaction_summary", { filters });
 }
 
 export async function updateTransaction(

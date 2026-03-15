@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import type { Transaction, Account, Category, CategoryHotkey } from "../../lib/types";
 import { updateTransaction, updateTransactionsCategory, listHotkeys } from "../../lib/tauri";
 import { formatAmount } from "../../lib/utils";
-import { btnClass, focusedRowClass } from "../../lib/styles";
+import { focusedRowClass } from "../../lib/styles";
 import { Th, Td } from "../shared/Table";
 import CategorySelect from "./CategorySelect";
 import { useKeyboardNav } from "../../lib/useKeyboardNav";
@@ -16,8 +16,6 @@ interface TransactionTableProps {
   transactions: Transaction[];
   accounts: Account[];
   categories: Category[];
-  hasMore: boolean;
-  onLoadMore: () => void;
   onRefresh: () => void;
   loading: boolean;
   sortField?: SortField;
@@ -29,8 +27,6 @@ export default function TransactionTable({
   transactions,
   accounts,
   categories,
-  hasMore,
-  onLoadMore,
   onRefresh,
   loading,
   sortField: propSortField,
@@ -411,19 +407,6 @@ export default function TransactionTable({
           </tbody>
         </table>
       </div>
-
-      {hasMore && (
-        <div className="mt-3 text-center">
-          <button
-            data-testid="transactions-load-more"
-            onClick={onLoadMore}
-            disabled={loading}
-            className={btnClass}
-          >
-            {loading ? <span data-testid="transactions-loading">Loading...</span> : "Load more"}
-          </button>
-        </div>
-      )}
 
       <CategoryPickerModal
         open={!!pickerParentCategory}
