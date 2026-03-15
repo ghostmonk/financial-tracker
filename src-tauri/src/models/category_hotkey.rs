@@ -66,10 +66,7 @@ pub fn set_hotkey(conn: &Connection, params: SetHotkeyParams) -> Result<Category
 }
 
 pub fn remove_hotkey(conn: &Connection, key: &str) -> Result<(), DbError> {
-    conn.execute(
-        "DELETE FROM category_hotkeys WHERE key = ?1",
-        params![key],
-    )?;
+    conn.execute("DELETE FROM category_hotkeys WHERE key = ?1", params![key])?;
     Ok(())
 }
 

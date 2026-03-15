@@ -1,7 +1,9 @@
 use tauri::State;
 
 use crate::db_command;
-use crate::models::fiscal_year_settings::{self, FiscalYearSettings, UpsertFiscalYearSettingsParams};
+use crate::models::fiscal_year_settings::{
+    self, FiscalYearSettings, UpsertFiscalYearSettingsParams,
+};
 use crate::models::tax_line_item::{
     self, CreateTaxLineItemParams, TaxLineItem, TaxWorkspaceItem, UpdateTaxLineItemParams,
 };
@@ -34,8 +36,7 @@ pub fn get_tax_workspace_items(
             .iter()
             .map(|m| m.category_slug.clone())
             .collect();
-        tax_line_item::get_tax_workspace_items(conn, fiscal_year, &slugs)
-            .map_err(|e| e.to_string())
+        tax_line_item::get_tax_workspace_items(conn, fiscal_year, &slugs).map_err(|e| e.to_string())
     })
 }
 

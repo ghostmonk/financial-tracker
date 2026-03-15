@@ -370,7 +370,8 @@ mod tests {
     fn update_tax_line_item_description_only_preserves_other_fields() {
         // Arrange
         let conn = setup_db();
-        let item = create_tax_line_item(&conn, make_params("2025-01-01", "Original", -50.0, 2025)).unwrap();
+        let item = create_tax_line_item(&conn, make_params("2025-01-01", "Original", -50.0, 2025))
+            .unwrap();
         let update = UpdateTaxLineItemParams {
             date: None,
             description: Some("Updated".to_string()),
@@ -396,7 +397,8 @@ mod tests {
     fn update_tax_line_item_multiple_fields_updates_all() {
         // Arrange
         let conn = setup_db();
-        let item = create_tax_line_item(&conn, make_params("2025-01-01", "Original", -50.0, 2025)).unwrap();
+        let item = create_tax_line_item(&conn, make_params("2025-01-01", "Original", -50.0, 2025))
+            .unwrap();
         let update = UpdateTaxLineItemParams {
             date: Some("2025-02-15".to_string()),
             description: Some("Changed".to_string()),
@@ -455,7 +457,8 @@ mod tests {
     fn delete_tax_line_item_existing_item_removes_from_db() {
         // Arrange
         let conn = setup_db();
-        let item = create_tax_line_item(&conn, make_params("2025-01-01", "Delete me", -10.0, 2025)).unwrap();
+        let item = create_tax_line_item(&conn, make_params("2025-01-01", "Delete me", -10.0, 2025))
+            .unwrap();
 
         // Act
         delete_tax_line_item(&conn, &item.id).unwrap();
@@ -490,7 +493,8 @@ mod tests {
         assert_eq!(item.category_id.as_deref(), Some("cat-del"));
 
         // Act
-        conn.execute("DELETE FROM categories WHERE id = 'cat-del'", []).unwrap();
+        conn.execute("DELETE FROM categories WHERE id = 'cat-del'", [])
+            .unwrap();
 
         // Assert
         let items = list_tax_line_items_by_year(&conn, 2025).unwrap();
