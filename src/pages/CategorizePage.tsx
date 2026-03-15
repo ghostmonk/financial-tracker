@@ -318,11 +318,21 @@ export default function CategorizePage() {
         title="Create Rule?"
         width="sm"
       >
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          Categorize &quot;{pendingCategorization?.group.normalized_name}&quot; as{" "}
-          <span className="font-semibold">{pendingCategorization?.categoryName}</span>.
-          Create a rule for future transactions?
-        </p>
+        <div className="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+          <p>
+            Categorize &quot;{pendingCategorization?.group.normalized_name}&quot; as{" "}
+            <span className="font-semibold">{pendingCategorization?.categoryName}</span>.
+          </p>
+          <p>
+            Account:{" "}
+            <span className="font-semibold">
+              {selectedAccountId
+                ? accounts.find((a) => a.id === selectedAccountId)?.name ?? "Unknown"
+                : "All Accounts"}
+            </span>
+          </p>
+          <p>Create a rule for future transactions?</p>
+        </div>
         <div className="flex justify-end gap-2 mt-4">
           <button
             onClick={() => executeCategorization(false)}
