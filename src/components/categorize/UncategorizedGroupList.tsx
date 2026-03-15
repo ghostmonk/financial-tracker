@@ -1,59 +1,37 @@
-import { useState, useMemo } from "react";
 import type { UncategorizedGroup, Account } from "../../lib/types";
 import { formatAmount } from "../../lib/utils";
+import { focusedRowClass } from "../../lib/styles";
+
+export type GroupSortField = "name" | "count" | "total";
+export type GroupSortDir = "asc" | "desc";
 
 interface UncategorizedGroupListProps {
-  groups: UncategorizedGroup[];
+  sortedGroups: UncategorizedGroup[];
   accounts: Account[];
+  sortField: GroupSortField;
+  sortDir: GroupSortDir;
+  onToggleSort: (field: GroupSortField) => void;
   onCategorize: (group: UncategorizedGroup) => void;
   onDrillDown: (group: UncategorizedGroup) => void;
+  focusedIndex: number;
 }
 
 export default function UncategorizedGroupList({
-  groups,
+  sortedGroups,
   accounts,
+  sortField,
+  sortDir,
+  onToggleSort,
   onCategorize,
   onDrillDown,
+  focusedIndex,
 }: UncategorizedGroupListProps) {
-  type SortField = "name" | "count" | "total";
-  type SortDir = "asc" | "desc";
-  const [sortField, setSortField] = useState<SortField>("count");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
-
-  function toggleSort(field: SortField) {
-    if (sortField === field) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
-      setSortField(field);
-      setSortDir("desc");
-    }
-  }
-
-  function sortIndicator(field: SortField) {
+  function sortIndicator(field: GroupSortField) {
     if (sortField !== field) return "";
-    return sortDir === "asc" ? " ▲" : " ▼";
+    return sortDir === "asc" ? " \u25B2" : " \u25BC";
   }
 
-  const sortedGroups = useMemo(() => {
-    const sorted = [...groups].sort((a, b) => {
-      let cmp = 0;
-      switch (sortField) {
-        case "name":
-          cmp = a.normalized_name.localeCompare(b.normalized_name);
-          break;
-        case "count":
-          cmp = a.transaction_count - b.transaction_count;
-          break;
-        case "total":
-          cmp = a.total_amount - b.total_amount;
-          break;
-      }
-      return sortDir === "asc" ? cmp : -cmp;
-    });
-    return sorted;
-  }, [groups, sortField, sortDir]);
-
-  if (groups.length === 0) {
+  if (sortedGroups.length === 0) {
     return (
       <p className="text-center text-gray-500 dark:text-gray-400 py-12 text-sm">
         All transactions are categorized.
@@ -68,19 +46,20 @@ export default function UncategorizedGroupList({
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-gray-200 dark:border-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-            <th data-testid="group-sort-name" className="px-4 py-3 cursor-pointer select-none" onClick={() => toggleSort("name")}>Description{sortIndicator("name")}</th>
-            <th data-testid="group-sort-count" className="px-4 py-3 text-right cursor-pointer select-none" onClick={() => toggleSort("count")}>Count{sortIndicator("count")}</th>
-            <th data-testid="group-sort-total" className="px-4 py-3 text-right cursor-pointer select-none" onClick={() => toggleSort("total")}>Total{sortIndicator("total")}</th>
+            <th data-testid="group-sort-name" className="px-4 py-3 cursor-pointer select-none" onClick={() => onToggleSort("name")}>Description{sortIndicator("name")}</th>
+            <th data-testid="group-sort-count" className="px-4 py-3 text-right cursor-pointer select-none" onClick={() => onToggleSort("count")}>Count{sortIndicator("count")}</th>
+            <th data-testid="group-sort-total" className="px-4 py-3 text-right cursor-pointer select-none" onClick={() => onToggleSort("total")}>Total{sortIndicator("total")}</th>
             <th className="px-4 py-3">Accounts</th>
             <th className="px-4 py-3" />
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-          {sortedGroups.map((group) => (
+          {sortedGroups.map((group, index) => (
             <tr
               key={group.normalized_name}
               data-testid={`group-row-${group.normalized_name.replace(/\s+/g, '-')}`}
-              className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
+              data-nav-index={index}
+              className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 ${index === focusedIndex ? focusedRowClass : ""}`}
             >
               <td className="px-4 py-3">
                 <button
