@@ -17,6 +17,7 @@ const navItems: NavItem[] = [
   { to: "/accounts", label: "Accounts" },
   { to: "/categories", label: "Categories" },
   { to: "/rules", label: "Rules" },
+  { to: "/tax", label: "Tax" },
 ];
 
 export default function Layout() {

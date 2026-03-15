@@ -197,3 +197,121 @@ export interface Tag {
   slug: string;
   created_at: string;
 }
+
+export interface TaxRates {
+  gst: number;
+  qst: number;
+  meals_deduction_pct: number;
+}
+
+export interface ProrationField {
+  key: string;
+  label: string;
+  unit: string;
+}
+
+export interface ProrationType {
+  label: string;
+  fields: ProrationField[];
+  hint: string;
+}
+
+export interface LineMapping {
+  category_slug: string;
+  direction: string;
+  t2125_line: string;
+  t2125_label: string;
+  tp80_line: string;
+  tp80_label: string;
+  gst_eligible: boolean;
+  qst_eligible: boolean;
+  proration: string | null;
+  hint: string;
+}
+
+export interface Reminder {
+  id: string;
+  context: string;
+  text: string;
+}
+
+export interface InfoSection {
+  id: string;
+  title: string;
+  body: string;
+}
+
+export interface TaxRules {
+  jurisdiction: string;
+  fiscal_year_type: string;
+  rates: TaxRates;
+  proration_types: Record<string, ProrationType>;
+  line_mappings: LineMapping[];
+  reminders: Reminder[];
+  info_sections: InfoSection[];
+}
+
+export interface TaxLineItem {
+  id: string;
+  date: string;
+  description: string;
+  amount: number;
+  category_id: string | null;
+  has_receipt: boolean;
+  receipt_path: string | null;
+  notes: string | null;
+  fiscal_year: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateTaxLineItemParams {
+  date: string;
+  description: string;
+  amount: number;
+  category_id?: string | null;
+  has_receipt?: boolean;
+  receipt_path?: string | null;
+  notes?: string | null;
+  fiscal_year: number;
+}
+
+export interface UpdateTaxLineItemParams {
+  date?: string;
+  description?: string;
+  amount?: number;
+  category_id?: string | null;
+  has_receipt?: boolean;
+  receipt_path?: string | null;
+  notes?: string | null;
+}
+
+export interface FiscalYearSettings {
+  fiscal_year: number;
+  vehicle_total_km: number | null;
+  vehicle_business_km: number | null;
+  home_total_sqft: number | null;
+  home_office_sqft: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UpsertFiscalYearSettingsParams {
+  fiscal_year: number;
+  vehicle_total_km?: number | null;
+  vehicle_business_km?: number | null;
+  home_total_sqft?: number | null;
+  home_office_sqft?: number | null;
+}
+
+export interface TaxWorkspaceItem {
+  id: string;
+  source: "transaction" | "tax_line_item";
+  date: string;
+  description: string;
+  amount: number;
+  category_id: string | null;
+  has_receipt: boolean;
+  receipt_path: string | null;
+  notes: string | null;
+}

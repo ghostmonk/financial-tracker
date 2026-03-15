@@ -1,0 +1,434 @@
+{
+  "jurisdiction": "CA-QC",
+  "fiscal_year_type": "calendar",
+  "rates": {
+    "gst": 0.05,
+    "qst": 0.09975,
+    "meals_deduction_pct": 0.50
+  },
+  "proration_types": {
+    "vehicle": {
+      "label": "Vehicle business-use",
+      "fields": [
+        { "key": "vehicle_total_km", "label": "Total kilometres driven", "unit": "km" },
+        { "key": "vehicle_business_km", "label": "Business kilometres driven", "unit": "km" }
+      ],
+      "hint": "Business-use % = business km / total km. CRA requires a logbook to support your claim."
+    },
+    "home_office": {
+      "label": "Home office",
+      "fields": [
+        { "key": "home_total_sqft", "label": "Total home area", "unit": "sq ft" },
+        { "key": "home_office_sqft", "label": "Office area", "unit": "sq ft" }
+      ],
+      "hint": "Office % = office area / total home area. Space must be used regularly and exclusively for business, or be your principal place of business."
+    }
+  },
+  "line_mappings": [
+    {
+      "category_slug": "freelance",
+      "direction": "income",
+      "t2125_line": "8000",
+      "t2125_label": "Gross sales, commissions, or fees",
+      "tp80_line": "60",
+      "tp80_label": "Revenus bruts",
+      "gst_eligible": false,
+      "qst_eligible": false,
+      "proration": null,
+      "hint": "All business income from clients. Zero-rated if client is outside Canada."
+    },
+    {
+      "category_slug": "other_income",
+      "direction": "income",
+      "t2125_line": "8230",
+      "t2125_label": "Other income",
+      "tp80_line": "154",
+      "tp80_label": "Autres revenus",
+      "gst_eligible": false,
+      "qst_eligible": false,
+      "proration": null,
+      "hint": "Miscellaneous business income not from direct client work."
+    },
+    {
+      "category_slug": "advertising",
+      "direction": "expense",
+      "t2125_line": "8521",
+      "t2125_label": "Advertising",
+      "tp80_line": "160",
+      "tp80_label": "Publicite",
+      "gst_eligible": true,
+      "qst_eligible": true,
+      "proration": null,
+      "hint": "Online ads, marketing materials, promotional costs."
+    },
+    {
+      "category_slug": "meals_business",
+      "direction": "expense",
+      "t2125_line": "8523",
+      "t2125_label": "Meals and entertainment",
+      "tp80_line": "163",
+      "tp80_label": "Repas et frais de representation",
+      "gst_eligible": true,
+      "qst_eligible": true,
+      "proration": null,
+      "hint": "Only 50% of meal/entertainment expenses are deductible. ITC/ITR also limited to 50%."
+    },
+    {
+      "category_slug": "office_supplies",
+      "direction": "expense",
+      "t2125_line": "8810",
+      "t2125_label": "Office expenses",
+      "tp80_line": "176",
+      "tp80_label": "Fournitures de bureau",
+      "gst_eligible": true,
+      "qst_eligible": true,
+      "proration": null,
+      "hint": "Pens, paper, printer ink, desk accessories, minor office items."
+    },
+    {
+      "category_slug": "software_saas",
+      "direction": "expense",
+      "t2125_line": "8810",
+      "t2125_label": "Office expenses",
+      "tp80_line": "176",
+      "tp80_label": "Fournitures de bureau",
+      "gst_eligible": true,
+      "qst_eligible": true,
+      "proration": null,
+      "hint": "Software subscriptions, SaaS tools, cloud services used for business."
+    },
+    {
+      "category_slug": "hosting_cloud",
+      "direction": "expense",
+      "t2125_line": "8810",
+      "t2125_label": "Office expenses",
+      "tp80_line": "176",
+      "tp80_label": "Fournitures de bureau",
+      "gst_eligible": true,
+      "qst_eligible": true,
+      "proration": null,
+      "hint": "Web hosting, cloud infrastructure, domain registration."
+    },
+    {
+      "category_slug": "contractors",
+      "direction": "expense",
+      "t2125_line": "8871",
+      "t2125_label": "Professional fees",
+      "tp80_line": "180",
+      "tp80_label": "Honoraires professionnels",
+      "gst_eligible": true,
+      "qst_eligible": true,
+      "proration": null,
+      "hint": "Subcontractor and freelancer payments."
+    },
+    {
+      "category_slug": "professional_services",
+      "direction": "expense",
+      "t2125_line": "8871",
+      "t2125_label": "Professional fees",
+      "tp80_line": "180",
+      "tp80_label": "Honoraires professionnels",
+      "gst_eligible": true,
+      "qst_eligible": true,
+      "proration": null,
+      "hint": "Accountant, lawyer, bookkeeper fees."
+    },
+    {
+      "category_slug": "travel_business",
+      "direction": "expense",
+      "t2125_line": "8522",
+      "t2125_label": "Travel expenses",
+      "tp80_line": "162",
+      "tp80_label": "Frais de deplacement",
+      "gst_eligible": true,
+      "qst_eligible": true,
+      "proration": null,
+      "hint": "Flights, hotels, car rentals for business travel. Does not include daily commute."
+    },
+    {
+      "category_slug": "shipping",
+      "direction": "expense",
+      "t2125_line": "8810",
+      "t2125_label": "Office expenses",
+      "tp80_line": "176",
+      "tp80_label": "Fournitures de bureau",
+      "gst_eligible": true,
+      "qst_eligible": true,
+      "proration": null,
+      "hint": "Postage, courier, shipping costs for business."
+    },
+    {
+      "category_slug": "equipment",
+      "direction": "expense",
+      "t2125_line": "9936",
+      "t2125_label": "Capital cost allowance (CCA)",
+      "tp80_line": "197",
+      "tp80_label": "Deduction pour amortissement",
+      "gst_eligible": true,
+      "qst_eligible": true,
+      "proration": null,
+      "hint": "Major equipment purchases. May need to be capitalized and claimed as CCA over multiple years rather than expensed in full."
+    },
+    {
+      "category_slug": "rent_coworking",
+      "direction": "expense",
+      "t2125_line": "8910",
+      "t2125_label": "Rent",
+      "tp80_line": "183",
+      "tp80_label": "Loyer",
+      "gst_eligible": true,
+      "qst_eligible": true,
+      "proration": null,
+      "hint": "Coworking space or dedicated business office rent. Home office rent uses proration instead."
+    },
+    {
+      "category_slug": "telecom",
+      "direction": "expense",
+      "t2125_line": "8220",
+      "t2125_label": "Telephone and utilities",
+      "tp80_line": "164",
+      "tp80_label": "Telephone et services publics",
+      "gst_eligible": true,
+      "qst_eligible": true,
+      "proration": null,
+      "hint": "Business phone line, business portion of mobile plan."
+    },
+    {
+      "category_slug": "other_business",
+      "direction": "expense",
+      "t2125_line": "9270",
+      "t2125_label": "Other expenses",
+      "tp80_line": "194",
+      "tp80_label": "Autres depenses",
+      "gst_eligible": true,
+      "qst_eligible": true,
+      "proration": null,
+      "hint": "Business expenses that do not fit other categories."
+    },
+    {
+      "category_slug": "tax_preparation",
+      "direction": "expense",
+      "t2125_line": "8871",
+      "t2125_label": "Professional fees",
+      "tp80_line": "180",
+      "tp80_label": "Honoraires professionnels",
+      "gst_eligible": true,
+      "qst_eligible": true,
+      "proration": null,
+      "hint": "Tax filing software, accountant fees for business return preparation."
+    },
+    {
+      "category_slug": "fuel",
+      "direction": "expense",
+      "t2125_line": "9281",
+      "t2125_label": "Motor vehicle expenses",
+      "tp80_line": "186",
+      "tp80_label": "Frais de vehicule a moteur",
+      "gst_eligible": true,
+      "qst_eligible": true,
+      "proration": "vehicle",
+      "hint": "Gas, diesel. Deductible portion based on business-use %."
+    },
+    {
+      "category_slug": "vehicle_insurance",
+      "direction": "expense",
+      "t2125_line": "9281",
+      "t2125_label": "Motor vehicle expenses",
+      "tp80_line": "186",
+      "tp80_label": "Frais de vehicule a moteur",
+      "gst_eligible": false,
+      "qst_eligible": false,
+      "proration": "vehicle",
+      "hint": "Car insurance premiums. Not subject to GST/QST. Deductible portion based on business-use %."
+    },
+    {
+      "category_slug": "vehicle_maintenance",
+      "direction": "expense",
+      "t2125_line": "9281",
+      "t2125_label": "Motor vehicle expenses",
+      "tp80_line": "186",
+      "tp80_label": "Frais de vehicule a moteur",
+      "gst_eligible": true,
+      "qst_eligible": true,
+      "proration": "vehicle",
+      "hint": "Oil changes, tires, repairs. Deductible portion based on business-use %."
+    },
+    {
+      "category_slug": "vehicle_payment",
+      "direction": "expense",
+      "t2125_line": "9281",
+      "t2125_label": "Motor vehicle expenses",
+      "tp80_line": "186",
+      "tp80_label": "Frais de vehicule a moteur",
+      "gst_eligible": false,
+      "qst_eligible": false,
+      "proration": "vehicle",
+      "hint": "Lease payments or interest on vehicle loan (not principal). Deductible portion based on business-use %."
+    },
+    {
+      "category_slug": "parking",
+      "direction": "expense",
+      "t2125_line": "9281",
+      "t2125_label": "Motor vehicle expenses",
+      "tp80_line": "186",
+      "tp80_label": "Frais de vehicule a moteur",
+      "gst_eligible": true,
+      "qst_eligible": true,
+      "proration": "vehicle",
+      "hint": "Business-related parking. Deductible portion based on business-use %."
+    },
+    {
+      "category_slug": "electricity",
+      "direction": "expense",
+      "t2125_line": "9945",
+      "t2125_label": "Business-use-of-home expenses",
+      "tp80_line": "198",
+      "tp80_label": "Depenses d'utilisation de la residence",
+      "gst_eligible": true,
+      "qst_eligible": true,
+      "proration": "home_office",
+      "hint": "Electricity bill. Deductible portion based on home office %."
+    },
+    {
+      "category_slug": "gas_heating",
+      "direction": "expense",
+      "t2125_line": "9945",
+      "t2125_label": "Business-use-of-home expenses",
+      "tp80_line": "198",
+      "tp80_label": "Depenses d'utilisation de la residence",
+      "gst_eligible": true,
+      "qst_eligible": true,
+      "proration": "home_office",
+      "hint": "Natural gas or heating fuel. Deductible portion based on home office %."
+    },
+    {
+      "category_slug": "mortgage",
+      "direction": "expense",
+      "t2125_line": "9945",
+      "t2125_label": "Business-use-of-home expenses",
+      "tp80_line": "198",
+      "tp80_label": "Depenses d'utilisation de la residence",
+      "gst_eligible": false,
+      "qst_eligible": false,
+      "proration": "home_office",
+      "hint": "Mortgage INTEREST only (not principal). Deductible portion based on home office %. Not subject to GST/QST."
+    },
+    {
+      "category_slug": "property_tax",
+      "direction": "expense",
+      "t2125_line": "9945",
+      "t2125_label": "Business-use-of-home expenses",
+      "tp80_line": "198",
+      "tp80_label": "Depenses d'utilisation de la residence",
+      "gst_eligible": false,
+      "qst_eligible": false,
+      "proration": "home_office",
+      "hint": "Municipal/school property tax. Deductible portion based on home office %. Not subject to GST/QST."
+    },
+    {
+      "category_slug": "home_insurance",
+      "direction": "expense",
+      "t2125_line": "9945",
+      "t2125_label": "Business-use-of-home expenses",
+      "tp80_line": "198",
+      "tp80_label": "Depenses d'utilisation de la residence",
+      "gst_eligible": false,
+      "qst_eligible": false,
+      "proration": "home_office",
+      "hint": "Homeowner's insurance premium. Deductible portion based on home office %. Not subject to GST/QST."
+    },
+    {
+      "category_slug": "internet",
+      "direction": "expense",
+      "t2125_line": "9945",
+      "t2125_label": "Business-use-of-home expenses",
+      "tp80_line": "198",
+      "tp80_label": "Depenses d'utilisation de la residence",
+      "gst_eligible": true,
+      "qst_eligible": true,
+      "proration": "home_office",
+      "hint": "Home internet service. Deductible portion based on home office %."
+    },
+    {
+      "category_slug": "maintenance_repairs",
+      "direction": "expense",
+      "t2125_line": "9945",
+      "t2125_label": "Business-use-of-home expenses",
+      "tp80_line": "198",
+      "tp80_label": "Depenses d'utilisation de la residence",
+      "gst_eligible": true,
+      "qst_eligible": true,
+      "proration": "home_office",
+      "hint": "Home repairs and maintenance. Deductible portion based on home office %."
+    }
+  ],
+  "reminders": [
+    {
+      "id": "receipt_retention",
+      "context": "receipt",
+      "text": "Keep all receipts for 6 years from the end of the tax year. CRA can request them at any time during an audit."
+    },
+    {
+      "id": "vehicle_logbook",
+      "context": "vehicle",
+      "text": "CRA requires a logbook to support your business-use percentage claim. Record date, destination, purpose, and kilometres for every business trip."
+    },
+    {
+      "id": "meals_50pct",
+      "context": "meals",
+      "text": "Only 50% of meal and entertainment expenses are deductible. The GST/QST ITC/ITR is also limited to 50%."
+    },
+    {
+      "id": "home_office_exclusive",
+      "context": "home_office",
+      "text": "Your home office must be used regularly and exclusively for business, OR be your principal place of business (where you earn more than 50% of income)."
+    },
+    {
+      "id": "zero_rated_exports",
+      "context": "income",
+      "text": "Services provided to non-resident clients (e.g., US companies) are zero-rated for GST/QST. You do not charge GST/QST but can still claim ITCs/ITRs on business expenses."
+    },
+    {
+      "id": "itc_itr_timing",
+      "context": "gst_qst",
+      "text": "Claim ITCs/ITRs in the reporting period when the expense was paid or became payable, not when the return is filed."
+    },
+    {
+      "id": "cca_half_year",
+      "context": "equipment",
+      "text": "In the year you acquire a capital asset, you can only claim half the normal CCA rate (half-year rule). Consider immediate expensing rules for eligible property."
+    },
+    {
+      "id": "mortgage_interest_only",
+      "context": "home_office",
+      "text": "Only the interest portion of your mortgage payment is deductible as a home office expense. Principal payments are not deductible."
+    }
+  ],
+  "info_sections": [
+    {
+      "id": "t2125_overview",
+      "title": "T2125 -- Statement of Business or Professional Activities",
+      "body": "Federal form for reporting self-employment income and expenses. Filed as part of your personal T1 return. Reports gross income, allowable expenses by category, net income, and business-use-of-home and motor vehicle expenses. All amounts in CAD."
+    },
+    {
+      "id": "tp80_overview",
+      "title": "TP-80 -- Business or Professional Income and Expenses",
+      "body": "Quebec equivalent of the federal T2125. Filed with your TP-1 provincial return. Same income and expense structure but with Quebec-specific line numbers. Amounts must match your T2125 figures."
+    },
+    {
+      "id": "gst_qst_overview",
+      "title": "GST/QST Returns and Input Tax Credits",
+      "body": "As a registered business, you file GST/QST returns (annually, quarterly, or monthly depending on revenue). Even if your income is zero-rated (export services), you must file returns. You can claim Input Tax Credits (ITCs for GST) and Input Tax Refunds (ITRs for QST) on eligible business expenses. ITCs/ITRs are computed by applying the tax rate to the pre-tax amount of eligible expenses."
+    },
+    {
+      "id": "vehicle_expenses",
+      "title": "Motor Vehicle Expense Deductions",
+      "body": "You can deduct vehicle expenses proportional to business use. Track total km driven in the year and business km driven. Eligible expenses: fuel, insurance, maintenance, lease payments or loan interest, licence and registration, parking. Keep a logbook."
+    },
+    {
+      "id": "home_office_expenses",
+      "title": "Business-Use-of-Home Deductions",
+      "body": "If you work from home, you can deduct a portion of household expenses. The portion is calculated as: office square footage / total home square footage. Eligible expenses: mortgage interest (not principal), property tax, home insurance, electricity, heating, water, internet, maintenance. Home office expenses cannot create or increase a business loss -- carry forward any excess to the next year."
+    }
+  ]
+}

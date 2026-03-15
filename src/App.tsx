@@ -9,6 +9,7 @@ import AccountsPage from "./pages/AccountsPage";
 import CategoriesPage from "./pages/CategoriesPage";
 import CategorizePage from "./pages/CategorizePage";
 import RulesPage from "./pages/RulesPage";
+import TaxPage from "./pages/TaxPage";
 
 export default function App() {
   return (
@@ -25,6 +26,7 @@ export default function App() {
             <Route path="accounts" element={<AccountsPage />} />
             <Route path="categories" element={<CategoriesPage />} />
             <Route path="rules" element={<RulesPage />} />
+            <Route path="tax" element={<TaxPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

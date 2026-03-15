@@ -19,6 +19,13 @@ import type {
   UpdateRuleParams,
   UncategorizedGroup,
   Tag,
+  TaxRules,
+  TaxLineItem,
+  CreateTaxLineItemParams,
+  UpdateTaxLineItemParams,
+  FiscalYearSettings,
+  UpsertFiscalYearSettingsParams,
+  TaxWorkspaceItem,
 } from "./types";
 
 export type {
@@ -41,6 +48,13 @@ export type {
   UpdateRuleParams,
   UncategorizedGroup,
   Tag,
+  TaxRules,
+  TaxLineItem,
+  CreateTaxLineItemParams,
+  UpdateTaxLineItemParams,
+  FiscalYearSettings,
+  UpsertFiscalYearSettingsParams,
+  TaxWorkspaceItem,
 };
 
 // Database
@@ -260,5 +274,64 @@ export async function getTransactionTags(
 ): Promise<Tag[]> {
   return invoke("get_transaction_tags", {
     transaction_id: transactionId,
+  });
+}
+
+// Tax
+
+export async function getTaxRules(): Promise<TaxRules> {
+  return invoke("get_tax_rules");
+}
+
+export async function listTaxLineItems(
+  fiscalYear: number,
+): Promise<TaxLineItem[]> {
+  return invoke("list_tax_line_items", { fiscal_year: fiscalYear });
+}
+
+export async function createTaxLineItem(
+  params: CreateTaxLineItemParams,
+): Promise<TaxLineItem> {
+  return invoke("create_tax_line_item_cmd", { params });
+}
+
+export async function updateTaxLineItem(
+  id: string,
+  params: UpdateTaxLineItemParams,
+): Promise<TaxLineItem> {
+  return invoke("update_tax_line_item_cmd", { id, params });
+}
+
+export async function deleteTaxLineItem(id: string): Promise<void> {
+  return invoke("delete_tax_line_item_cmd", { id });
+}
+
+export async function getFiscalYearSettings(
+  fiscalYear: number,
+): Promise<FiscalYearSettings | null> {
+  return invoke("get_fiscal_year_settings_cmd", { fiscal_year: fiscalYear });
+}
+
+export async function upsertFiscalYearSettings(
+  params: UpsertFiscalYearSettingsParams,
+): Promise<FiscalYearSettings> {
+  return invoke("upsert_fiscal_year_settings_cmd", { params });
+}
+
+export async function getTaxWorkspaceItems(
+  fiscalYear: number,
+): Promise<TaxWorkspaceItem[]> {
+  return invoke("get_tax_workspace_items", { fiscal_year: fiscalYear });
+}
+
+export async function updateTransactionReceipt(
+  id: string,
+  hasReceipt: boolean,
+  receiptPath: string | null,
+): Promise<void> {
+  return invoke("update_transaction_receipt", {
+    id,
+    has_receipt: hasReceipt,
+    receipt_path: receiptPath,
   });
 }

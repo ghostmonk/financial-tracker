@@ -3,6 +3,7 @@ mod commands;
 mod db;
 mod import;
 mod models;
+mod tax;
 
 use db::Database;
 use std::sync::Mutex;
@@ -60,6 +61,16 @@ pub fn run() {
             commands::tags::delete_tag,
             commands::tags::set_transaction_tags,
             commands::tags::get_transaction_tags,
+            // Tax
+            commands::tax::get_tax_rules,
+            commands::tax::list_tax_line_items,
+            commands::tax::create_tax_line_item_cmd,
+            commands::tax::update_tax_line_item_cmd,
+            commands::tax::delete_tax_line_item_cmd,
+            commands::tax::get_fiscal_year_settings_cmd,
+            commands::tax::upsert_fiscal_year_settings_cmd,
+            commands::tax::get_tax_workspace_items,
+            commands::tax::update_transaction_receipt,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

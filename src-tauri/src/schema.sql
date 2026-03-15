@@ -98,3 +98,31 @@ CREATE TABLE IF NOT EXISTS transaction_tags (
 );
 
 CREATE INDEX IF NOT EXISTS idx_transaction_tags_tag ON transaction_tags(tag_id);
+
+CREATE TABLE IF NOT EXISTS tax_line_items (
+    id TEXT PRIMARY KEY,
+    date TEXT NOT NULL,
+    description TEXT NOT NULL,
+    amount REAL NOT NULL,
+    category_id TEXT REFERENCES categories(id) ON DELETE SET NULL,
+    has_receipt INTEGER NOT NULL DEFAULT 0,
+    receipt_path TEXT,
+    notes TEXT,
+    fiscal_year INTEGER NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_tax_line_items_fiscal_year ON tax_line_items(fiscal_year);
+CREATE INDEX IF NOT EXISTS idx_tax_line_items_date ON tax_line_items(date);
+CREATE INDEX IF NOT EXISTS idx_tax_line_items_category ON tax_line_items(category_id);
+
+CREATE TABLE IF NOT EXISTS fiscal_year_settings (
+    fiscal_year INTEGER PRIMARY KEY,
+    vehicle_total_km REAL,
+    vehicle_business_km REAL,
+    home_total_sqft REAL,
+    home_office_sqft REAL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);

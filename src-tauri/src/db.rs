@@ -72,6 +72,14 @@ impl Database {
         conn.execute_batch("ALTER TABLE categorization_rules ADD COLUMN amount_max REAL;")
             .ok();
 
+        // Migration: add receipt tracking to transactions
+        conn.execute_batch(
+            "ALTER TABLE transactions ADD COLUMN has_receipt INTEGER NOT NULL DEFAULT 0;",
+        )
+        .ok();
+        conn.execute_batch("ALTER TABLE transactions ADD COLUMN receipt_path TEXT;")
+            .ok();
+
         Ok(())
     }
 
