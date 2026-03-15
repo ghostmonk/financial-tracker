@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { modalOverlayClass, modalCardClass } from "../../lib/styles";
 
 interface ModalProps {
@@ -15,17 +15,57 @@ const widthMap = {
   lg: "max-w-lg",
 };
 
+const FOCUSABLE_SELECTOR =
+  'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 export default function Modal({ open, onClose, title, children, width = "md" }: ModalProps) {
   const cardRef = useRef<HTMLDivElement>(null);
 
+  // Auto-focus first focusable element when modal opens
+  useEffect(() => {
+    if (!open || !cardRef.current) return;
+    const timer = setTimeout(() => {
+      const focusable = cardRef.current?.querySelectorAll(FOCUSABLE_SELECTOR);
+      if (focusable && focusable.length > 0) {
+        (focusable[0] as HTMLElement).focus();
+      }
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [open]);
+
+  // Trap focus within modal and handle Escape
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (e.key === "Tab" && cardRef.current) {
+        const focusable = cardRef.current.querySelectorAll(FOCUSABLE_SELECTOR);
+        if (focusable.length === 0) return;
+        const first = focusable[0] as HTMLElement;
+        const last = focusable[focusable.length - 1] as HTMLElement;
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+    },
+    [onClose],
+  );
+
   useEffect(() => {
     if (!open) return;
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [open, onClose]);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open, handleKeyDown]);
 
   if (!open) return null;
 
