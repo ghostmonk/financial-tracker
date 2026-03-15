@@ -158,7 +158,7 @@ export default function CategorizePage() {
           match_field: "description",
           match_type: "contains",
           category_id: selectedCategoryId,
-          account_id: selectedAccountId || null,
+          account_ids: selectedAccountId ? [selectedAccountId] : [],
           auto_apply: true,
         });
         await reapplyAllRules();

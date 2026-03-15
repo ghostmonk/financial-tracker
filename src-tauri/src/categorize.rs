@@ -56,8 +56,8 @@ fn rule_matches(
     amount: f64,
     account_id: &str,
 ) -> bool {
-    if let Some(ref rule_account_id) = rule.account_id {
-        if rule_account_id != account_id {
+    if !rule.account_ids.is_empty() {
+        if !rule.account_ids.iter().any(|a| a == account_id) {
             return false;
         }
     }
@@ -324,11 +324,13 @@ pub fn count_uncategorized_groups(conn: &Connection) -> Result<i64, DbError> {
 
 /// Load all auto_apply=1 rules ordered by priority DESC.
 fn load_auto_rules(conn: &Connection) -> Result<Vec<CategorizationRule>, DbError> {
+    use crate::models::categorization_rule::load_rule_account_ids;
+
     let mut stmt = conn.prepare(
-        "SELECT id, pattern, match_field, match_type, category_id, account_id, priority, amount_min, amount_max, auto_apply, created_at \
+        "SELECT id, pattern, match_field, match_type, category_id, priority, amount_min, amount_max, auto_apply, created_at \
          FROM categorization_rules WHERE auto_apply = 1 ORDER BY priority DESC",
     )?;
-    let rules = stmt
+    let mut rules = stmt
         .query_map([], |row| {
             Ok(CategorizationRule {
                 id: row.get(0)?,
@@ -336,15 +338,22 @@ fn load_auto_rules(conn: &Connection) -> Result<Vec<CategorizationRule>, DbError
                 match_field: row.get(2)?,
                 match_type: row.get(3)?,
                 category_id: row.get(4)?,
-                account_id: row.get(5)?,
-                priority: row.get(6)?,
-                amount_min: row.get(7)?,
-                amount_max: row.get(8)?,
-                auto_apply: row.get(9)?,
-                created_at: row.get(10)?,
+                account_ids: vec![],
+                priority: row.get(5)?,
+                amount_min: row.get(6)?,
+                amount_max: row.get(7)?,
+                auto_apply: row.get(8)?,
+                created_at: row.get(9)?,
             })
         })?
         .collect::<rusqlite::Result<Vec<_>>>()?;
+
+    let account_map = load_rule_account_ids(conn)?;
+    for rule in rules.iter_mut() {
+        if let Some(ids) = account_map.get(&rule.id) {
+            rule.account_ids = ids.clone();
+        }
+    }
     Ok(rules)
 }
 
@@ -420,7 +429,7 @@ mod tests {
             match_field: "description".into(),
             match_type: "contains".into(),
             category_id: "cat-dining".into(),
-            account_id: None,
+            account_ids: vec![],
             priority: 0,
             amount_min: None,
             amount_max: None,
@@ -440,7 +449,7 @@ mod tests {
             match_field: "description".into(),
             match_type: "starts_with".into(),
             category_id: "cat-dining".into(),
-            account_id: None,
+            account_ids: vec![],
             priority: 0,
             amount_min: None,
             amount_max: None,
@@ -459,7 +468,7 @@ mod tests {
             match_field: "description".into(),
             match_type: "exact".into(),
             category_id: "cat-dining".into(),
-            account_id: None,
+            account_ids: vec![],
             priority: 0,
             amount_min: None,
             amount_max: None,
@@ -478,7 +487,7 @@ mod tests {
             match_field: "payee".into(),
             match_type: "contains".into(),
             category_id: "cat-dining".into(),
-            account_id: None,
+            account_ids: vec![],
             priority: 0,
             amount_min: None,
             amount_max: None,
@@ -699,7 +708,7 @@ mod tests {
             match_field: "description".into(),
             match_type: "contains".into(),
             category_id: "cat-dining".into(),
-            account_id: None,
+            account_ids: vec![],
             priority: 0,
             amount_min,
             amount_max,
@@ -803,7 +812,7 @@ mod tests {
     }
 
     #[test]
-    fn test_rule_matches_with_account_id() {
+    fn test_rule_matches_with_account_ids() {
         // Rule scoped to acct-1
         let scoped_rule = CategorizationRule {
             id: "r1".into(),
@@ -811,7 +820,7 @@ mod tests {
             match_field: "description".into(),
             match_type: "contains".into(),
             category_id: "cat-dining".into(),
-            account_id: Some("acct-1".into()),
+            account_ids: vec!["acct-1".into()],
             priority: 0,
             amount_min: None,
             amount_max: None,
@@ -823,9 +832,27 @@ mod tests {
         // Does not match transaction from acct-2
         assert!(!rule_matches(&scoped_rule, "MY STORE", None, 10.0, "acct-2"));
 
-        // Rule with no account_id matches any account
+        // Rule with empty account_ids matches any account
         let global_rule = make_rule(None, None);
         assert!(rule_matches(&global_rule, "MY STORE", None, 10.0, "acct-1"));
         assert!(rule_matches(&global_rule, "MY STORE", None, 10.0, "acct-2"));
+
+        // Rule scoped to multiple accounts
+        let multi_rule = CategorizationRule {
+            id: "r2".into(),
+            pattern: "STORE".into(),
+            match_field: "description".into(),
+            match_type: "contains".into(),
+            category_id: "cat-dining".into(),
+            account_ids: vec!["acct-1".into(), "acct-2".into()],
+            priority: 0,
+            amount_min: None,
+            amount_max: None,
+            auto_apply: true,
+            created_at: String::new(),
+        };
+        assert!(rule_matches(&multi_rule, "MY STORE", None, 10.0, "acct-1"));
+        assert!(rule_matches(&multi_rule, "MY STORE", None, 10.0, "acct-2"));
+        assert!(!rule_matches(&multi_rule, "MY STORE", None, 10.0, "acct-3"));
     }
 }

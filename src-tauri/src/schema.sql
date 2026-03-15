@@ -77,12 +77,17 @@ CREATE TABLE IF NOT EXISTS categorization_rules (
     match_field TEXT NOT NULL CHECK(match_field IN ('description', 'payee')),
     match_type TEXT NOT NULL CHECK(match_type IN ('contains', 'starts_with', 'exact')),
     category_id TEXT NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
-    account_id TEXT REFERENCES accounts(id) ON DELETE CASCADE,
     priority INTEGER NOT NULL DEFAULT 0,
     amount_min REAL,
     amount_max REAL,
     auto_apply INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS rule_accounts (
+    rule_id TEXT NOT NULL REFERENCES categorization_rules(id) ON DELETE CASCADE,
+    account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    PRIMARY KEY (rule_id, account_id)
 );
 
 CREATE TABLE IF NOT EXISTS tags (

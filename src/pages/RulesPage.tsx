@@ -241,9 +241,11 @@ export default function RulesPage() {
                     {categoryMap.get(rule.category_id) ?? "Unknown"}
                   </td>
                   <td className="px-4 py-3 text-xs">
-                    {rule.account_id
-                      ? (accountMap.get(rule.account_id) ?? "Unknown")
-                      : "All"}
+                    {rule.account_ids.length === 0
+                      ? "All"
+                      : rule.account_ids
+                          .map((id) => accountMap.get(id) ?? "Unknown")
+                          .join(", ")}
                   </td>
                   <td className="px-4 py-3 text-xs tabular-nums">
                     {rule.amount_min != null && rule.amount_max != null
@@ -353,8 +355,8 @@ function RuleForm({
   const [categoryId, setCategoryId] = useState<string | null>(
     editingRule?.category_id ?? null,
   );
-  const [accountId, setAccountId] = useState<string | null>(
-    editingRule?.account_id ?? null,
+  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>(
+    editingRule?.account_ids ?? [],
   );
   const [amountMin, setAmountMin] = useState(
     editingRule?.amount_min?.toString() ?? "",
@@ -375,7 +377,7 @@ function RuleForm({
       match_field: matchField,
       match_type: matchType,
       category_id: categoryId,
-      account_id: accountId,
+      account_ids: selectedAccountIds.length === accounts.length ? [] : selectedAccountIds,
       amount_min: amountMin ? parseFloat(amountMin) : undefined,
       amount_max: amountMax ? parseFloat(amountMax) : undefined,
       priority,
@@ -428,19 +430,34 @@ function RuleForm({
           />
         </FormField>
 
-        <FormField label="Account">
-          <select
-            value={accountId ?? ""}
-            onChange={(e) => setAccountId(e.target.value || null)}
-            className={inputClass}
-          >
-            <option value="">All Accounts</option>
+        <FormField label="Accounts">
+          <div className="space-y-1 max-h-32 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-md p-2">
             {accounts.map((a) => (
-              <option key={a.id} value={a.id}>
+              <label key={a.id} className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={selectedAccountIds.includes(a.id)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedAccountIds([...selectedAccountIds, a.id]);
+                    } else {
+                      setSelectedAccountIds(selectedAccountIds.filter(id => id !== a.id));
+                    }
+                  }}
+                  className="rounded border-gray-300 dark:border-gray-600"
+                />
                 {a.name}
-              </option>
+              </label>
             ))}
-          </select>
+          </div>
+          <div className="flex gap-2 mt-1">
+            <button type="button" onClick={() => setSelectedAccountIds(accounts.map(a => a.id))} className="text-xs text-blue-600 dark:text-blue-400">
+              Select all
+            </button>
+            <button type="button" onClick={() => setSelectedAccountIds([])} className="text-xs text-gray-500 dark:text-gray-400">
+              Clear
+            </button>
+          </div>
         </FormField>
 
         <div className="grid grid-cols-2 gap-3">

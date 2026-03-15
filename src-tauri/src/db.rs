@@ -72,8 +72,22 @@ impl Database {
         conn.execute_batch("ALTER TABLE categorization_rules ADD COLUMN amount_max REAL;")
             .ok();
 
-        // Migration: add account_id to categorization_rules
+        // Migration: add account_id to categorization_rules (legacy, column kept for compat)
         conn.execute_batch("ALTER TABLE categorization_rules ADD COLUMN account_id TEXT REFERENCES accounts(id) ON DELETE CASCADE;").ok();
+
+        // Migration: rule_accounts junction table (many-to-many rules <-> accounts)
+        conn.execute_batch(
+            "CREATE TABLE IF NOT EXISTS rule_accounts (
+                rule_id TEXT NOT NULL REFERENCES categorization_rules(id) ON DELETE CASCADE,
+                account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+                PRIMARY KEY (rule_id, account_id)
+            );",
+        )?;
+        // Migrate any existing account_id data from the old column
+        conn.execute_batch(
+            "INSERT OR IGNORE INTO rule_accounts (rule_id, account_id)
+             SELECT id, account_id FROM categorization_rules WHERE account_id IS NOT NULL;",
+        )?;
 
         // Migration: add receipt tracking to transactions
         conn.execute_batch(

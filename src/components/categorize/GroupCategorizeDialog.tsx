@@ -35,7 +35,7 @@ export default function GroupCategorizeDialog({
       match_field: "description",
       match_type: matchType,
       category_id: categoryId,
-      account_id: accountId || null,
+      account_ids: accountId ? [accountId] : [],
       auto_apply: true,
     });
   }

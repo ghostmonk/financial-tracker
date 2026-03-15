@@ -162,7 +162,7 @@ export interface CategorizationRule {
   match_field: string;
   match_type: string;
   category_id: string;
-  account_id: string | null;
+  account_ids: string[];
   priority: number;
   amount_min: number | null;
   amount_max: number | null;
@@ -175,7 +175,7 @@ export interface CreateRuleParams {
   match_field: string;
   match_type: string;
   category_id: string;
-  account_id?: string | null;
+  account_ids?: string[];
   priority?: number;
   auto_apply?: boolean;
   amount_min?: number | null;
@@ -187,7 +187,7 @@ export interface UpdateRuleParams {
   match_field?: string;
   match_type?: string;
   category_id?: string;
-  account_id?: string | null;
+  account_ids?: string[];
   priority?: number;
   auto_apply?: boolean;
   amount_min?: number | null;
