@@ -33,10 +33,20 @@ export function useKeyboardNav({
     new Set(),
   );
   const [selectionAnchor, setSelectionAnchor] = useState<number | null>(null);
+  const [sidebarActive, setSidebarActive] = useState(false);
+
+  useEffect(() => {
+    function handleSidebarFocus(e: Event) {
+      setSidebarActive((e as CustomEvent).detail);
+    }
+    window.addEventListener("sidebar-focus-changed", handleSidebarFocus);
+    return () =>
+      window.removeEventListener("sidebar-focus-changed", handleSidebarFocus);
+  }, []);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (!enabled || itemCount === 0) return;
+      if (!enabled || sidebarActive || itemCount === 0) return;
 
       const tag = (e.target as HTMLElement).tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
@@ -123,6 +133,7 @@ export function useKeyboardNav({
     },
     [
       enabled,
+      sidebarActive,
       itemCount,
       focusedIndex,
       selectedIndices,

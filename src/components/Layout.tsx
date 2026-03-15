@@ -41,7 +41,13 @@ export default function Layout() {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.ctrlKey && e.key === "h") {
         e.preventDefault();
-        setSidebarFocused((prev) => !prev);
+        setSidebarFocused((prev) => {
+          const next = !prev;
+          window.dispatchEvent(
+            new CustomEvent("sidebar-focus-changed", { detail: next }),
+          );
+          return next;
+        });
         return;
       }
       if (!sidebarFocused) return;
@@ -58,10 +64,16 @@ export default function Layout() {
           e.preventDefault();
           navigate(navItems[sidebarIndex].to);
           setSidebarFocused(false);
+          window.dispatchEvent(
+            new CustomEvent("sidebar-focus-changed", { detail: false }),
+          );
           break;
         case "Escape":
           e.preventDefault();
           setSidebarFocused(false);
+          window.dispatchEvent(
+            new CustomEvent("sidebar-focus-changed", { detail: false }),
+          );
           break;
       }
     }
