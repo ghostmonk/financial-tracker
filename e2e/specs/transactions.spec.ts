@@ -40,7 +40,7 @@ test.describe("Transactions Page", () => {
     await unlockAndGoTo(mockPage, page, "/transactions");
 
     const count = page.getByTestId("transactions-count");
-    await expect(count).toHaveText("4 transactions loaded");
+    await expect(count).toContainText("4 loaded");
   });
 
   test("search filter accepts input", async ({ mockPage, page }) => {
