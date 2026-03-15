@@ -72,6 +72,9 @@ impl Database {
         conn.execute_batch("ALTER TABLE categorization_rules ADD COLUMN amount_max REAL;")
             .ok();
 
+        // Migration: add account_id to categorization_rules
+        conn.execute_batch("ALTER TABLE categorization_rules ADD COLUMN account_id TEXT REFERENCES accounts(id) ON DELETE CASCADE;").ok();
+
         // Migration: add receipt tracking to transactions
         conn.execute_batch(
             "ALTER TABLE transactions ADD COLUMN has_receipt INTEGER NOT NULL DEFAULT 0;",

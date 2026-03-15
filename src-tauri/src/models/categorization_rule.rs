@@ -12,6 +12,7 @@ pub struct CategorizationRule {
     pub match_field: String,
     pub match_type: String,
     pub category_id: String,
+    pub account_id: Option<String>,
     pub priority: i32,
     pub amount_min: Option<f64>,
     pub amount_max: Option<f64>,
@@ -25,6 +26,7 @@ pub struct CreateRuleParams {
     pub match_field: String,
     pub match_type: String,
     pub category_id: String,
+    pub account_id: Option<String>,
     pub priority: Option<i32>,
     pub amount_min: Option<f64>,
     pub amount_max: Option<f64>,
@@ -37,6 +39,7 @@ pub struct UpdateRuleParams {
     pub match_field: Option<String>,
     pub match_type: Option<String>,
     pub category_id: Option<String>,
+    pub account_id: Option<Option<String>>,
     pub priority: Option<i32>,
     pub amount_min: Option<Option<f64>>,
     pub amount_max: Option<Option<f64>>,
@@ -44,7 +47,7 @@ pub struct UpdateRuleParams {
 }
 
 const SELECT_COLS: &str =
-    "id, pattern, match_field, match_type, category_id, priority, amount_min, amount_max, auto_apply, created_at";
+    "id, pattern, match_field, match_type, category_id, account_id, priority, amount_min, amount_max, auto_apply, created_at";
 
 fn row_to_rule(row: &rusqlite::Row) -> rusqlite::Result<CategorizationRule> {
     Ok(CategorizationRule {
@@ -53,11 +56,12 @@ fn row_to_rule(row: &rusqlite::Row) -> rusqlite::Result<CategorizationRule> {
         match_field: row.get(2)?,
         match_type: row.get(3)?,
         category_id: row.get(4)?,
-        priority: row.get(5)?,
-        amount_min: row.get(6)?,
-        amount_max: row.get(7)?,
-        auto_apply: row.get(8)?,
-        created_at: row.get(9)?,
+        account_id: row.get(5)?,
+        priority: row.get(6)?,
+        amount_min: row.get(7)?,
+        amount_max: row.get(8)?,
+        auto_apply: row.get(9)?,
+        created_at: row.get(10)?,
     })
 }
 
@@ -69,14 +73,15 @@ pub fn create_rule(
     let priority = params.priority.unwrap_or(0);
     let auto_apply = params.auto_apply.unwrap_or(true);
     conn.execute(
-        "INSERT INTO categorization_rules (id, pattern, match_field, match_type, category_id, priority, amount_min, amount_max, auto_apply) \
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+        "INSERT INTO categorization_rules (id, pattern, match_field, match_type, category_id, account_id, priority, amount_min, amount_max, auto_apply) \
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
         rusqlite::params![
             id,
             params.pattern,
             params.match_field,
             params.match_type,
             params.category_id,
+            params.account_id,
             priority,
             params.amount_min,
             params.amount_max,
@@ -113,6 +118,7 @@ pub fn update_rule(
         .set_if("match_field", &params.match_field)
         .set_if("match_type", &params.match_type)
         .set_if("category_id", &params.category_id)
+        .set_nullable("account_id", &params.account_id)
         .set_if("priority", &params.priority)
         .set_nullable("amount_min", &params.amount_min)
         .set_nullable("amount_max", &params.amount_max)
@@ -158,6 +164,7 @@ mod tests {
                 match_type: "contains".to_string(),
                 category_id: "cat-1".to_string(),
                 priority: Some(10),
+                account_id: None,
                 amount_min: None,
                 amount_max: None,
                 auto_apply: None,
@@ -180,6 +187,7 @@ mod tests {
                 match_type: "starts_with".to_string(),
                 category_id: "cat-2".to_string(),
                 priority: Some(5),
+                account_id: None,
                 amount_min: None,
                 amount_max: None,
                 auto_apply: Some(false),
@@ -208,6 +216,7 @@ mod tests {
                 match_type: "contains".to_string(),
                 category_id: "cat-1".to_string(),
                 priority: None,
+                account_id: None,
                 amount_min: None,
                 amount_max: None,
                 auto_apply: None,
@@ -226,6 +235,7 @@ mod tests {
                 match_field: None,
                 match_type: Some("exact".to_string()),
                 category_id: Some("cat-2".to_string()),
+                account_id: None,
                 priority: Some(20),
                 amount_min: None,
                 amount_max: None,
@@ -255,6 +265,7 @@ mod tests {
                 match_type: "contains".to_string(),
                 category_id: "cat-1".to_string(),
                 priority: None,
+                account_id: None,
                 amount_min: None,
                 amount_max: None,
                 auto_apply: None,
@@ -271,6 +282,7 @@ mod tests {
                 match_type: None,
                 category_id: None,
                 priority: None,
+                account_id: None,
                 amount_min: None,
                 amount_max: None,
                 auto_apply: None,
@@ -294,6 +306,7 @@ mod tests {
                 match_type: "contains".to_string(),
                 category_id: "cat-1".to_string(),
                 priority: Some(5),
+                account_id: None,
                 amount_min: Some(100.0),
                 amount_max: Some(500.0),
                 auto_apply: None,
@@ -323,6 +336,7 @@ mod tests {
                 match_type: "contains".to_string(),
                 category_id: "cat-1".to_string(),
                 priority: None,
+                account_id: None,
                 amount_min: None,
                 amount_max: None,
                 auto_apply: None,
@@ -342,6 +356,7 @@ mod tests {
                 match_field: None,
                 match_type: None,
                 category_id: None,
+                account_id: None,
                 priority: None,
                 amount_min: Some(Some(50.0)),
                 amount_max: Some(Some(200.0)),
@@ -362,6 +377,7 @@ mod tests {
                 match_field: None,
                 match_type: None,
                 category_id: None,
+                account_id: None,
                 priority: None,
                 amount_min: Some(None),
                 amount_max: Some(None),
@@ -386,6 +402,7 @@ mod tests {
                 match_type: "exact".to_string(),
                 category_id: "cat-1".to_string(),
                 priority: None,
+                account_id: None,
                 amount_min: None,
                 amount_max: None,
                 auto_apply: None,
