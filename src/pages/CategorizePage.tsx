@@ -7,6 +7,7 @@ import {
   createCategorizationRule,
   reapplyAllRules,
   getGroupTransactions,
+  updateTransactionsCategory,
 } from "../lib/tauri";
 import type {
   UncategorizedGroup,
@@ -16,7 +17,8 @@ import type {
   CategoryHotkey,
 } from "../lib/types";
 import { parseError } from "../lib/utils";
-import { selectClass } from "../lib/styles";
+import { selectClass, btnClass, btnPrimaryClass } from "../lib/styles";
+import Modal from "../components/shared/Modal";
 import { useKeyboardNav } from "../lib/useKeyboardNav";
 import { useUndoStack } from "../lib/useUndoStack";
 import UncategorizedGroupList from "../components/categorize/UncategorizedGroupList";
@@ -41,6 +43,13 @@ export default function CategorizePage() {
   const [pickerGroup, setPickerGroup] = useState<UncategorizedGroup | null>(null);
   const [pickerParentCategory, setPickerParentCategory] = useState<Category | null>(null);
   const [pickerChildCategories, setPickerChildCategories] = useState<Category[]>([]);
+
+  // Confirm rule creation state
+  const [pendingCategorization, setPendingCategorization] = useState<{
+    group: UncategorizedGroup;
+    categoryId: string;
+    categoryName: string;
+  } | null>(null);
 
   // Lifted sort state
   const [sortField, setSortField] = useState<GroupSortField>("count");
@@ -137,52 +146,77 @@ export default function CategorizePage() {
   );
 
   const handlePickerSelect = useCallback(
-    async (selectedCategoryId: string) => {
+    (selectedCategoryId: string) => {
       if (!pickerGroup) return;
+
+      const cat = categories.find((c) => c.id === selectedCategoryId);
+      const catName = cat?.name ?? "Unknown";
+
+      setPendingCategorization({
+        group: pickerGroup,
+        categoryId: selectedCategoryId,
+        categoryName: catName,
+      });
 
       setPickerGroup(null);
       setPickerParentCategory(null);
       setPickerChildCategories([]);
+    },
+    [pickerGroup, categories],
+  );
+
+  const executeCategorization = useCallback(
+    async (withRule: boolean) => {
+      if (!pendingCategorization) return;
+      const { group, categoryId } = pendingCategorization;
+      setPendingCategorization(null);
 
       try {
         const txs = await getGroupTransactions(
-          pickerGroup.normalized_name,
+          group.normalized_name,
           selectedAccountId || undefined,
         );
         const txIds = txs.map((t) => t.id);
         const prevCategoryIds = txs.map((t) => t.category_id);
         const prevByRule = txs.map((t) => t.categorized_by_rule);
 
-        const rule = await createCategorizationRule({
-          pattern: pickerGroup.normalized_name,
-          match_field: "description",
-          match_type: "contains",
-          category_id: selectedCategoryId,
-          account_ids: selectedAccountId ? [selectedAccountId] : [],
-          auto_apply: true,
-        });
-        await reapplyAllRules();
+        let ruleId: string | null = null;
+
+        if (withRule) {
+          const rule = await createCategorizationRule({
+            pattern: group.normalized_name,
+            match_field: "description",
+            match_type: "contains",
+            category_id: categoryId,
+            account_ids: selectedAccountId ? [selectedAccountId] : [],
+            auto_apply: true,
+          });
+          ruleId = rule.id;
+          await reapplyAllRules();
+        } else {
+          await updateTransactionsCategory(txIds, categoryId);
+        }
 
         pushUndo({
           transactionIds: txIds,
           previousCategoryIds: prevCategoryIds,
           previousCategorizedByRule: prevByRule,
-          ruleId: rule.id,
-          label: `Categorized "${pickerGroup.normalized_name}"`,
+          ruleId,
+          label: `Categorized "${group.normalized_name}"`,
         });
 
         window.dispatchEvent(new Event("categorization-changed"));
         fetchGroups();
       } catch (err) {
-        console.error("Hotkey categorization failed:", err);
+        console.error("Categorization failed:", err);
       }
     },
-    [pickerGroup, selectedAccountId, pushUndo, fetchGroups],
+    [pendingCategorization, selectedAccountId, pushUndo, fetchGroups],
   );
 
   const { focusedIndex } = useKeyboardNav({
     itemCount: sortedGroups.length,
-    enabled: !categorizingGroup && !drillDownGroup && !pickerGroup && !loading,
+    enabled: !categorizingGroup && !drillDownGroup && !pickerGroup && !pendingCategorization && !loading,
     onEnter: (index: number) => setCategorizingGroup(sortedGroups[index]),
     onRight: (index: number) => setDrillDownGroup(sortedGroups[index]),
     onKeyPress: handleHotkeyPress,
@@ -277,6 +311,33 @@ export default function CategorizePage() {
           setPickerChildCategories([]);
         }}
       />
+
+      <Modal
+        open={!!pendingCategorization}
+        onClose={() => setPendingCategorization(null)}
+        title="Create Rule?"
+        width="sm"
+      >
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Categorize &quot;{pendingCategorization?.group.normalized_name}&quot; as{" "}
+          <span className="font-semibold">{pendingCategorization?.categoryName}</span>.
+          Create a rule for future transactions?
+        </p>
+        <div className="flex justify-end gap-2 mt-4">
+          <button
+            onClick={() => executeCategorization(false)}
+            className={btnClass}
+          >
+            No, just this time
+          </button>
+          <button
+            onClick={() => executeCategorization(true)}
+            className={btnPrimaryClass}
+          >
+            Yes, create rule
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }
