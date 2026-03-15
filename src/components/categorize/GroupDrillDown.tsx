@@ -251,6 +251,7 @@ export default function GroupDrillDown({
       setMatchType("contains");
       setRuleAmountMin("");
       setRuleAmountMax("");
+      window.dispatchEvent(new Event("categorization-changed"));
       onRefresh();
 
       if (remaining.length === 0) {

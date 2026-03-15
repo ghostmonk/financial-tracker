@@ -168,6 +168,7 @@ export default function CategorizePage() {
       await createCategorizationRule(params);
       await reapplyAllRules();
       setCategorizingGroup(null);
+      window.dispatchEvent(new Event("categorization-changed"));
       fetchGroups();
     } catch (err) {
       setError(parseError(err));
