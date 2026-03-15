@@ -37,7 +37,11 @@ export function useKeyboardNav({
 
   useEffect(() => {
     function handleSidebarFocus(e: Event) {
-      setSidebarActive((e as CustomEvent).detail);
+      const active = (e as CustomEvent).detail;
+      setSidebarActive(active);
+      if (active) {
+        setFocusedIndex(-1);
+      }
     }
     window.addEventListener("sidebar-focus-changed", handleSidebarFocus);
     return () =>
