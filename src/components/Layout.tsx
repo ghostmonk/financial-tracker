@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { NavLink, Outlet, Navigate } from "react-router-dom";
+import { NavLink, Outlet, Navigate, useNavigate } from "react-router-dom";
 import { useDatabase } from "../contexts/DatabaseContext";
 import { countUncategorizedGroups } from "../lib/tauri";
 
@@ -22,14 +22,52 @@ const navItems: NavItem[] = [
 
 export default function Layout() {
   const { isUnlocked } = useDatabase();
+  const navigate = useNavigate();
   const [uncategorizedCount, setUncategorizedCount] = useState(0);
+  const [sidebarFocused, setSidebarFocused] = useState(false);
+  const [sidebarIndex, setSidebarIndex] = useState(0);
 
   useEffect(() => {
     if (!isUnlocked) return;
-    countUncategorizedGroups()
-      .then(setUncategorizedCount)
-      .catch(console.error);
+    const fetchCount = () => {
+      countUncategorizedGroups().then(setUncategorizedCount).catch(console.error);
+    };
+    fetchCount();
+    window.addEventListener("categorization-changed", fetchCount);
+    return () => window.removeEventListener("categorization-changed", fetchCount);
   }, [isUnlocked]);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.ctrlKey && e.key === "h") {
+        e.preventDefault();
+        setSidebarFocused((prev) => !prev);
+        return;
+      }
+      if (!sidebarFocused) return;
+      switch (e.key) {
+        case "ArrowDown":
+          e.preventDefault();
+          setSidebarIndex((prev) => Math.min(prev + 1, navItems.length - 1));
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          setSidebarIndex((prev) => Math.max(prev - 1, 0));
+          break;
+        case "Enter":
+          e.preventDefault();
+          navigate(navItems[sidebarIndex].to);
+          setSidebarFocused(false);
+          break;
+        case "Escape":
+          e.preventDefault();
+          setSidebarFocused(false);
+          break;
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [sidebarFocused, sidebarIndex, navigate]);
 
   if (!isUnlocked) {
     return <Navigate to="/unlock" replace />;
@@ -42,7 +80,7 @@ export default function Layout() {
           Financial Tracker
         </div>
         <nav className="flex-1 px-3 space-y-1">
-          {navItems.map(({ to, label, showBadge }) => (
+          {navItems.map(({ to, label, showBadge }, index) => (
             <NavLink
               key={to}
               to={to}
@@ -52,7 +90,7 @@ export default function Layout() {
                   isActive
                     ? "bg-gray-700 text-white"
                     : "text-gray-400 hover:bg-gray-800 hover:text-white"
-                }`
+                } ${sidebarFocused && index === sidebarIndex ? "ring-2 ring-blue-500" : ""}`
               }
             >
               {label}
