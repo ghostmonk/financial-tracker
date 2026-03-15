@@ -6,12 +6,14 @@ import {
   deleteCategorizationRule,
   reapplyAllRules,
   listCategories,
+  listAccounts,
 } from "../lib/tauri";
 import type {
   CategorizationRule,
   CreateRuleParams,
   UpdateRuleParams,
   Category,
+  Account,
 } from "../lib/types";
 import { parseError } from "../lib/utils";
 import { inputClass, btnClass, btnPrimaryClass, btnDangerClass } from "../lib/styles";
@@ -22,6 +24,7 @@ import CategorySelect from "../components/transactions/CategorySelect";
 export default function RulesPage() {
   const [rules, setRules] = useState<CategorizationRule[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingRule, setEditingRule] = useState<CategorizationRule | null>(
@@ -67,7 +70,10 @@ export default function RulesPage() {
   useEffect(() => {
     fetchRules();
     listCategories().then(setCategories).catch(console.error);
+    listAccounts().then(setAccounts).catch(console.error);
   }, [fetchRules]);
+
+  const accountMap = new Map(accounts.map((a) => [a.id, a.name]));
 
   const categoryMap = new Map(
     categories.map((c) => {
@@ -212,6 +218,7 @@ export default function RulesPage() {
                 <th data-testid="rule-sort-field" className="px-4 py-3 cursor-pointer select-none" onClick={() => toggleSort("match_field")}>Field{sortIndicator("match_field")}</th>
                 <th data-testid="rule-sort-type" className="px-4 py-3 cursor-pointer select-none" onClick={() => toggleSort("match_type")}>Match{sortIndicator("match_type")}</th>
                 <th data-testid="rule-sort-category" className="px-4 py-3 cursor-pointer select-none" onClick={() => toggleSort("category")}>Category{sortIndicator("category")}</th>
+                <th className="px-4 py-3">Account</th>
                 <th className="px-4 py-3">Amount</th>
                 <th data-testid="rule-sort-priority" className="px-4 py-3 text-right cursor-pointer select-none" onClick={() => toggleSort("priority")}>Priority{sortIndicator("priority")}</th>
                 <th data-testid="rule-sort-auto_apply" className="px-4 py-3 cursor-pointer select-none" onClick={() => toggleSort("auto_apply")}>Auto{sortIndicator("auto_apply")}</th>
@@ -232,6 +239,11 @@ export default function RulesPage() {
                   <td className="px-4 py-3">{rule.match_type}</td>
                   <td className="px-4 py-3">
                     {categoryMap.get(rule.category_id) ?? "Unknown"}
+                  </td>
+                  <td className="px-4 py-3 text-xs">
+                    {rule.account_id
+                      ? (accountMap.get(rule.account_id) ?? "Unknown")
+                      : "All"}
                   </td>
                   <td className="px-4 py-3 text-xs tabular-nums">
                     {rule.amount_min != null && rule.amount_max != null
@@ -276,6 +288,7 @@ export default function RulesPage() {
       {showForm && (
         <RuleForm
           categories={categories}
+          accounts={accounts}
           editingRule={editingRule}
           onSubmit={handleSubmit}
           onCancel={() => {
@@ -317,6 +330,7 @@ export default function RulesPage() {
 
 interface RuleFormProps {
   categories: Category[];
+  accounts: Account[];
   editingRule: CategorizationRule | null;
   onSubmit: (params: CreateRuleParams) => void;
   onCancel: () => void;
@@ -324,6 +338,7 @@ interface RuleFormProps {
 
 function RuleForm({
   categories,
+  accounts,
   editingRule,
   onSubmit,
   onCancel,
@@ -337,6 +352,9 @@ function RuleForm({
   );
   const [categoryId, setCategoryId] = useState<string | null>(
     editingRule?.category_id ?? null,
+  );
+  const [accountId, setAccountId] = useState<string | null>(
+    editingRule?.account_id ?? null,
   );
   const [amountMin, setAmountMin] = useState(
     editingRule?.amount_min?.toString() ?? "",
@@ -357,6 +375,7 @@ function RuleForm({
       match_field: matchField,
       match_type: matchType,
       category_id: categoryId,
+      account_id: accountId,
       amount_min: amountMin ? parseFloat(amountMin) : undefined,
       amount_max: amountMax ? parseFloat(amountMax) : undefined,
       priority,
@@ -407,6 +426,21 @@ function RuleForm({
             value={categoryId}
             onChange={(catId) => setCategoryId(catId)}
           />
+        </FormField>
+
+        <FormField label="Account">
+          <select
+            value={accountId ?? ""}
+            onChange={(e) => setAccountId(e.target.value || null)}
+            className={inputClass}
+          >
+            <option value="">All Accounts</option>
+            {accounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
         </FormField>
 
         <div className="grid grid-cols-2 gap-3">
