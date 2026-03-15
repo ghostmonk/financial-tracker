@@ -146,6 +146,10 @@ export async function deleteTransaction(id: string): Promise<void> {
   return invoke("delete_transaction", { id });
 }
 
+export async function listUsedCategoryIds(): Promise<string[]> {
+  return invoke("list_used_category_ids");
+}
+
 // Import
 
 export async function previewCsvFile(fileContent: string): Promise<CsvPreview> {

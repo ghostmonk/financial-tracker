@@ -89,7 +89,6 @@ export default function TransactionsPage() {
         onFiltersChange={handleFiltersChange}
         accounts={accounts}
         categories={categories}
-        transactions={transactions}
       />
 
       <TransactionTable

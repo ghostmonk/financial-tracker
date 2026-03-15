@@ -3,8 +3,8 @@ import type {
   TransactionFilters as Filters,
   Account,
   Category,
-  Transaction,
 } from "../../lib/types";
+import { listUsedCategoryIds } from "../../lib/tauri";
 import { inputSmClass } from "../../lib/styles";
 import CategorySelect from "../transactions/CategorySelect";
 
@@ -13,7 +13,6 @@ interface TransactionFiltersProps {
   onFiltersChange: (filters: Filters) => void;
   accounts: Account[];
   categories: Category[];
-  transactions: Transaction[];
 }
 
 export default function TransactionFilters({
@@ -21,7 +20,6 @@ export default function TransactionFilters({
   onFiltersChange,
   accounts,
   categories,
-  transactions,
 }: TransactionFiltersProps) {
   const [searchText, setSearchText] = useState(filters.search ?? "");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -50,19 +48,23 @@ export default function TransactionFilters({
     onFiltersChange({ limit: 50, offset: 0 });
   }
 
+  const [usedCategoryIds, setUsedCategoryIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    listUsedCategoryIds()
+      .then((ids) => setUsedCategoryIds(new Set(ids)))
+      .catch(console.error);
+  }, []);
+
   const usedCategories = useMemo(() => {
-    const usedCategoryIds = new Set(
-      transactions
-        .map((t) => t.category_id)
-        .filter((id): id is string => id !== null),
-    );
     return categories.filter((c) => {
       if (usedCategoryIds.has(c.id)) return true;
+      // Include parent if any of its children are used
       return categories.some(
         (child) => child.parent_id === c.id && usedCategoryIds.has(child.id),
       );
     });
-  }, [transactions, categories]);
+  }, [categories, usedCategoryIds]);
 
   const hasFilters =
     !!filters.search ||

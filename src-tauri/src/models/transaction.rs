@@ -327,6 +327,16 @@ pub fn delete_transaction(conn: &Connection, id: &str) -> Result<(), DbError> {
     Ok(())
 }
 
+pub fn list_used_category_ids(conn: &Connection) -> Result<Vec<String>, DbError> {
+    let mut stmt = conn.prepare(
+        "SELECT DISTINCT category_id FROM transactions WHERE category_id IS NOT NULL ORDER BY category_id",
+    )?;
+    let ids = stmt
+        .query_map([], |row| row.get::<_, String>(0))?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+    Ok(ids)
+}
+
 pub fn get_transaction_ids_by_hashes(
     conn: &Connection,
     hashes: &[String],
