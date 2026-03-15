@@ -5,6 +5,7 @@ interface UseKeyboardNavOptions {
   enabled?: boolean;
   onEnter?: (index: number) => void;
   onRight?: (index: number) => void;
+  onLeft?: (index: number) => void;
   onEscape?: () => void;
   onKeyPress?: (key: string, shiftKey: boolean, focusedIndex: number) => void;
   onSelectionChange?: (selectedIndices: Set<number>) => void;
@@ -23,6 +24,7 @@ export function useKeyboardNav({
   enabled = true,
   onEnter,
   onRight,
+  onLeft,
   onEscape,
   onKeyPress,
   onSelectionChange,
@@ -118,6 +120,12 @@ export function useKeyboardNav({
             onRight?.(focusedIndex);
           }
           break;
+        case "ArrowLeft":
+          if (focusedIndex >= 0) {
+            e.preventDefault();
+            onLeft?.(focusedIndex);
+          }
+          break;
         case "Escape":
           e.preventDefault();
           onEscape?.();
@@ -145,6 +153,7 @@ export function useKeyboardNav({
       multiSelect,
       onEnter,
       onRight,
+      onLeft,
       onEscape,
       onKeyPress,
       onSelectionChange,

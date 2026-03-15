@@ -6,6 +6,7 @@ interface CategoryListProps {
   categories: Category[];
   hotkeys: CategoryHotkey[];
   focusedIndex: number;
+  collapsedParents: Set<string>;
   onEdit: (category: Category) => void;
   onDelete: (category: Category) => void;
 }
@@ -17,7 +18,10 @@ const DIRECTION_ORDER: { direction: Category["direction"]; label: string }[] = [
   { direction: "adjustment", label: "Adjustment" },
 ];
 
-export function flattenCategories(categories: Category[]): Category[] {
+export function flattenCategories(
+  categories: Category[],
+  collapsedParents?: Set<string>,
+): Category[] {
   const grouped = new Map<string, Category[]>();
   for (const cat of categories) {
     const list = grouped.get(cat.direction) ?? [];
@@ -44,6 +48,7 @@ export function flattenCategories(categories: Category[]): Category[] {
 
     for (const parent of topLevel) {
       flat.push(parent);
+      if (collapsedParents?.has(parent.id)) continue;
       const subs = (childrenMap.get(parent.id) ?? []).sort(
         (a, b) => a.sort_order - b.sort_order,
       );
@@ -60,6 +65,7 @@ export default function CategoryList({
   categories,
   hotkeys,
   focusedIndex,
+  collapsedParents,
   onEdit,
   onDelete,
 }: CategoryListProps) {
@@ -101,10 +107,11 @@ export default function CategoryList({
 
   let rowCounter = 0;
 
-  function renderRow(cat: Category, indent: boolean) {
+  function renderRow(cat: Category, indent: boolean, hasChildren: boolean) {
     const currentIndex = rowCounter++;
     const isFocused = currentIndex === focusedIndex;
     const hotkey = hotkeyMap.get(cat.id);
+    const isCollapsed = collapsedParents.has(cat.id);
 
     return (
       <tr
@@ -115,6 +122,13 @@ export default function CategoryList({
       >
         <Td className="text-gray-900 dark:text-gray-100">
           <div className="flex items-center gap-2">
+            {!indent && hasChildren ? (
+              <span className="text-gray-400 dark:text-gray-500 text-xs w-4 text-center select-none">
+                {isCollapsed ? "\u25B6" : "\u25BC"}
+              </span>
+            ) : !indent ? (
+              <span className="w-4" />
+            ) : null}
             <div>
               {indent && (
                 <span className="text-gray-400 dark:text-gray-600 mr-2">
@@ -179,9 +193,12 @@ export default function CategoryList({
                     const subs = (children.get(parent.id) ?? []).sort(
                       (a, b) => a.sort_order - b.sort_order,
                     );
+                    const isCollapsed = collapsedParents.has(parent.id);
                     return [
-                      renderRow(parent, false),
-                      ...subs.map((sub) => renderRow(sub, true)),
+                      renderRow(parent, false, subs.length > 0),
+                      ...(isCollapsed
+                        ? []
+                        : subs.map((sub) => renderRow(sub, true, false))),
                     ];
                   })}
                 </tbody>

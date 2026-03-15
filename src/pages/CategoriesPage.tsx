@@ -48,10 +48,13 @@ export default function CategoriesPage() {
 
   const [hotkeys, setHotkeys] = useState<CategoryHotkey[]>([]);
   const [conflictInfo, setConflictInfo] = useState<ConflictInfo | null>(null);
+  const [collapsedParents, setCollapsedParents] = useState<Set<string>>(
+    new Set(),
+  );
 
   const flatCats = useMemo(
-    () => flattenCategories(categories),
-    [categories],
+    () => flattenCategories(categories, collapsedParents),
+    [categories, collapsedParents],
   );
 
   const hotkeyByKey = useMemo(() => {
@@ -118,10 +121,49 @@ export default function CategoriesPage() {
     [flatCats, hotkeyByKey, hotkeyByCategoryId, categories],
   );
 
+  const handleArrowRight = useCallback(
+    (index: number) => {
+      const cat = flatCats[index];
+      if (!cat || cat.parent_id !== null) return;
+      // Expand: remove from collapsed set
+      setCollapsedParents((prev) => {
+        const next = new Set(prev);
+        next.delete(cat.id);
+        return next;
+      });
+    },
+    [flatCats],
+  );
+
+  const handleArrowLeft = useCallback(
+    (index: number) => {
+      const cat = flatCats[index];
+      if (!cat) return;
+      if (cat.parent_id !== null) {
+        // On a child: collapse the parent
+        setCollapsedParents((prev) => {
+          const next = new Set(prev);
+          next.add(cat.parent_id!);
+          return next;
+        });
+      } else {
+        // On a parent: collapse it
+        setCollapsedParents((prev) => {
+          const next = new Set(prev);
+          next.add(cat.id);
+          return next;
+        });
+      }
+    },
+    [flatCats],
+  );
+
   const { focusedIndex } = useKeyboardNav({
     itemCount: flatCats.length,
     enabled: !showForm && !deletingCategory && !conflictInfo && !loading,
     onKeyPress: handleHotkeyKeyPress,
+    onRight: handleArrowRight,
+    onLeft: handleArrowLeft,
   });
 
   const fetchTags = useCallback(async () => {
@@ -276,6 +318,7 @@ export default function CategoriesPage() {
           categories={categories}
           hotkeys={hotkeys}
           focusedIndex={focusedIndex}
+          collapsedParents={collapsedParents}
           onEdit={handleEdit}
           onDelete={setDeletingCategory}
         />
