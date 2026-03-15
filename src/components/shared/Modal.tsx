@@ -16,7 +16,7 @@ const widthMap = {
 };
 
 const FOCUSABLE_SELECTOR =
-  'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  'button:not([disabled]):not([tabindex="-1"]), input:not([disabled]):not([tabindex="-1"]), select:not([disabled]):not([tabindex="-1"]), textarea:not([disabled]):not([tabindex="-1"]), [tabindex]:not([tabindex="-1"])';
 
 export default function Modal({ open, onClose, title, children, width = "md" }: ModalProps) {
   const cardRef = useRef<HTMLDivElement>(null);
