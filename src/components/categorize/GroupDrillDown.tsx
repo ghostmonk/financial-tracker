@@ -3,16 +3,25 @@ import {
   getGroupTransactions,
   updateTransactionsCategory,
   createCategorizationRule,
+  listHotkeys,
 } from "../../lib/tauri";
 import type {
   Transaction,
   Category,
   UncategorizedGroup,
+  CategoryHotkey,
 } from "../../lib/types";
 import { formatAmount } from "../../lib/utils";
-import { inputSmClass, btnClass, btnPrimaryClass } from "../../lib/styles";
+import {
+  inputSmClass,
+  btnClass,
+  btnPrimaryClass,
+  focusedRowClass,
+} from "../../lib/styles";
 import { Th, Td } from "../shared/Table";
 import CategorySelect from "../transactions/CategorySelect";
+import { useKeyboardNav } from "../../lib/useKeyboardNav";
+import { useUndoStack } from "../../lib/useUndoStack";
 
 interface GroupDrillDownProps {
   group: UncategorizedGroup;
@@ -51,6 +60,21 @@ export default function GroupDrillDown({
   const [sortField, setSortField] = useState<SortField>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
+  // Hotkey map
+  const [hotkeyMap, setHotkeyMap] = useState<Map<string, string>>(new Map());
+
+  useEffect(() => {
+    listHotkeys()
+      .then((hotkeys: CategoryHotkey[]) => {
+        const map = new Map<string, string>();
+        for (const h of hotkeys) {
+          map.set(h.key, h.category_id);
+        }
+        setHotkeyMap(map);
+      })
+      .catch(console.error);
+  }, []);
+
   function toggleSort(field: SortField) {
     if (sortField === field) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -62,7 +86,7 @@ export default function GroupDrillDown({
 
   function sortIndicator(field: SortField) {
     if (sortField !== field) return "";
-    return sortDir === "asc" ? " ▲" : " ▼";
+    return sortDir === "asc" ? " \u25B2" : " \u25BC";
   }
 
   const fetchTransactions = useCallback(async () => {
@@ -130,6 +154,73 @@ export default function GroupDrillDown({
       setSelectedIds(new Set(filtered.map((tx) => tx.id)));
     }
   }
+
+  const { push: pushUndo } = useUndoStack(fetchTransactions);
+
+  const handleSelectionChange = useCallback(
+    (indices: Set<number>) => {
+      const ids = new Set<string>();
+      for (const idx of indices) {
+        if (idx >= 0 && idx < sortedFiltered.length) {
+          ids.add(sortedFiltered[idx].id);
+        }
+      }
+      setSelectedIds(ids);
+    },
+    [sortedFiltered],
+  );
+
+  const handleHotkeyPress = useCallback(
+    async (key: string, shiftKey: boolean, index: number) => {
+      const hotkeyKey = shiftKey ? key.toUpperCase() : key.toLowerCase();
+      const categoryId = hotkeyMap.get(hotkeyKey);
+      if (!categoryId) return;
+
+      const targetIds =
+        selectedIds.size > 0
+          ? Array.from(selectedIds)
+          : [sortedFiltered[index].id];
+      const targetTxs = transactions.filter((t) => targetIds.includes(t.id));
+
+      pushUndo({
+        transactionIds: targetIds,
+        previousCategoryIds: targetTxs.map((t) => t.category_id),
+        previousCategorizedByRule: targetTxs.map((t) => t.categorized_by_rule),
+        ruleId: null,
+        label: `Categorized ${targetIds.length} transaction(s)`,
+      });
+
+      await updateTransactionsCategory(targetIds, categoryId);
+
+      const remaining = transactions.filter((tx) => !targetIds.includes(tx.id));
+      setTransactions(remaining);
+      setSelectedIds(new Set());
+      window.dispatchEvent(new Event("categorization-changed"));
+      onRefresh();
+
+      if (remaining.length === 0) {
+        onBack();
+      }
+    },
+    [
+      hotkeyMap,
+      selectedIds,
+      sortedFiltered,
+      transactions,
+      pushUndo,
+      onRefresh,
+      onBack,
+    ],
+  );
+
+  const { focusedIndex } = useKeyboardNav({
+    itemCount: sortedFiltered.length,
+    enabled: !categorySelectOpen && !assigning,
+    multiSelect: true,
+    onEscape: onBack,
+    onSelectionChange: handleSelectionChange,
+    onKeyPress: handleHotkeyPress,
+  });
 
   async function handleAssign() {
     if (selectedIds.size === 0 || !selectedCategoryId) return;
@@ -353,14 +444,17 @@ export default function GroupDrillDown({
               </tr>
             </thead>
             <tbody>
-              {sortedFiltered.map((tx) => {
+              {sortedFiltered.map((tx, index) => {
                 const cat = tx.category_id
                   ? categories.find((c) => c.id === tx.category_id)
                   : null;
                 return (
                   <tr
                     key={tx.id}
+                    data-nav-index={index}
                     className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
+                      index === focusedIndex ? focusedRowClass : ""
+                    } ${
                       selectedIds.has(tx.id)
                         ? "bg-blue-50/50 dark:bg-blue-900/20"
                         : ""
