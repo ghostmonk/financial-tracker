@@ -22,11 +22,18 @@ const defaultResponses: MockResponseMap = {
   update_category: ok(factories.categories.single()),
   delete_category: ok(null),
 
+  // Hotkeys
+  list_hotkeys: ok(factories.hotkeys.list()),
+  set_hotkey: ok(factories.hotkeys.single()),
+  remove_hotkey: ok(null),
+
   // Transactions
   list_transactions: ok(factories.transactions.list()),
   update_transaction: ok(factories.transactions.single()),
   update_transactions_category: ok(null),
   delete_transaction: ok(null),
+  list_used_category_ids: ok(factories.transactions.usedCategoryIds()),
+  get_transaction_summary: ok(factories.transactions.summary()),
 
   // Import
   preview_csv_file: ok(factories.csv.preview()),

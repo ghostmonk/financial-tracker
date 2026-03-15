@@ -2,8 +2,10 @@ import type {
   Account,
   Category,
   Transaction,
+  TransactionSummary,
   CategorizationRule,
   Tag,
+  CategoryHotkey,
   UncategorizedGroup,
   CsvPreview,
   ImportPreview,
@@ -461,6 +463,29 @@ const defaultTaxWorkspaceItems: TaxWorkspaceItem[] = [
   },
 ];
 
+const defaultHotkeys: CategoryHotkey[] = [
+  {
+    id: "hk-001",
+    key: "e",
+    category_id: IDS.categories.expenses,
+    created_at: now,
+  },
+  {
+    id: "hk-002",
+    key: "i",
+    category_id: IDS.categories.income,
+    created_at: now,
+  },
+];
+
+const defaultTransactionSummary: TransactionSummary = {
+  total_count: 4,
+  total_debit: -1609.41,
+  total_credit: 3200.0,
+  parent_category_count: 2,
+  child_category_count: 3,
+};
+
 // ---------------------------------------------------------------------------
 // Factory API
 // ---------------------------------------------------------------------------
@@ -487,6 +512,19 @@ export const factories = {
     list: (): Transaction[] => structuredClone(defaultTransactions),
     single: (overrides?: Partial<Transaction>): Transaction =>
       withOverrides(defaultTransactions[0], overrides),
+    summary: (): TransactionSummary =>
+      structuredClone(defaultTransactionSummary),
+    usedCategoryIds: (): string[] => [
+      IDS.categories.groceries,
+      IDS.categories.salary,
+      IDS.categories.rent,
+    ],
+  },
+
+  hotkeys: {
+    list: (): CategoryHotkey[] => structuredClone(defaultHotkeys),
+    single: (overrides?: Partial<CategoryHotkey>): CategoryHotkey =>
+      withOverrides(defaultHotkeys[0], overrides),
   },
 
   rules: {
