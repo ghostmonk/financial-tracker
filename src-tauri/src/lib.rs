@@ -44,6 +44,7 @@ pub fn run() {
             commands::hotkeys::remove_hotkey,
             // Transactions
             commands::transactions::list_transactions,
+            commands::transactions::get_transaction_summary,
             commands::transactions::update_transaction,
             commands::transactions::update_transactions_category,
             commands::transactions::delete_transaction,

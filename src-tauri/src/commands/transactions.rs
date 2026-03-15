@@ -2,12 +2,15 @@ use tauri::State;
 
 use crate::categorize;
 use crate::db_command;
-use crate::models::transaction::{self, Transaction, TransactionFilters, UpdateTransactionParams};
+use crate::models::transaction::{
+    self, Transaction, TransactionFilters, TransactionSummary, UpdateTransactionParams,
+};
 use crate::AppState;
 
 use super::with_db_conn;
 
 db_command!(list_transactions -> Vec<Transaction>, transaction::list_transactions, filters: TransactionFilters => move);
+db_command!(get_transaction_summary -> TransactionSummary, transaction::get_transaction_summary, filters: TransactionFilters => move);
 db_command!(update_transaction -> Transaction, transaction::update_transaction, id: String, params: UpdateTransactionParams => move);
 db_command!(delete_transaction -> (), transaction::delete_transaction, id: String);
 db_command!(list_used_category_ids -> Vec<String>, transaction::list_used_category_ids);

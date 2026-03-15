@@ -156,10 +156,23 @@ pub fn create_transactions_batch(
     Ok(count)
 }
 
-pub fn list_transactions(
-    conn: &Connection,
-    filters: TransactionFilters,
-) -> Result<Vec<Transaction>, DbError> {
+#[derive(Debug, Clone, Serialize)]
+pub struct TransactionSummary {
+    pub total_count: u32,
+    pub total_debit: f64,
+    pub total_credit: f64,
+    pub parent_category_count: u32,
+    pub child_category_count: u32,
+}
+
+struct FilterClause {
+    conditions: Vec<String>,
+    values: Vec<Box<dyn rusqlite::types::ToSql>>,
+    next_param_idx: usize,
+    use_direction_join: bool,
+}
+
+fn build_filter_clause(filters: &TransactionFilters) -> FilterClause {
     let mut conditions = Vec::new();
     let mut values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
     let mut param_idx = 1;
@@ -222,17 +235,39 @@ pub fn list_transactions(
         param_idx += 1;
     }
 
-    let where_clause = if conditions.is_empty() {
+    FilterClause {
+        conditions,
+        values,
+        next_param_idx: param_idx,
+        use_direction_join,
+    }
+}
+
+fn where_clause_str(conditions: &[String]) -> String {
+    if conditions.is_empty() {
         String::new()
     } else {
         format!("WHERE {}", conditions.join(" AND "))
-    };
+    }
+}
 
-    let join_clause = if use_direction_join {
+fn join_clause_str(use_direction_join: bool) -> &'static str {
+    if use_direction_join {
         "INNER JOIN categories c ON t.category_id = c.id"
     } else {
         ""
-    };
+    }
+}
+
+pub fn list_transactions(
+    conn: &Connection,
+    filters: TransactionFilters,
+) -> Result<Vec<Transaction>, DbError> {
+    let fc = build_filter_clause(&filters);
+    let where_clause = where_clause_str(&fc.conditions);
+    let join_clause = join_clause_str(fc.use_direction_join);
+    let mut values = fc.values;
+    let param_idx = fc.next_param_idx;
 
     let limit = filters.limit.unwrap_or(50);
     let offset = filters.offset.unwrap_or(0);
@@ -271,6 +306,71 @@ pub fn list_transactions(
         .query_map(param_refs.as_slice(), row_to_transaction)?
         .collect::<rusqlite::Result<Vec<_>>>()?;
     Ok(transactions)
+}
+
+pub fn get_transaction_summary(
+    conn: &Connection,
+    filters: TransactionFilters,
+) -> Result<TransactionSummary, DbError> {
+    let fc = build_filter_clause(&filters);
+    let where_clause = where_clause_str(&fc.conditions);
+    let join_clause = join_clause_str(fc.use_direction_join);
+
+    // Totals query
+    let totals_sql = format!(
+        "SELECT COUNT(*), \
+         COALESCE(SUM(CASE WHEN t.amount < 0 THEN t.amount ELSE 0 END), 0), \
+         COALESCE(SUM(CASE WHEN t.amount > 0 THEN t.amount ELSE 0 END), 0) \
+         FROM transactions t {} {}",
+        join_clause, where_clause
+    );
+    let param_refs: Vec<&dyn rusqlite::types::ToSql> =
+        fc.values.iter().map(|v| v.as_ref()).collect();
+
+    let (total_count, total_debit, total_credit): (u32, f64, f64) =
+        conn.query_row(&totals_sql, param_refs.as_slice(), |row| {
+            Ok((row.get(0)?, row.get(1)?, row.get(2)?))
+        })?;
+
+    // Child category count (categories with parent_id IS NOT NULL)
+    let child_where = if where_clause.is_empty() {
+        "WHERE t.category_id IS NOT NULL AND t.category_id IN (SELECT id FROM categories WHERE parent_id IS NOT NULL)".to_string()
+    } else {
+        format!(
+            "{} AND t.category_id IS NOT NULL AND t.category_id IN (SELECT id FROM categories WHERE parent_id IS NOT NULL)",
+            where_clause
+        )
+    };
+    let child_sql = format!(
+        "SELECT COUNT(DISTINCT t.category_id) FROM transactions t {} {}",
+        join_clause, child_where
+    );
+    let child_category_count: u32 =
+        conn.query_row(&child_sql, param_refs.as_slice(), |row| row.get(0))?;
+
+    // Parent category count (categories with parent_id IS NULL)
+    let parent_where = if where_clause.is_empty() {
+        "WHERE t.category_id IS NOT NULL AND t.category_id IN (SELECT id FROM categories WHERE parent_id IS NULL)".to_string()
+    } else {
+        format!(
+            "{} AND t.category_id IS NOT NULL AND t.category_id IN (SELECT id FROM categories WHERE parent_id IS NULL)",
+            where_clause
+        )
+    };
+    let parent_sql = format!(
+        "SELECT COUNT(DISTINCT t.category_id) FROM transactions t {} {}",
+        join_clause, parent_where
+    );
+    let parent_category_count: u32 =
+        conn.query_row(&parent_sql, param_refs.as_slice(), |row| row.get(0))?;
+
+    Ok(TransactionSummary {
+        total_count,
+        total_debit,
+        total_credit,
+        parent_category_count,
+        child_category_count,
+    })
 }
 
 pub fn update_transaction(
