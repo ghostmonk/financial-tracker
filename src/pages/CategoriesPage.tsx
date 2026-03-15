@@ -20,6 +20,7 @@ import type {
 import { parseError } from "../lib/utils";
 import { btnClass, btnPrimaryClass, btnDangerClass } from "../lib/styles";
 import { useKeyboardNav } from "../lib/useKeyboardNav";
+import { usePersistedSet } from "../lib/usePersistedSet";
 import Modal from "../components/shared/Modal";
 import CategoryList, {
   flattenCategories,
@@ -48,8 +49,8 @@ export default function CategoriesPage() {
 
   const [hotkeys, setHotkeys] = useState<CategoryHotkey[]>([]);
   const [conflictInfo, setConflictInfo] = useState<ConflictInfo | null>(null);
-  const [collapsedParents, setCollapsedParents] = useState<Set<string>>(
-    new Set(),
+  const [collapsedParents, setCollapsedParents] = usePersistedSet(
+    "categories-collapsed",
   );
 
   const flatCats = useMemo(
@@ -125,37 +126,26 @@ export default function CategoriesPage() {
     (index: number) => {
       const cat = flatCats[index];
       if (!cat || cat.parent_id !== null) return;
-      // Expand: remove from collapsed set
-      setCollapsedParents((prev) => {
-        const next = new Set(prev);
-        next.delete(cat.id);
-        return next;
-      });
+      const next = new Set(collapsedParents);
+      next.delete(cat.id);
+      setCollapsedParents(next);
     },
-    [flatCats],
+    [flatCats, collapsedParents, setCollapsedParents],
   );
 
   const handleArrowLeft = useCallback(
     (index: number) => {
       const cat = flatCats[index];
       if (!cat) return;
+      const next = new Set(collapsedParents);
       if (cat.parent_id !== null) {
-        // On a child: collapse the parent
-        setCollapsedParents((prev) => {
-          const next = new Set(prev);
-          next.add(cat.parent_id!);
-          return next;
-        });
+        next.add(cat.parent_id);
       } else {
-        // On a parent: collapse it
-        setCollapsedParents((prev) => {
-          const next = new Set(prev);
-          next.add(cat.id);
-          return next;
-        });
+        next.add(cat.id);
       }
+      setCollapsedParents(next);
     },
-    [flatCats],
+    [flatCats, collapsedParents, setCollapsedParents],
   );
 
   const { focusedIndex } = useKeyboardNav({

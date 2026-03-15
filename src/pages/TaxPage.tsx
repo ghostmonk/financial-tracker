@@ -14,9 +14,11 @@ import type {
   FiscalYearSettings,
   LineMapping,
 } from "../lib/types";
-import { btnClass } from "../lib/styles";
+import { btnClass, focusedRowClass } from "../lib/styles";
 import { formatAmount } from "../lib/utils";
 import { useCategoryMap } from "../lib/hooks";
+import { useKeyboardNav } from "../lib/useKeyboardNav";
+import { usePersistedSet } from "../lib/usePersistedSet";
 import TaxLineItemForm from "../components/tax/TaxLineItemForm";
 import ReceiptCell from "../components/tax/ReceiptCell";
 import ProrationSettingsModal from "../components/tax/ProrationSettingsModal";
@@ -71,6 +73,7 @@ export default function TaxPage() {
   const [showProration, setShowProration] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [editItem, setEditItem] = useState<TaxWorkspaceItem | null>(null);
+  const [collapsedMonths, , toggleMonth] = usePersistedSet("tax-collapsed-months");
 
   // Load tax rules once
   useEffect(() => {
@@ -128,6 +131,30 @@ export default function TaxPage() {
     // Sort by month key
     return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b));
   }, [filteredItems]);
+
+  // Flat list of visible items for keyboard nav
+  const visibleItems = useMemo(() => {
+    const result: TaxWorkspaceItem[] = [];
+    for (const [ym, monthItems] of groupedByMonth) {
+      if (collapsedMonths.has(ym)) continue;
+      result.push(...monthItems);
+    }
+    return result;
+  }, [groupedByMonth, collapsedMonths]);
+
+  const anyModalOpen = showAddForm || showProration || showInfo;
+
+  const { focusedIndex } = useKeyboardNav({
+    itemCount: visibleItems.length,
+    enabled: !anyModalOpen && !loading,
+    onEnter: (index) => {
+      const item = visibleItems[index];
+      if (item?.source === "tax_line_item") {
+        setEditItem(item);
+        setShowAddForm(true);
+      }
+    },
+  });
 
   // Annual summary computation
   const summaryLines = useMemo(() => {
@@ -320,9 +347,13 @@ export default function TaxPage() {
                     ym={ym}
                     items={monthItems}
                     subtotal={subtotal}
+                    collapsed={collapsedMonths.has(ym)}
+                    onToggleCollapse={() => toggleMonth(ym)}
                     categoryMap={categoryMap}
                     lineMappingBySlug={lineMappingBySlug}
                     fiscalYear={fiscalYear}
+                    visibleItems={visibleItems}
+                    focusedIndex={focusedIndex}
                     onUpdated={handleDataUpdated}
                     onEditItem={(item) => {
                       setEditItem(item);
@@ -479,22 +510,29 @@ function MonthGroup({
   ym,
   items,
   subtotal,
+  collapsed,
+  onToggleCollapse,
   categoryMap,
   lineMappingBySlug,
   fiscalYear,
+  visibleItems,
+  focusedIndex,
   onUpdated,
   onEditItem,
 }: {
   ym: string;
   items: TaxWorkspaceItem[];
   subtotal: number;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
   categoryMap: Map<string, Category>;
   lineMappingBySlug: Map<string, LineMapping>;
   fiscalYear: number;
+  visibleItems: TaxWorkspaceItem[];
+  focusedIndex: number;
   onUpdated: () => void;
   onEditItem: (item: TaxWorkspaceItem) => void;
 }) {
-  const [collapsed, setCollapsed] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingNoteValue, setEditingNoteValue] = useState("");
 
@@ -546,7 +584,7 @@ function MonthGroup({
     <>
       <tr
         className="bg-gray-50 dark:bg-gray-800 cursor-pointer select-none"
-        onClick={() => setCollapsed((prev) => !prev)}
+        onClick={onToggleCollapse}
       >
         <td
           colSpan={6}
@@ -573,11 +611,14 @@ function MonthGroup({
           ? categoryMap.get(item.category_id)
           : null;
         const mapping = cat ? lineMappingBySlug.get(cat.slug) : null;
+        const navIndex = visibleItems.indexOf(item);
+        const isFocused = navIndex === focusedIndex;
 
         return (
           <tr
             key={item.id}
-            className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+            data-nav-index={navIndex >= 0 ? navIndex : undefined}
+            className={`border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 ${isFocused ? focusedRowClass : ""}`}
           >
             <td className="px-3 py-1.5 whitespace-nowrap text-gray-600 dark:text-gray-400">
               {item.date}
