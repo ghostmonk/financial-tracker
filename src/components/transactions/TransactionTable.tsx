@@ -1,10 +1,12 @@
-import { useState } from "react";
-import type { Transaction, Account, Category } from "../../lib/types";
-import { updateTransaction, updateTransactionsCategory } from "../../lib/tauri";
+import { useState, useEffect, useCallback } from "react";
+import type { Transaction, Account, Category, CategoryHotkey } from "../../lib/types";
+import { updateTransaction, updateTransactionsCategory, listHotkeys } from "../../lib/tauri";
 import { formatAmount } from "../../lib/utils";
-import { btnClass } from "../../lib/styles";
+import { btnClass, focusedRowClass } from "../../lib/styles";
 import { Th, Td } from "../shared/Table";
 import CategorySelect from "./CategorySelect";
+import { useKeyboardNav } from "../../lib/useKeyboardNav";
+import { useUndoStack } from "../../lib/useUndoStack";
 
 type SortField = "date" | "description" | "merchant" | "payee" | "amount" | "category" | "account";
 type SortDir = "asc" | "desc";
@@ -41,6 +43,7 @@ export default function TransactionTable({
     null,
   );
   const [bulkCategoryOpen, setBulkCategoryOpen] = useState(false);
+  const [hotkeys, setHotkeys] = useState<CategoryHotkey[]>([]);
 
   const sortField = propSortField ?? localSortField;
   const sortDir = propSortDir ?? localSortDir;
@@ -48,6 +51,14 @@ export default function TransactionTable({
 
   const accountMap = new Map(accounts.map((a) => [a.id, a.name]));
   const categoryMap = new Map(categories.map((c) => [c.id, c]));
+
+  useEffect(() => {
+    listHotkeys().then(setHotkeys).catch(console.error);
+  }, []);
+
+  const hotkeyMap = new Map(hotkeys.map((h) => [h.key, h.category_id]));
+
+  const { push: pushUndo } = useUndoStack(onRefresh);
 
   // When server-side sorting, transactions arrive pre-sorted
   const sorted = serverSorted ? transactions : [...transactions].sort((a, b) => {
@@ -113,10 +124,60 @@ export default function TransactionTable({
     }
   }
 
+  const handleSelectionChange = useCallback(
+    (indices: Set<number>) => {
+      const ids = new Set<string>();
+      for (const idx of indices) {
+        if (idx >= 0 && idx < sorted.length) {
+          ids.add(sorted[idx].id);
+        }
+      }
+      setSelectedIds(ids);
+    },
+    [sorted],
+  );
+
+  const handleHotkeyPress = useCallback(
+    async (key: string, shiftKey: boolean, index: number) => {
+      const hotkeyKey = shiftKey ? key.toUpperCase() : key.toLowerCase();
+      const categoryId = hotkeyMap.get(hotkeyKey);
+      if (!categoryId) return;
+
+      const targetIds =
+        selectedIds.size > 0
+          ? Array.from(selectedIds)
+          : [sorted[index].id];
+      const targetTxs = sorted.filter((t) => targetIds.includes(t.id));
+
+      pushUndo({
+        transactionIds: targetIds,
+        previousCategoryIds: targetTxs.map((t) => t.category_id),
+        previousCategorizedByRule: targetTxs.map((t) => t.categorized_by_rule),
+        ruleId: null,
+        label: `Categorized ${targetIds.length} transaction(s)`,
+      });
+
+      await updateTransactionsCategory(targetIds, categoryId);
+      setSelectedIds(new Set());
+      window.dispatchEvent(new Event("categorization-changed"));
+      onRefresh();
+    },
+    [hotkeyMap, selectedIds, sorted, pushUndo, onRefresh],
+  );
+
+  const { focusedIndex } = useKeyboardNav({
+    itemCount: sorted.length,
+    enabled: !editingCategoryId && !bulkCategoryOpen,
+    multiSelect: true,
+    onSelectionChange: handleSelectionChange,
+    onKeyPress: handleHotkeyPress,
+  });
+
   async function handleCategoryChange(txId: string, categoryId: string | null) {
     setEditingCategoryId(null);
     try {
       await updateTransaction(txId, { category_id: categoryId });
+      window.dispatchEvent(new Event("categorization-changed"));
       onRefresh();
     } catch (err) {
       console.error("Failed to update category:", err);
@@ -130,6 +191,7 @@ export default function TransactionTable({
     try {
       await updateTransactionsCategory(ids, categoryId);
       setSelectedIds(new Set());
+      window.dispatchEvent(new Event("categorization-changed"));
       onRefresh();
     } catch (err) {
       console.error("Failed to bulk update categories:", err);
@@ -228,7 +290,7 @@ export default function TransactionTable({
             </tr>
           </thead>
           <tbody>
-            {sorted.map((tx) => {
+            {sorted.map((tx, index) => {
               const cat = tx.category_id
                 ? categoryMap.get(tx.category_id)
                 : null;
@@ -236,7 +298,10 @@ export default function TransactionTable({
                 <tr
                   key={tx.id}
                   data-testid={`txn-row-${tx.id}`}
+                  data-nav-index={index}
                   className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
+                    index === focusedIndex ? focusedRowClass : ""
+                  } ${
                     selectedIds.has(tx.id)
                       ? "bg-blue-50/50 dark:bg-blue-900/20"
                       : ""
