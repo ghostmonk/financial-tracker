@@ -348,18 +348,21 @@ pub fn get_transaction_summary(
     let child_category_count: u32 =
         conn.query_row(&child_sql, param_refs.as_slice(), |row| row.get(0))?;
 
-    // Parent category count (categories with parent_id IS NULL)
+    // Parent category count: distinct parent categories that any assigned category belongs to
+    // A transaction assigned to a child category counts its parent; one assigned directly to a parent counts that parent
+    let parent_extra = "t.category_id IS NOT NULL";
     let parent_where = if where_clause.is_empty() {
-        "WHERE t.category_id IS NOT NULL AND t.category_id IN (SELECT id FROM categories WHERE parent_id IS NULL)".to_string()
+        format!("WHERE {}", parent_extra)
     } else {
-        format!(
-            "{} AND t.category_id IS NOT NULL AND t.category_id IN (SELECT id FROM categories WHERE parent_id IS NULL)",
-            where_clause
-        )
+        format!("{} AND {}", where_clause, parent_extra)
     };
     let parent_sql = format!(
-        "SELECT COUNT(DISTINCT t.category_id) FROM transactions t {} {}",
-        join_clause, parent_where
+        "SELECT COUNT(DISTINCT COALESCE(cat.parent_id, cat.id)) \
+         FROM transactions t {} \
+         INNER JOIN categories cat ON t.category_id = cat.id \
+         {}",
+        if fc.use_direction_join { join_clause } else { "" },
+        parent_where
     );
     let parent_category_count: u32 =
         conn.query_row(&parent_sql, param_refs.as_slice(), |row| row.get(0))?;
