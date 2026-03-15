@@ -141,12 +141,16 @@ export default function CategoryList({
                 {cat.slug}
               </span>
             </div>
-            {hotkey && (
-              <span className="inline-flex items-center justify-center w-6 h-6 text-xs font-mono font-bold bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded border border-blue-300 dark:border-blue-700">
-                {hotkey}
-              </span>
-            )}
           </div>
+        </Td>
+        <Td align="center" className="w-12">
+          {hotkey ? (
+            <span className="inline-flex items-center justify-center w-6 h-6 text-xs font-mono font-bold bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded border border-blue-300 dark:border-blue-700">
+              {hotkey}
+            </span>
+          ) : !indent ? (
+            <span className="text-gray-300 dark:text-gray-600 text-xs">&mdash;</span>
+          ) : null}
         </Td>
         <Td align="right">
           <button
@@ -185,6 +189,7 @@ export default function CategoryList({
                 <thead>
                   <tr>
                     <Th>Name</Th>
+                    <Th align="center" className="w-12">Hotkey</Th>
                     <Th align="right">Actions</Th>
                   </tr>
                 </thead>
