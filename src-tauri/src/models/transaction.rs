@@ -171,9 +171,13 @@ pub fn list_transactions(
         param_idx += 1;
     }
     if let Some(ref category_id) = filters.category_id {
-        conditions.push(format!("t.category_id = ?{}", param_idx));
+        conditions.push(format!(
+            "(t.category_id = ?{} OR t.category_id IN (SELECT id FROM categories WHERE parent_id = ?{}))",
+            param_idx, param_idx + 1
+        ));
         values.push(Box::new(category_id.clone()));
-        param_idx += 1;
+        values.push(Box::new(category_id.clone()));
+        param_idx += 2;
     }
     if let Some(ref direction) = filters.direction {
         use_direction_join = true;
@@ -385,4 +389,55 @@ pub fn check_duplicates_by_hash(
         .query_map(param_refs.as_slice(), |row| row.get::<_, String>(0))?
         .collect::<rusqlite::Result<Vec<_>>>()?;
     Ok(existing)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_utils::fixtures::{insert_test_account, setup_db};
+
+    fn insert_category(conn: &Connection, id: &str, name: &str, parent_id: Option<&str>) {
+        conn.execute(
+            "INSERT INTO categories (id, slug, name, parent_id, direction, sort_order) \
+             VALUES (?1, ?2, ?3, ?4, 'income', 0)",
+            params![id, name, name, parent_id],
+        )
+        .unwrap();
+    }
+
+    fn insert_tx(conn: &Connection, id: &str, category_id: &str) {
+        insert_test_account(conn, "acct-1");
+        conn.execute(
+            "INSERT INTO transactions (id, date, amount, description, account_id, category_id) \
+             VALUES (?1, '2025-01-15', 100.0, 'Test tx', 'acct-1', ?2)",
+            params![id, category_id],
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn test_category_filter_includes_children() {
+        let conn = setup_db();
+
+        insert_category(&conn, "parent-1", "Income", None);
+        insert_category(&conn, "child-1", "Salary", Some("parent-1"));
+        insert_category(&conn, "child-2", "Bonus", Some("parent-1"));
+
+        insert_tx(&conn, "tx-parent", "parent-1");
+        insert_tx(&conn, "tx-child1", "child-1");
+        insert_tx(&conn, "tx-child2", "child-2");
+
+        let filters = TransactionFilters {
+            category_id: Some("parent-1".to_string()),
+            limit: Some(100),
+            ..Default::default()
+        };
+
+        let results = list_transactions(&conn, filters).unwrap();
+        assert_eq!(results.len(), 3, "Should return parent + both children");
+
+        let mut ids: Vec<&str> = results.iter().map(|t| t.id.as_str()).collect();
+        ids.sort();
+        assert_eq!(ids, vec!["tx-child1", "tx-child2", "tx-parent"]);
+    }
 }
