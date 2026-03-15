@@ -256,6 +256,7 @@ export default function GroupDrillDown({
           match_field: "description",
           match_type: matchType,
           category_id: selectedCategoryId,
+          account_id: accountId || null,
           auto_apply: true,
           amount_min: ruleAmountMin ? parseFloat(ruleAmountMin) : null,
           amount_max: ruleAmountMax ? parseFloat(ruleAmountMax) : null,

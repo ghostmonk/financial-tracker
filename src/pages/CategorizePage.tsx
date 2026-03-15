@@ -158,6 +158,7 @@ export default function CategorizePage() {
           match_field: "description",
           match_type: "contains",
           category_id: selectedCategoryId,
+          account_id: selectedAccountId || null,
           auto_apply: true,
         });
         await reapplyAllRules();
@@ -259,6 +260,7 @@ export default function CategorizePage() {
         <GroupCategorizeDialog
           group={categorizingGroup}
           categories={categories}
+          accountId={selectedAccountId || undefined}
           onConfirm={handleConfirm}
           onCancel={() => setCategorizingGroup(null)}
         />

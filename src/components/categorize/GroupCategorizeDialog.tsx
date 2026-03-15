@@ -12,6 +12,7 @@ import CategorySelect from "../transactions/CategorySelect";
 interface GroupCategorizeDialogProps {
   group: UncategorizedGroup;
   categories: Category[];
+  accountId?: string;
   onConfirm: (params: CreateRuleParams) => void;
   onCancel: () => void;
 }
@@ -19,6 +20,7 @@ interface GroupCategorizeDialogProps {
 export default function GroupCategorizeDialog({
   group,
   categories,
+  accountId,
   onConfirm,
   onCancel,
 }: GroupCategorizeDialogProps) {
@@ -33,6 +35,7 @@ export default function GroupCategorizeDialog({
       match_field: "description",
       match_type: matchType,
       category_id: categoryId,
+      account_id: accountId || null,
       auto_apply: true,
     });
   }
