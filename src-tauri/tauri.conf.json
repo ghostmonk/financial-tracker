@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "financial-tracker",
+  "productName": "Financial Tracker",
   "version": "0.1.0",
   "identifier": "com.ghostmonk.financial-tracker",
   "build": {
@@ -12,13 +12,13 @@
   "app": {
     "windows": [
       {
-        "title": "financial-tracker",
-        "width": 800,
-        "height": 600
+        "title": "Financial Tracker",
+        "width": 1200,
+        "height": 800
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' asset: https://asset.localhost; font-src 'self'"
     }
   },
   "bundle": {
@@ -30,6 +30,18 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "category": "Finance",
+    "shortDescription": "Personal financial tracker with tax workspace",
+    "longDescription": "Import bank transactions from OFX/QFX/CSV files, categorize with auto-rules, and track business expenses against T2125/TP-80 tax line items with GST/QST ITC/ITR computation.",
+    "copyright": "Copyright (c) 2026 ghostmonk",
+    "macOS": {
+      "minimumSystemVersion": "10.15"
+    },
+    "windows": {
+      "wix": {
+        "language": "en-US"
+      }
+    }
   }
 }

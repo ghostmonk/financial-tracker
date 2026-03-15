@@ -12,6 +12,19 @@ dist
 dist-ssr
 *.local
 
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Claude Code
+.claude/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

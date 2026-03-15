@@ -71,11 +71,7 @@ Same steps. Tauri supports all three platforms. Icons are included for Windows (
 
 ## Configuration
 
-No external configuration files or environment variables are required. The app stores its encrypted database in the OS-specific app data directory:
-
-- macOS: `~/Library/Application Support/com.ghostmonk.financial-tracker/`
-- Linux: `~/.local/share/com.ghostmonk.financial-tracker/`
-- Windows: `%APPDATA%/com.ghostmonk.financial-tracker/`
+No external configuration files or environment variables are required. The app stores its encrypted database in the OS app data directory (e.g. `~/Library/Application Support/` on macOS, `%APPDATA%` on Windows).
 
 Tax rules (GST/QST rates, T2125/TP-80 line mappings, proration types) are bundled in `src-tauri/src/tax-rules.json`. Currently hardcoded for the CA-QC jurisdiction. Edit this file and rebuild to change tax configuration.
 
