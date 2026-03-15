@@ -38,6 +38,10 @@ pub fn run() {
             commands::categories::create_category,
             commands::categories::update_category,
             commands::categories::delete_category,
+            // Hotkeys
+            commands::hotkeys::list_hotkeys,
+            commands::hotkeys::set_hotkey,
+            commands::hotkeys::remove_hotkey,
             // Transactions
             commands::transactions::list_transactions,
             commands::transactions::update_transaction,
