@@ -126,3 +126,12 @@ CREATE TABLE IF NOT EXISTS fiscal_year_settings (
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS category_hotkeys (
+    id TEXT PRIMARY KEY,
+    key TEXT NOT NULL UNIQUE,
+    category_id TEXT NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_category_hotkeys_category ON category_hotkeys(category_id);
