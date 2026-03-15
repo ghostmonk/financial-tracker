@@ -89,6 +89,9 @@ export default function CategoriesPage() {
         return;
       }
 
+      // Only allow hotkey assignment on parent categories
+      if (cat.parent_id !== null) return;
+
       const hotkeyKey = shiftKey ? key.toUpperCase() : key.toLowerCase();
 
       const existing = hotkeyByKey.get(hotkeyKey);

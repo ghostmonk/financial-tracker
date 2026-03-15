@@ -23,6 +23,7 @@ import UncategorizedGroupList from "../components/categorize/UncategorizedGroupL
 import type { GroupSortField, GroupSortDir } from "../components/categorize/UncategorizedGroupList";
 import GroupCategorizeDialog from "../components/categorize/GroupCategorizeDialog";
 import GroupDrillDown from "../components/categorize/GroupDrillDown";
+import CategoryPickerModal from "../components/shared/CategoryPickerModal";
 
 export default function CategorizePage() {
   const [groups, setGroups] = useState<UncategorizedGroup[]>([]);
@@ -35,6 +36,11 @@ export default function CategorizePage() {
   const [drillDownGroup, setDrillDownGroup] =
     useState<UncategorizedGroup | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Picker modal state
+  const [pickerGroup, setPickerGroup] = useState<UncategorizedGroup | null>(null);
+  const [pickerParentCategory, setPickerParentCategory] = useState<Category | null>(null);
+  const [pickerChildCategories, setPickerChildCategories] = useState<Category[]>([]);
 
   // Lifted sort state
   const [sortField, setSortField] = useState<GroupSortField>("count");
@@ -111,17 +117,36 @@ export default function CategorizePage() {
   const { push: pushUndo } = useUndoStack(fetchGroups);
 
   const handleHotkeyPress = useCallback(
-    async (key: string, shiftKey: boolean, index: number) => {
+    (key: string, shiftKey: boolean, index: number) => {
       const hotkeyKey = shiftKey ? key.toUpperCase() : key.toLowerCase();
       const categoryId = hotkeyMap.get(hotkeyKey);
       if (!categoryId) return;
 
+      const parentCat = categories.find((c) => c.id === categoryId);
+      if (!parentCat) return;
+
+      const children = categories.filter((c) => c.parent_id === categoryId);
       const group = sortedGroups[index];
       if (!group) return;
 
+      setPickerGroup(group);
+      setPickerParentCategory(parentCat);
+      setPickerChildCategories(children);
+    },
+    [hotkeyMap, sortedGroups, categories],
+  );
+
+  const handlePickerSelect = useCallback(
+    async (selectedCategoryId: string) => {
+      if (!pickerGroup) return;
+
+      setPickerGroup(null);
+      setPickerParentCategory(null);
+      setPickerChildCategories([]);
+
       try {
         const txs = await getGroupTransactions(
-          group.normalized_name,
+          pickerGroup.normalized_name,
           selectedAccountId || undefined,
         );
         const txIds = txs.map((t) => t.id);
@@ -129,10 +154,10 @@ export default function CategorizePage() {
         const prevByRule = txs.map((t) => t.categorized_by_rule);
 
         const rule = await createCategorizationRule({
-          pattern: group.normalized_name,
+          pattern: pickerGroup.normalized_name,
           match_field: "description",
           match_type: "contains",
-          category_id: categoryId,
+          category_id: selectedCategoryId,
           auto_apply: true,
         });
         await reapplyAllRules();
@@ -142,7 +167,7 @@ export default function CategorizePage() {
           previousCategoryIds: prevCategoryIds,
           previousCategorizedByRule: prevByRule,
           ruleId: rule.id,
-          label: `Categorized "${group.normalized_name}"`,
+          label: `Categorized "${pickerGroup.normalized_name}"`,
         });
 
         window.dispatchEvent(new Event("categorization-changed"));
@@ -151,12 +176,12 @@ export default function CategorizePage() {
         console.error("Hotkey categorization failed:", err);
       }
     },
-    [hotkeyMap, sortedGroups, selectedAccountId, pushUndo, fetchGroups],
+    [pickerGroup, selectedAccountId, pushUndo, fetchGroups],
   );
 
   const { focusedIndex } = useKeyboardNav({
     itemCount: sortedGroups.length,
-    enabled: !categorizingGroup && !drillDownGroup && !loading,
+    enabled: !categorizingGroup && !drillDownGroup && !pickerGroup && !loading,
     onEnter: (index: number) => setCategorizingGroup(sortedGroups[index]),
     onRight: (index: number) => setDrillDownGroup(sortedGroups[index]),
     onKeyPress: handleHotkeyPress,
@@ -238,6 +263,18 @@ export default function CategorizePage() {
           onCancel={() => setCategorizingGroup(null)}
         />
       )}
+
+      <CategoryPickerModal
+        open={!!pickerGroup}
+        parentCategory={pickerParentCategory}
+        childCategories={pickerChildCategories}
+        onSelect={handlePickerSelect}
+        onClose={() => {
+          setPickerGroup(null);
+          setPickerParentCategory(null);
+          setPickerChildCategories([]);
+        }}
+      />
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { Th, Td } from "../shared/Table";
 import CategorySelect from "./CategorySelect";
 import { useKeyboardNav } from "../../lib/useKeyboardNav";
 import { useUndoStack } from "../../lib/useUndoStack";
+import CategoryPickerModal from "../shared/CategoryPickerModal";
 
 type SortField = "date" | "description" | "merchant" | "payee" | "amount" | "category" | "account";
 type SortDir = "asc" | "desc";
@@ -44,6 +45,11 @@ export default function TransactionTable({
   );
   const [bulkCategoryOpen, setBulkCategoryOpen] = useState(false);
   const [hotkeys, setHotkeys] = useState<CategoryHotkey[]>([]);
+
+  // Picker modal state
+  const [pickerParentCategory, setPickerParentCategory] = useState<Category | null>(null);
+  const [pickerChildCategories, setPickerChildCategories] = useState<Category[]>([]);
+  const [pickerTargetIds, setPickerTargetIds] = useState<string[]>([]);
 
   const sortField = propSortField ?? localSortField;
   const sortDir = propSortDir ?? localSortDir;
@@ -138,15 +144,36 @@ export default function TransactionTable({
   );
 
   const handleHotkeyPress = useCallback(
-    async (key: string, shiftKey: boolean, index: number) => {
+    (key: string, shiftKey: boolean, index: number) => {
       const hotkeyKey = shiftKey ? key.toUpperCase() : key.toLowerCase();
       const categoryId = hotkeyMap.get(hotkeyKey);
       if (!categoryId) return;
 
+      const parentCat = categories.find((c) => c.id === categoryId);
+      if (!parentCat) return;
+
+      const children = categories.filter((c) => c.parent_id === categoryId);
       const targetIds =
         selectedIds.size > 0
           ? Array.from(selectedIds)
           : [sorted[index].id];
+
+      setPickerTargetIds(targetIds);
+      setPickerParentCategory(parentCat);
+      setPickerChildCategories(children);
+    },
+    [hotkeyMap, categories, selectedIds, sorted],
+  );
+
+  const handlePickerSelect = useCallback(
+    async (selectedCategoryId: string) => {
+      const targetIds = pickerTargetIds;
+      setPickerParentCategory(null);
+      setPickerChildCategories([]);
+      setPickerTargetIds([]);
+
+      if (targetIds.length === 0) return;
+
       const targetTxs = sorted.filter((t) => targetIds.includes(t.id));
 
       pushUndo({
@@ -157,17 +184,17 @@ export default function TransactionTable({
         label: `Categorized ${targetIds.length} transaction(s)`,
       });
 
-      await updateTransactionsCategory(targetIds, categoryId);
+      await updateTransactionsCategory(targetIds, selectedCategoryId);
       setSelectedIds(new Set());
       window.dispatchEvent(new Event("categorization-changed"));
       onRefresh();
     },
-    [hotkeyMap, selectedIds, sorted, pushUndo, onRefresh],
+    [pickerTargetIds, sorted, pushUndo, onRefresh],
   );
 
   const { focusedIndex } = useKeyboardNav({
     itemCount: sorted.length,
-    enabled: !editingCategoryId && !bulkCategoryOpen,
+    enabled: !editingCategoryId && !bulkCategoryOpen && !pickerParentCategory,
     multiSelect: true,
     onSelectionChange: handleSelectionChange,
     onKeyPress: handleHotkeyPress,
@@ -397,6 +424,18 @@ export default function TransactionTable({
           </button>
         </div>
       )}
+
+      <CategoryPickerModal
+        open={!!pickerParentCategory}
+        parentCategory={pickerParentCategory}
+        childCategories={pickerChildCategories}
+        onSelect={handlePickerSelect}
+        onClose={() => {
+          setPickerParentCategory(null);
+          setPickerChildCategories([]);
+          setPickerTargetIds([]);
+        }}
+      />
     </div>
   );
 }

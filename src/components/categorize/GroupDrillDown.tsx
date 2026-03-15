@@ -22,6 +22,7 @@ import { Th, Td } from "../shared/Table";
 import CategorySelect from "../transactions/CategorySelect";
 import { useKeyboardNav } from "../../lib/useKeyboardNav";
 import { useUndoStack } from "../../lib/useUndoStack";
+import CategoryPickerModal from "../shared/CategoryPickerModal";
 
 interface GroupDrillDownProps {
   group: UncategorizedGroup;
@@ -62,6 +63,11 @@ export default function GroupDrillDown({
 
   // Hotkey map
   const [hotkeyMap, setHotkeyMap] = useState<Map<string, string>>(new Map());
+
+  // Picker modal state
+  const [pickerParentCategory, setPickerParentCategory] = useState<Category | null>(null);
+  const [pickerChildCategories, setPickerChildCategories] = useState<Category[]>([]);
+  const [pickerTargetIds, setPickerTargetIds] = useState<string[]>([]);
 
   useEffect(() => {
     listHotkeys()
@@ -171,15 +177,36 @@ export default function GroupDrillDown({
   );
 
   const handleHotkeyPress = useCallback(
-    async (key: string, shiftKey: boolean, index: number) => {
+    (key: string, shiftKey: boolean, index: number) => {
       const hotkeyKey = shiftKey ? key.toUpperCase() : key.toLowerCase();
       const categoryId = hotkeyMap.get(hotkeyKey);
       if (!categoryId) return;
 
+      const parentCat = categories.find((c) => c.id === categoryId);
+      if (!parentCat) return;
+
+      const children = categories.filter((c) => c.parent_id === categoryId);
       const targetIds =
         selectedIds.size > 0
           ? Array.from(selectedIds)
           : [sortedFiltered[index].id];
+
+      setPickerTargetIds(targetIds);
+      setPickerParentCategory(parentCat);
+      setPickerChildCategories(children);
+    },
+    [hotkeyMap, categories, selectedIds, sortedFiltered],
+  );
+
+  const handlePickerSelect = useCallback(
+    async (selectedCategoryId: string) => {
+      const targetIds = pickerTargetIds;
+      setPickerParentCategory(null);
+      setPickerChildCategories([]);
+      setPickerTargetIds([]);
+
+      if (targetIds.length === 0) return;
+
       const targetTxs = transactions.filter((t) => targetIds.includes(t.id));
 
       pushUndo({
@@ -190,7 +217,7 @@ export default function GroupDrillDown({
         label: `Categorized ${targetIds.length} transaction(s)`,
       });
 
-      await updateTransactionsCategory(targetIds, categoryId);
+      await updateTransactionsCategory(targetIds, selectedCategoryId);
 
       const remaining = transactions.filter((tx) => !targetIds.includes(tx.id));
       setTransactions(remaining);
@@ -202,20 +229,12 @@ export default function GroupDrillDown({
         onBack();
       }
     },
-    [
-      hotkeyMap,
-      selectedIds,
-      sortedFiltered,
-      transactions,
-      pushUndo,
-      onRefresh,
-      onBack,
-    ],
+    [pickerTargetIds, transactions, pushUndo, onRefresh, onBack],
   );
 
   const { focusedIndex } = useKeyboardNav({
     itemCount: sortedFiltered.length,
-    enabled: !categorySelectOpen && !assigning,
+    enabled: !categorySelectOpen && !assigning && !pickerParentCategory,
     multiSelect: true,
     onEscape: onBack,
     onSelectionChange: handleSelectionChange,
@@ -498,6 +517,18 @@ export default function GroupDrillDown({
           </table>
         </div>
       )}
+
+      <CategoryPickerModal
+        open={!!pickerParentCategory}
+        parentCategory={pickerParentCategory}
+        childCategories={pickerChildCategories}
+        onSelect={handlePickerSelect}
+        onClose={() => {
+          setPickerParentCategory(null);
+          setPickerChildCategories([]);
+          setPickerTargetIds([]);
+        }}
+      />
     </div>
   );
 }
