@@ -68,9 +68,9 @@ export default function UncategorizedGroupList({
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-gray-200 dark:border-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-            <th className="px-4 py-3 cursor-pointer select-none" onClick={() => toggleSort("name")}>Description{sortIndicator("name")}</th>
-            <th className="px-4 py-3 text-right cursor-pointer select-none" onClick={() => toggleSort("count")}>Count{sortIndicator("count")}</th>
-            <th className="px-4 py-3 text-right cursor-pointer select-none" onClick={() => toggleSort("total")}>Total{sortIndicator("total")}</th>
+            <th data-testid="group-sort-name" className="px-4 py-3 cursor-pointer select-none" onClick={() => toggleSort("name")}>Description{sortIndicator("name")}</th>
+            <th data-testid="group-sort-count" className="px-4 py-3 text-right cursor-pointer select-none" onClick={() => toggleSort("count")}>Count{sortIndicator("count")}</th>
+            <th data-testid="group-sort-total" className="px-4 py-3 text-right cursor-pointer select-none" onClick={() => toggleSort("total")}>Total{sortIndicator("total")}</th>
             <th className="px-4 py-3">Accounts</th>
             <th className="px-4 py-3" />
           </tr>
@@ -79,10 +79,12 @@ export default function UncategorizedGroupList({
           {sortedGroups.map((group) => (
             <tr
               key={group.normalized_name}
+              data-testid={`group-row-${group.normalized_name.replace(/\s+/g, '-')}`}
               className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
             >
               <td className="px-4 py-3">
                 <button
+                  data-testid={`group-drilldown-${group.normalized_name.replace(/\s+/g, '-')}`}
                   onClick={() => onDrillDown(group)}
                   className="text-left font-medium text-blue-600 dark:text-blue-400 hover:underline"
                 >
@@ -114,6 +116,7 @@ export default function UncategorizedGroupList({
               </td>
               <td className="px-4 py-3 text-right">
                 <button
+                  data-testid={`group-categorize-${group.normalized_name.replace(/\s+/g, '-')}`}
                   onClick={() => onCategorize(group)}
                   className="px-3 py-1 text-xs bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors"
                 >

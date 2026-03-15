@@ -42,7 +42,7 @@ export default function TaxInfoPanel({
         className="absolute inset-0 bg-black/30"
         onClick={onClose}
       />
-      <div className="relative w-full max-w-lg bg-white dark:bg-gray-800 shadow-xl overflow-y-auto">
+      <div data-testid="tax-info-panel" className="relative w-full max-w-lg bg-white dark:bg-gray-800 shadow-xl overflow-y-auto">
         <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Tax Reference</h2>
           <button

@@ -132,7 +132,7 @@ export default function ImportPage() {
         Import transactions from OFX, QFX, or CSV files.
       </p>
 
-      <div className="flex gap-2 mb-8">
+      <div data-testid="import-step-indicator" className="flex gap-2 mb-8">
         {stepOrder.map((s, i) => {
           if (s === "csv-mapping" && fileType !== "csv" && step !== "csv-mapping") {
             return null;
@@ -159,7 +159,7 @@ export default function ImportPage() {
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+        <div data-testid="import-error" className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
           <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
         </div>
       )}

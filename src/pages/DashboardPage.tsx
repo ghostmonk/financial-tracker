@@ -77,15 +77,17 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <button
+          data-testid="dashboard-prev-month"
           onClick={prevMonth}
           className={btnClass}
         >
           &larr;
         </button>
-        <h1 className="text-2xl font-semibold min-w-[14rem] text-center">
+        <h1 data-testid="dashboard-month-label" className="text-2xl font-semibold min-w-[14rem] text-center">
           {formatMonthLabel(year, month)}
         </h1>
         <button
+          data-testid="dashboard-next-month"
           onClick={nextMonth}
           disabled={atCurrentMonth}
           className={`${btnClass} disabled:opacity-30 disabled:cursor-not-allowed`}
@@ -93,7 +95,7 @@ export default function DashboardPage() {
           &rarr;
         </button>
         {loading && (
-          <span className="text-sm text-gray-500 dark:text-gray-400">
+          <span data-testid="dashboard-loading" className="text-sm text-gray-500 dark:text-gray-400">
             Loading...
           </span>
         )}

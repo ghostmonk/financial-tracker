@@ -159,7 +159,7 @@ export default function TransactionTable({
   return (
     <div>
       {selectedIds.size > 0 && (
-        <div className="flex items-center gap-3 p-2 mb-2 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md text-sm">
+        <div data-testid="txn-bulk-bar" className="flex items-center gap-3 p-2 mb-2 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md text-sm">
           <span className="font-medium">
             {selectedIds.size} selected
           </span>
@@ -195,6 +195,7 @@ export default function TransactionTable({
             <tr>
               <Th className="w-8">
                 <input
+                  data-testid="txn-select-all"
                   type="checkbox"
                   checked={
                     sorted.length > 0 && selectedIds.size === sorted.length
@@ -203,25 +204,25 @@ export default function TransactionTable({
                   className="rounded border-gray-300 dark:border-gray-600"
                 />
               </Th>
-              <Th className="cursor-pointer select-none" onClick={() => toggleSort("date")}>
+              <Th data-testid="txn-sort-date" className="cursor-pointer select-none" onClick={() => toggleSort("date")}>
                 Date{sortIndicator("date")}
               </Th>
-              <Th className="cursor-pointer select-none" onClick={() => toggleSort("description")}>
+              <Th data-testid="txn-sort-description" className="cursor-pointer select-none" onClick={() => toggleSort("description")}>
                 Description{sortIndicator("description")}
               </Th>
-              <Th className="cursor-pointer select-none" onClick={() => toggleSort("merchant")}>
+              <Th data-testid="txn-sort-merchant" className="cursor-pointer select-none" onClick={() => toggleSort("merchant")}>
                 Merchant{sortIndicator("merchant")}
               </Th>
-              <Th className="cursor-pointer select-none" onClick={() => toggleSort("payee")}>
+              <Th data-testid="txn-sort-payee" className="cursor-pointer select-none" onClick={() => toggleSort("payee")}>
                 Payee{sortIndicator("payee")}
               </Th>
-              <Th align="right" className="cursor-pointer select-none" onClick={() => toggleSort("amount")}>
+              <Th data-testid="txn-sort-amount" align="right" className="cursor-pointer select-none" onClick={() => toggleSort("amount")}>
                 Amount{sortIndicator("amount")}
               </Th>
-              <Th className="cursor-pointer select-none" onClick={() => toggleSort("category")}>
+              <Th data-testid="txn-sort-category" className="cursor-pointer select-none" onClick={() => toggleSort("category")}>
                 Category{sortIndicator("category")}
               </Th>
-              <Th className="cursor-pointer select-none" onClick={() => toggleSort("account")}>
+              <Th data-testid="txn-sort-account" className="cursor-pointer select-none" onClick={() => toggleSort("account")}>
                 Account{sortIndicator("account")}
               </Th>
             </tr>
@@ -234,6 +235,7 @@ export default function TransactionTable({
               return (
                 <tr
                   key={tx.id}
+                  data-testid={`txn-row-${tx.id}`}
                   className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
                     selectedIds.has(tx.id)
                       ? "bg-blue-50/50 dark:bg-blue-900/20"
@@ -242,6 +244,7 @@ export default function TransactionTable({
                 >
                   <Td>
                     <input
+                      data-testid={`txn-select-${tx.id}`}
                       type="checkbox"
                       checked={selectedIds.has(tx.id)}
                       onChange={() => toggleSelect(tx.id)}
@@ -320,11 +323,12 @@ export default function TransactionTable({
       {hasMore && (
         <div className="mt-3 text-center">
           <button
+            data-testid="transactions-load-more"
             onClick={onLoadMore}
             disabled={loading}
             className={btnClass}
           >
-            {loading ? "Loading..." : "Load more"}
+            {loading ? <span data-testid="transactions-loading">Loading...</span> : "Load more"}
           </button>
         </div>
       )}

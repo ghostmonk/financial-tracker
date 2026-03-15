@@ -10,11 +10,12 @@ interface CardProps {
   label: string;
   value: number;
   colorClass: string;
+  "data-testid"?: string;
 }
 
-function SummaryCard({ label, value, colorClass }: CardProps) {
+function SummaryCard({ label, value, colorClass, "data-testid": testId }: CardProps) {
   return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+    <div data-testid={testId} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
       <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
         {label}
       </p>
@@ -74,16 +75,19 @@ export default function MonthlySummary({
   return (
     <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
       <SummaryCard
+        data-testid="summary-income"
         label="Income"
         value={income}
         colorClass="text-green-600 dark:text-green-400"
       />
       <SummaryCard
+        data-testid="summary-expenses"
         label="Expenses"
         value={expenses}
         colorClass="text-red-600 dark:text-red-400"
       />
       <SummaryCard
+        data-testid="summary-net"
         label="Net"
         value={net}
         colorClass={

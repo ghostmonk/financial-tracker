@@ -86,6 +86,7 @@ export default function AccountsPage() {
           </p>
         </div>
         <button
+          data-testid="accounts-add-btn"
           onClick={() => {
             setEditingAccount(null);
             setShowForm(true);
@@ -98,11 +99,11 @@ export default function AccountsPage() {
       </div>
 
       {error && (
-        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+        <p data-testid="accounts-error" className="text-sm text-red-600 dark:text-red-400">{error}</p>
       )}
 
       {loading ? (
-        <p className="text-gray-500 dark:text-gray-400 text-sm">Loading...</p>
+        <p data-testid="accounts-loading" className="text-gray-500 dark:text-gray-400 text-sm">Loading...</p>
       ) : (
         <AccountList
           accounts={accounts}

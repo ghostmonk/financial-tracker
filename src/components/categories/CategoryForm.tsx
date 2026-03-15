@@ -80,6 +80,7 @@ export default function CategoryForm({
       <form onSubmit={handleSubmit} className="space-y-4">
         <FormField label="Name">
           <input
+            data-testid="category-form-name"
             type="text"
             value={name}
             onChange={(e) => handleNameChange(e.target.value)}
@@ -91,6 +92,7 @@ export default function CategoryForm({
 
         <FormField label="Slug" hint="Auto-generated from name. Edit to customize.">
           <input
+            data-testid="category-form-slug"
             type="text"
             value={slug}
             onChange={(e) => {
@@ -104,6 +106,7 @@ export default function CategoryForm({
 
         <FormField label="Direction">
           <select
+            data-testid="category-form-direction"
             value={direction}
             onChange={(e) => {
               setDirection(e.target.value as Category["direction"]);
@@ -120,6 +123,7 @@ export default function CategoryForm({
 
         <FormField label="Parent Category">
           <select
+            data-testid="category-form-parent"
             value={parentId ?? ""}
             onChange={(e) => setParentId(e.target.value || null)}
             className={inputClass}
@@ -151,6 +155,7 @@ export default function CategoryForm({
             Cancel
           </button>
           <button
+            data-testid="category-form-submit"
             type="submit"
             className={btnPrimaryClass}
           >

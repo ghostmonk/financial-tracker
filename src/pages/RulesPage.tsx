@@ -167,12 +167,14 @@ export default function RulesPage() {
         </div>
         <div className="flex gap-2">
           <button
+            data-testid="rules-reapply-btn"
             onClick={handleReapply}
             className={btnClass}
           >
             Re-apply All Rules
           </button>
           <button
+            data-testid="rules-add-btn"
             onClick={() => {
               setEditingRule(null);
               setShowForm(true);
@@ -186,7 +188,7 @@ export default function RulesPage() {
       </div>
 
       {banner && (
-        <p className="text-sm text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-4 py-2 rounded-md">
+        <p data-testid="rules-reapply-success" className="text-sm text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-4 py-2 rounded-md">
           {banner}
         </p>
       )}
@@ -196,9 +198,9 @@ export default function RulesPage() {
       )}
 
       {loading ? (
-        <p className="text-gray-500 dark:text-gray-400 text-sm">Loading...</p>
+        <p data-testid="rules-loading" className="text-gray-500 dark:text-gray-400 text-sm">Loading...</p>
       ) : rules.length === 0 ? (
-        <p className="text-center text-gray-500 dark:text-gray-400 py-12 text-sm">
+        <p data-testid="rules-empty" className="text-center text-gray-500 dark:text-gray-400 py-12 text-sm">
           No rules yet. Create one from the Categorize page or add one manually.
         </p>
       ) : (
@@ -206,13 +208,13 @@ export default function RulesPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                <th className="px-4 py-3 cursor-pointer select-none" onClick={() => toggleSort("pattern")}>Pattern{sortIndicator("pattern")}</th>
-                <th className="px-4 py-3 cursor-pointer select-none" onClick={() => toggleSort("match_field")}>Field{sortIndicator("match_field")}</th>
-                <th className="px-4 py-3 cursor-pointer select-none" onClick={() => toggleSort("match_type")}>Match{sortIndicator("match_type")}</th>
-                <th className="px-4 py-3 cursor-pointer select-none" onClick={() => toggleSort("category")}>Category{sortIndicator("category")}</th>
+                <th data-testid="rule-sort-pattern" className="px-4 py-3 cursor-pointer select-none" onClick={() => toggleSort("pattern")}>Pattern{sortIndicator("pattern")}</th>
+                <th data-testid="rule-sort-field" className="px-4 py-3 cursor-pointer select-none" onClick={() => toggleSort("match_field")}>Field{sortIndicator("match_field")}</th>
+                <th data-testid="rule-sort-type" className="px-4 py-3 cursor-pointer select-none" onClick={() => toggleSort("match_type")}>Match{sortIndicator("match_type")}</th>
+                <th data-testid="rule-sort-category" className="px-4 py-3 cursor-pointer select-none" onClick={() => toggleSort("category")}>Category{sortIndicator("category")}</th>
                 <th className="px-4 py-3">Amount</th>
-                <th className="px-4 py-3 text-right cursor-pointer select-none" onClick={() => toggleSort("priority")}>Priority{sortIndicator("priority")}</th>
-                <th className="px-4 py-3 cursor-pointer select-none" onClick={() => toggleSort("auto_apply")}>Auto{sortIndicator("auto_apply")}</th>
+                <th data-testid="rule-sort-priority" className="px-4 py-3 text-right cursor-pointer select-none" onClick={() => toggleSort("priority")}>Priority{sortIndicator("priority")}</th>
+                <th data-testid="rule-sort-auto_apply" className="px-4 py-3 cursor-pointer select-none" onClick={() => toggleSort("auto_apply")}>Auto{sortIndicator("auto_apply")}</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -220,6 +222,7 @@ export default function RulesPage() {
               {sortedRules.map((rule) => (
                 <tr
                   key={rule.id}
+                  data-testid={`rule-row-${rule.id}`}
                   className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
                 >
                   <td className="px-4 py-3 font-mono text-xs">
@@ -248,12 +251,14 @@ export default function RulesPage() {
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-2">
                       <button
+                        data-testid={`rule-edit-${rule.id}`}
                         onClick={() => handleEdit(rule)}
                         className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
                       >
                         Edit
                       </button>
                       <button
+                        data-testid={`rule-delete-${rule.id}`}
                         onClick={() => setDeletingRule(rule)}
                         className="text-xs text-red-600 dark:text-red-400 hover:underline"
                       >

@@ -182,6 +182,7 @@ export default function GroupDrillDown({
       {/* Header */}
       <div className="flex items-center gap-3">
         <button
+          data-testid="drilldown-back"
           onClick={onBack}
           className={btnClass}
         >
@@ -265,6 +266,7 @@ export default function GroupDrillDown({
 
           <label className="flex items-center gap-1.5 text-gray-700 dark:text-gray-300 cursor-pointer">
             <input
+              data-testid="drilldown-create-rule"
               type="checkbox"
               checked={createRule}
               onChange={(e) => setCreateRule(e.target.checked)}
@@ -306,6 +308,7 @@ export default function GroupDrillDown({
           )}
 
           <button
+            data-testid="drilldown-assign-btn"
             onClick={handleAssign}
             disabled={!selectedCategoryId || assigning}
             className={btnPrimaryClass}
@@ -336,6 +339,7 @@ export default function GroupDrillDown({
               <tr>
                 <Th className="w-8">
                   <input
+                    data-testid="drilldown-select-all"
                     type="checkbox"
                     checked={allFilteredSelected}
                     onChange={toggleSelectAll}

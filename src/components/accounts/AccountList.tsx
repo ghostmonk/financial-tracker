@@ -44,6 +44,7 @@ export default function AccountList({
           {accounts.map((account) => (
             <tr
               key={account.id}
+              data-testid={`account-row-${account.id}`}
               className="hover:bg-gray-50 dark:hover:bg-gray-800/50"
             >
               <Td className="text-gray-900 dark:text-gray-100 font-medium">
@@ -60,12 +61,14 @@ export default function AccountList({
               </Td>
               <Td align="right">
                 <button
+                  data-testid={`account-edit-${account.id}`}
                   onClick={() => onEdit(account)}
                   className="text-xs px-2 py-1 text-blue-600 dark:text-blue-400 hover:underline"
                 >
                   Edit
                 </button>
                 <button
+                  data-testid={`account-delete-${account.id}`}
                   onClick={() => onDelete(account)}
                   className="text-xs px-2 py-1 text-red-600 dark:text-red-400 hover:underline ml-2"
                 >

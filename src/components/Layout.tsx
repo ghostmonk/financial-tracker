@@ -37,7 +37,7 @@ export default function Layout() {
 
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      <aside className="w-56 flex-shrink-0 bg-gray-900 dark:bg-gray-950 text-gray-300 flex flex-col">
+      <aside data-testid="sidebar" className="w-56 flex-shrink-0 bg-gray-900 dark:bg-gray-950 text-gray-300 flex flex-col">
         <div className="px-5 py-6 text-lg font-semibold text-white tracking-tight">
           Financial Tracker
         </div>
@@ -46,6 +46,7 @@ export default function Layout() {
             <NavLink
               key={to}
               to={to}
+              data-testid={`nav-${to.replace("/", "")}`}
               className={({ isActive }) =>
                 `flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                   isActive
@@ -56,7 +57,7 @@ export default function Layout() {
             >
               {label}
               {showBadge && uncategorizedCount > 0 && (
-                <span className="ml-2 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
+                <span data-testid="nav-categorize-badge" className="ml-2 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
                   {uncategorizedCount}
                 </span>
               )}

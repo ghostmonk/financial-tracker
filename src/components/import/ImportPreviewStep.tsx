@@ -50,7 +50,7 @@ export default function ImportPreviewStep({
             Transactions
           </p>
           <p className="text-sm font-medium">
-            {preview.new_count} new, {preview.duplicate_count} duplicates
+            <span data-testid="preview-new-count">{preview.new_count}</span> new, <span data-testid="preview-dup-count">{preview.duplicate_count}</span> duplicates
           </p>
         </div>
       </div>
@@ -150,6 +150,7 @@ export default function ImportPreviewStep({
 
       <div className="flex gap-3">
         <button
+          data-testid="preview-import-btn"
           onClick={() => onImport(skipDuplicates)}
           disabled={importing}
           className={btnPrimaryClass}
@@ -157,6 +158,7 @@ export default function ImportPreviewStep({
           {importing ? "Importing..." : "Import"}
         </button>
         <button
+          data-testid="preview-cancel-btn"
           onClick={onCancel}
           disabled={importing}
           className={btnClass}

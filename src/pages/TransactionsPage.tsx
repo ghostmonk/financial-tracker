@@ -78,7 +78,7 @@ export default function TransactionsPage() {
       <div className="flex items-baseline justify-between">
         <div>
           <h1 className="text-2xl font-semibold mb-1">Transactions</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p data-testid="transactions-count" className="text-sm text-gray-500 dark:text-gray-400">
             {totalLoaded} transaction{totalLoaded !== 1 ? "s" : ""} loaded
           </p>
         </div>

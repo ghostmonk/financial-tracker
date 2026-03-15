@@ -106,6 +106,7 @@ export default function FileSelector({ onFileSelected }: FileSelectorProps) {
         {!creatingAccount ? (
           <div className="space-y-2">
             <select
+              data-testid="import-account-select"
               value={selectedAccountId}
               onChange={(e) => setSelectedAccountId(e.target.value)}
               className={inputClass}
@@ -163,6 +164,7 @@ export default function FileSelector({ onFileSelected }: FileSelectorProps) {
 
       <div>
         <button
+          data-testid="import-file-btn"
           type="button"
           onClick={handleSelectFile}
           disabled={loading || (!selectedAccountId && !creatingAccount)}

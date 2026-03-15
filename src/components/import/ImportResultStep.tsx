@@ -20,7 +20,7 @@ export default function ImportResultStep({
           Import Complete
         </h3>
         <p className="text-sm text-green-700 dark:text-green-300">
-          Imported {result.imported_count} transaction
+          Imported <span data-testid="result-imported-count">{result.imported_count}</span> transaction
           {result.imported_count !== 1 ? "s" : ""}.
           {result.skipped_count > 0 && (
             <span>
@@ -34,12 +34,14 @@ export default function ImportResultStep({
 
       <div className="flex gap-3">
         <button
+          data-testid="result-import-another"
           onClick={onReset}
           className={btnPrimaryClass}
         >
           Import Another File
         </button>
         <button
+          data-testid="result-view-transactions"
           onClick={() => navigate("/transactions")}
           className={btnClass}
         >
