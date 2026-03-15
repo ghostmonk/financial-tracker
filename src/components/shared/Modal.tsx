@@ -78,6 +78,7 @@ export default function Modal({ open, onClose, title, children, width = "md" }: 
           <h2 className="text-lg font-semibold">{title}</h2>
           <button
             onClick={onClose}
+            tabIndex={-1}
             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
           >
             &times;

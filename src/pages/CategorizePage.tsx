@@ -176,6 +176,14 @@ export default function CategorizePage() {
           group.normalized_name,
           selectedAccountId || undefined,
         );
+        console.log("[categorize] executeCategorization", {
+          withRule,
+          normalizedName: group.normalized_name,
+          categoryId,
+          selectedAccountId,
+          txCount: txs.length,
+          txIds: txs.map((t) => t.id),
+        });
         const txIds = txs.map((t) => t.id);
         const prevCategoryIds = txs.map((t) => t.category_id);
         const prevByRule = txs.map((t) => t.categorized_by_rule);
@@ -335,16 +343,16 @@ export default function CategorizePage() {
         </div>
         <div className="flex justify-end gap-2 mt-4">
           <button
-            onClick={() => executeCategorization(false)}
-            className={btnClass}
-          >
-            No, just this time
-          </button>
-          <button
             onClick={() => executeCategorization(true)}
             className={btnPrimaryClass}
           >
             Yes, create rule
+          </button>
+          <button
+            onClick={() => executeCategorization(false)}
+            className={btnClass}
+          >
+            No, just this time
           </button>
         </div>
       </Modal>
