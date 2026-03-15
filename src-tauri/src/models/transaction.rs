@@ -361,7 +361,11 @@ pub fn get_transaction_summary(
          FROM transactions t {} \
          INNER JOIN categories cat ON t.category_id = cat.id \
          {}",
-        if fc.use_direction_join { join_clause } else { "" },
+        if fc.use_direction_join {
+            join_clause
+        } else {
+            ""
+        },
         parent_where
     );
     let parent_category_count: u32 =
@@ -528,6 +532,22 @@ mod tests {
         .unwrap();
     }
 
+    fn insert_tx_with_amount(
+        conn: &Connection,
+        id: &str,
+        amount: f64,
+        account_id: &str,
+        category_id: Option<&str>,
+    ) {
+        insert_test_account(conn, account_id);
+        conn.execute(
+            "INSERT INTO transactions (id, date, amount, description, account_id, category_id) \
+             VALUES (?1, '2025-01-15', ?2, 'Test tx', ?3, ?4)",
+            params![id, amount, account_id, category_id],
+        )
+        .unwrap();
+    }
+
     #[test]
     fn test_category_filter_includes_children() {
         let conn = setup_db();
@@ -552,5 +572,92 @@ mod tests {
         let mut ids: Vec<&str> = results.iter().map(|t| t.id.as_str()).collect();
         ids.sort();
         assert_eq!(ids, vec!["tx-child1", "tx-child2", "tx-parent"]);
+    }
+
+    #[test]
+    fn test_get_transaction_summary_totals() {
+        let conn = setup_db();
+
+        insert_category(&conn, "cat-1", "Expenses", None);
+        insert_category(&conn, "cat-2", "Income", None);
+
+        insert_tx_with_amount(&conn, "tx-1", -50.0, "acct-1", Some("cat-1"));
+        insert_tx_with_amount(&conn, "tx-2", -30.0, "acct-1", Some("cat-1"));
+        insert_tx_with_amount(&conn, "tx-3", 200.0, "acct-1", Some("cat-2"));
+        insert_tx_with_amount(&conn, "tx-4", 100.0, "acct-1", Some("cat-2"));
+
+        let summary =
+            get_transaction_summary(&conn, TransactionFilters::default()).unwrap();
+
+        assert_eq!(summary.total_count, 4);
+        assert!((summary.total_debit - (-80.0)).abs() < 0.01);
+        assert!((summary.total_credit - 300.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_get_transaction_summary_category_counts() {
+        let conn = setup_db();
+
+        insert_category(&conn, "parent-exp", "Expenses", None);
+        insert_category(&conn, "child-groc", "Groceries", Some("parent-exp"));
+        insert_category(&conn, "child-rent", "Rent", Some("parent-exp"));
+        insert_category(&conn, "parent-inc", "Income", None);
+        insert_category(&conn, "child-sal", "Salary", Some("parent-inc"));
+
+        insert_tx_with_amount(&conn, "tx-1", -50.0, "acct-1", Some("child-groc"));
+        insert_tx_with_amount(&conn, "tx-2", -1500.0, "acct-1", Some("child-rent"));
+        insert_tx_with_amount(&conn, "tx-3", 3000.0, "acct-1", Some("child-sal"));
+
+        let summary =
+            get_transaction_summary(&conn, TransactionFilters::default()).unwrap();
+
+        // parent_category_count: Expenses (via child-groc, child-rent) + Income (via child-sal) = 2
+        assert_eq!(summary.parent_category_count, 2);
+        // child_category_count: child-groc, child-rent, child-sal = 3
+        assert_eq!(summary.child_category_count, 3);
+    }
+
+    #[test]
+    fn test_get_transaction_summary_with_filters() {
+        let conn = setup_db();
+
+        insert_category(&conn, "cat-1", "Expenses", None);
+
+        insert_tx_with_amount(&conn, "tx-1", -100.0, "acct-1", Some("cat-1"));
+        insert_tx_with_amount(&conn, "tx-2", -200.0, "acct-1", Some("cat-1"));
+        insert_tx_with_amount(&conn, "tx-3", -300.0, "acct-2", Some("cat-1"));
+
+        let filters = TransactionFilters {
+            account_id: Some("acct-1".to_string()),
+            ..Default::default()
+        };
+        let summary = get_transaction_summary(&conn, filters).unwrap();
+
+        assert_eq!(summary.total_count, 2);
+        assert!((summary.total_debit - (-300.0)).abs() < 0.01);
+        assert!((summary.total_credit - 0.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_list_used_category_ids() {
+        let conn = setup_db();
+
+        insert_category(&conn, "cat-a", "A", None);
+        insert_category(&conn, "cat-b", "B", None);
+        insert_category(&conn, "cat-c", "C", None);
+
+        insert_tx_with_amount(&conn, "tx-1", -10.0, "acct-1", Some("cat-a"));
+        insert_tx_with_amount(&conn, "tx-2", -20.0, "acct-1", Some("cat-b"));
+        insert_tx_with_amount(&conn, "tx-3", -30.0, "acct-1", Some("cat-a"));
+        // tx-4 has no category
+        insert_tx_with_amount(&conn, "tx-4", -40.0, "acct-1", None);
+
+        let used = list_used_category_ids(&conn).unwrap();
+
+        assert_eq!(used.len(), 2);
+        assert!(used.contains(&"cat-a".to_string()));
+        assert!(used.contains(&"cat-b".to_string()));
+        // cat-c is not used by any transaction
+        assert!(!used.contains(&"cat-c".to_string()));
     }
 }
