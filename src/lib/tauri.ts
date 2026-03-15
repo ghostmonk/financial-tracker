@@ -19,6 +19,8 @@ import type {
   UpdateRuleParams,
   UncategorizedGroup,
   Tag,
+  CategoryHotkey,
+  SetHotkeyParams,
   TaxRules,
   TaxLineItem,
   CreateTaxLineItemParams,
@@ -48,6 +50,8 @@ export type {
   UpdateRuleParams,
   UncategorizedGroup,
   Tag,
+  CategoryHotkey,
+  SetHotkeyParams,
   TaxRules,
   TaxLineItem,
   CreateTaxLineItemParams,
@@ -275,6 +279,22 @@ export async function getTransactionTags(
   return invoke("get_transaction_tags", {
     transaction_id: transactionId,
   });
+}
+
+// Hotkeys
+
+export async function listHotkeys(): Promise<CategoryHotkey[]> {
+  return invoke("list_hotkeys");
+}
+
+export async function setHotkey(
+  params: SetHotkeyParams,
+): Promise<CategoryHotkey> {
+  return invoke("set_hotkey", { params });
+}
+
+export async function removeHotkey(key: string): Promise<void> {
+  return invoke("remove_hotkey", { key });
 }
 
 // Tax

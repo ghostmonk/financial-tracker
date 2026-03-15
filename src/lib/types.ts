@@ -198,6 +198,18 @@ export interface Tag {
   created_at: string;
 }
 
+export interface CategoryHotkey {
+  id: string;
+  key: string;
+  category_id: string;
+  created_at: string;
+}
+
+export interface SetHotkeyParams {
+  key: string;
+  category_id: string;
+}
+
 export interface TaxRates {
   gst: number;
   qst: number;
