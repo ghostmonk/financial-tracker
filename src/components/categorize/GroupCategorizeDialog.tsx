@@ -39,50 +39,54 @@ export default function GroupCategorizeDialog({
 
   return (
     <Modal open={true} onClose={onCancel} title="Categorize Group">
-      <p className="text-sm text-gray-500 dark:text-gray-400 -mt-2 mb-4">
-        &quot;{group.normalized_name}&quot; &mdash;{" "}
-        {group.transaction_count} transaction
-        {group.transaction_count !== 1 ? "s" : ""}
-      </p>
+      <div data-testid="group-dialog">
+        <p className="text-sm text-gray-500 dark:text-gray-400 -mt-2 mb-4">
+          &quot;{group.normalized_name}&quot; &mdash;{" "}
+          {group.transaction_count} transaction
+          {group.transaction_count !== 1 ? "s" : ""}
+        </p>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <FormField label="Category">
-          <CategorySelect
-            categories={categories}
-            value={categoryId}
-            onChange={(catId) => setCategoryId(catId)}
-          />
-        </FormField>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <FormField label="Category">
+            <CategorySelect
+              categories={categories}
+              value={categoryId}
+              onChange={(catId) => setCategoryId(catId)}
+            />
+          </FormField>
 
-        <FormField label="Match Type">
-          <select
-            value={matchType}
-            onChange={(e) => setMatchType(e.target.value)}
-            className={inputClass}
-          >
-            <option value="contains">Contains</option>
-            <option value="starts_with">Starts with</option>
-            <option value="exact">Exact match</option>
-          </select>
-        </FormField>
+          <FormField label="Match Type">
+            <select
+              data-testid="group-dialog-match-type"
+              value={matchType}
+              onChange={(e) => setMatchType(e.target.value)}
+              className={inputClass}
+            >
+              <option value="contains">Contains</option>
+              <option value="starts_with">Starts with</option>
+              <option value="exact">Exact match</option>
+            </select>
+          </FormField>
 
-        <div className="flex justify-end gap-2 pt-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            className={btnClass}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={!categoryId}
-            className={btnPrimaryClass}
-          >
-            Create Rule &amp; Categorize
-          </button>
-        </div>
-      </form>
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={onCancel}
+              className={btnClass}
+            >
+              Cancel
+            </button>
+            <button
+              data-testid="group-dialog-confirm"
+              type="submit"
+              disabled={!categoryId}
+              className={btnPrimaryClass}
+            >
+              Create Rule &amp; Categorize
+            </button>
+          </div>
+        </form>
+      </div>
     </Modal>
   );
 }

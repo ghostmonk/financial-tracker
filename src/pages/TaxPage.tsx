@@ -237,7 +237,7 @@ export default function TaxPage() {
       <div className="flex items-baseline justify-between">
         <div>
           <h1 className="text-2xl font-semibold mb-1">Tax Workspace</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p data-testid="tax-item-count" className="text-sm text-gray-500 dark:text-gray-400">
             {filteredItems.length} item{filteredItems.length !== 1 ? "s" : ""}
             {loading && " — Loading..."}
           </p>
@@ -247,6 +247,7 @@ export default function TaxPage() {
       {/* Top bar controls */}
       <div className="flex items-center gap-3 flex-wrap">
         <select
+          data-testid="tax-year-select"
           value={fiscalYear}
           onChange={(e) => setFiscalYear(Number(e.target.value))}
           className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
@@ -257,13 +258,13 @@ export default function TaxPage() {
             </option>
           ))}
         </select>
-        <button onClick={() => setShowProration(true)} className={btnClass}>
+        <button data-testid="tax-proration-btn" onClick={() => setShowProration(true)} className={btnClass}>
           Proration Settings
         </button>
-        <button onClick={() => setShowInfo(true)} className={btnClass}>
+        <button data-testid="tax-info-btn" onClick={() => setShowInfo(true)} className={btnClass}>
           Tax Info
         </button>
-        <button onClick={() => setShowAddForm(true)} className={btnClass}>
+        <button data-testid="tax-add-item-btn" onClick={() => setShowAddForm(true)} className={btnClass}>
           Add Item
         </button>
       </div>
@@ -273,6 +274,7 @@ export default function TaxPage() {
         {(["expense", "income"] as TabDirection[]).map((tab) => (
           <button
             key={tab}
+            data-testid={`tax-tab-${tab}`}
             onClick={() => setActiveTab(tab)}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
               activeTab === tab
@@ -337,7 +339,7 @@ export default function TaxPage() {
               <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 Annual Summary
               </h3>
-              <table className="w-full text-xs bg-gray-50 dark:bg-gray-800 rounded">
+              <table data-testid="tax-annual-summary" className="w-full text-xs bg-gray-50 dark:bg-gray-800 rounded">
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700 text-left uppercase tracking-wider text-gray-500 dark:text-gray-400">
                     <th className="px-3 py-2">T2125 Line</th>
@@ -416,7 +418,7 @@ export default function TaxPage() {
         </div>
       ) : (
         !loading && (
-          <p className="text-gray-500 dark:text-gray-400 text-sm py-8 text-center">
+          <p data-testid="tax-empty" className="text-gray-500 dark:text-gray-400 text-sm py-8 text-center">
             No {tabLabel} items for {fiscalYear}.
           </p>
         )

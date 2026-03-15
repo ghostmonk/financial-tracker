@@ -81,6 +81,7 @@ export default function CategorizePage() {
           </p>
         </div>
         <select
+          data-testid="categorize-account-filter"
           value={selectedAccountId}
           onChange={(e) => setSelectedAccountId(e.target.value)}
           className={selectClass}
@@ -110,7 +111,7 @@ export default function CategorizePage() {
           onRefresh={fetchGroups}
         />
       ) : loading ? (
-        <p className="text-gray-500 dark:text-gray-400 text-sm">Loading...</p>
+        <p data-testid="categorize-loading" className="text-gray-500 dark:text-gray-400 text-sm">Loading...</p>
       ) : (
         <UncategorizedGroupList
           groups={groups}

@@ -123,6 +123,7 @@ export default function CategoriesPage() {
           </p>
         </div>
         <button
+          data-testid="categories-add-btn"
           onClick={() => {
             setEditingCategory(null);
             setShowForm(true);
@@ -139,7 +140,7 @@ export default function CategoriesPage() {
       )}
 
       {loading ? (
-        <p className="text-gray-500 dark:text-gray-400 text-sm">Loading...</p>
+        <p data-testid="categories-loading" className="text-gray-500 dark:text-gray-400 text-sm">Loading...</p>
       ) : (
         <CategoryList
           categories={categories}
@@ -200,6 +201,7 @@ export default function CategoriesPage() {
 
         <div className="flex gap-2">
           <input
+            data-testid="tag-input"
             type="text"
             value={newTagName}
             onChange={(e) => setNewTagName(e.target.value)}
@@ -210,6 +212,7 @@ export default function CategoriesPage() {
             className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <button
+            data-testid="tag-add-btn"
             onClick={handleAddTag}
             disabled={!newTagName.trim()}
             className={btnPrimaryClass}
@@ -231,10 +234,12 @@ export default function CategoriesPage() {
             {tags.map((tag) => (
               <span
                 key={tag.id}
+                data-testid={`tag-badge-${tag.id}`}
                 className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 rounded-full"
               >
                 {tag.name}
                 <button
+                  data-testid={`tag-delete-${tag.id}`}
                   onClick={() => handleDeleteTag(tag.id)}
                   className="ml-1 text-gray-400 hover:text-red-500 transition-colors"
                   title={`Delete tag "${tag.name}"`}

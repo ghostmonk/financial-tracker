@@ -111,7 +111,7 @@ export default function CsvMappingStep({
       <div>
         <h3 className="text-sm font-medium mb-3">CSV Preview (first 5 rows)</h3>
         <div className="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-md">
-          <table className="min-w-full text-sm">
+          <table data-testid="csv-preview-table" className="min-w-full text-sm">
             <thead>
               <tr className="bg-gray-50 dark:bg-gray-800">
                 {preview.columns.map((col) => (
@@ -148,6 +148,7 @@ export default function CsvMappingStep({
       <div className="grid grid-cols-2 gap-4 max-w-lg">
         <FormField label="Date column" required>
           <select
+            data-testid="csv-date-col"
             value={dateColumn}
             onChange={(e) => setDateColumn(e.target.value)}
             className={inputClass}
@@ -159,6 +160,7 @@ export default function CsvMappingStep({
 
         <FormField label="Amount column" required>
           <select
+            data-testid="csv-amount-col"
             value={amountColumn}
             onChange={(e) => setAmountColumn(e.target.value)}
             className={inputClass}
@@ -170,6 +172,7 @@ export default function CsvMappingStep({
 
         <FormField label="Description column" required>
           <select
+            data-testid="csv-desc-col"
             value={descriptionColumn}
             onChange={(e) => setDescriptionColumn(e.target.value)}
             className={inputClass}
@@ -193,6 +196,7 @@ export default function CsvMappingStep({
         <div className="col-span-2">
           <FormField label="Date format">
             <select
+              data-testid="csv-date-format"
               value={dateFormat}
               onChange={(e) => setDateFormat(e.target.value)}
               className={inputClass}
@@ -213,6 +217,7 @@ export default function CsvMappingStep({
 
       <div className="flex gap-3">
         <button
+          data-testid="csv-submit"
           onClick={handleSubmit}
           className={btnPrimaryClass}
         >

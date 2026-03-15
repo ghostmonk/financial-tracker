@@ -6,12 +6,13 @@ interface ThProps {
   title?: string;
   className?: string;
   onClick?: () => void;
+  "data-testid"?: string;
 }
 
-export function Th({ children, align = "left", title, className = "", onClick }: ThProps) {
+export function Th({ children, align = "left", title, className = "", onClick, "data-testid": testId }: ThProps) {
   const alignClass = align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left";
   return (
-    <th className={`${thClass} ${alignClass} ${className}`} title={title} onClick={onClick}>
+    <th className={`${thClass} ${alignClass} ${className}`} title={title} onClick={onClick} data-testid={testId}>
       {children}
     </th>
   );

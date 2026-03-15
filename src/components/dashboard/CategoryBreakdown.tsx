@@ -115,6 +115,7 @@ export default function CategoryBreakdown({
           return (
             <button
               key={dir}
+              data-testid={`breakdown-tab-${dir}`}
               onClick={() => setActiveDirection(dir)}
               className={`px-3 py-2 text-sm font-medium transition-colors ${
                 active

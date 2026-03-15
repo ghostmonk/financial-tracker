@@ -101,6 +101,7 @@ export default function TaxLineItemForm({
       <form onSubmit={handleSubmit} className="space-y-4">
         <FormField label="Date">
           <input
+            data-testid="tax-form-date"
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
@@ -111,6 +112,7 @@ export default function TaxLineItemForm({
 
         <FormField label="Description">
           <input
+            data-testid="tax-form-description"
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -121,6 +123,7 @@ export default function TaxLineItemForm({
 
         <FormField label="Amount">
           <input
+            data-testid="tax-form-amount"
             type="number"
             step="0.01"
             min="0"
@@ -160,6 +163,7 @@ export default function TaxLineItemForm({
 
         <FormField label="Notes (optional)">
           <textarea
+            data-testid="tax-form-notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
@@ -176,6 +180,7 @@ export default function TaxLineItemForm({
             Cancel
           </button>
           <button
+            data-testid="tax-form-submit"
             type="submit"
             disabled={saving || !description || !amount || !categoryId}
             className={btnPrimaryClass}

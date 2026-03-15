@@ -88,6 +88,7 @@ export default function ProrationSettingsModal({
             <div className="grid grid-cols-2 gap-3">
               <FormField label="Total km">
                 <input
+                  data-testid="proration-vehicle-total"
                   type="number"
                   step="1"
                   min="0"
@@ -98,6 +99,7 @@ export default function ProrationSettingsModal({
               </FormField>
               <FormField label="Business km">
                 <input
+                  data-testid="proration-vehicle-business"
                   type="number"
                   step="1"
                   min="0"
@@ -128,6 +130,7 @@ export default function ProrationSettingsModal({
             <div className="grid grid-cols-2 gap-3">
               <FormField label="Total sq ft">
                 <input
+                  data-testid="proration-home-total"
                   type="number"
                   step="1"
                   min="0"
@@ -138,6 +141,7 @@ export default function ProrationSettingsModal({
               </FormField>
               <FormField label="Office sq ft">
                 <input
+                  data-testid="proration-home-office"
                   type="number"
                   step="1"
                   min="0"
@@ -165,6 +169,7 @@ export default function ProrationSettingsModal({
             Cancel
           </button>
           <button
+            data-testid="proration-save"
             type="submit"
             disabled={saving}
             className={btnPrimaryClass}

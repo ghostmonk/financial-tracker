@@ -59,6 +59,7 @@ export default function AccountForm({
       <form onSubmit={handleSubmit} className="space-y-4">
         <FormField label="Name">
           <input
+            data-testid="account-form-name"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -70,6 +71,7 @@ export default function AccountForm({
 
         <FormField label="Institution">
           <input
+            data-testid="account-form-institution"
             type="text"
             value={institution}
             onChange={(e) => setInstitution(e.target.value)}
@@ -80,6 +82,7 @@ export default function AccountForm({
 
         <FormField label="Type">
           <select
+            data-testid="account-form-type"
             value={accountType}
             onChange={(e) => setAccountType(e.target.value)}
             className={inputClass}
@@ -94,6 +97,7 @@ export default function AccountForm({
 
         <FormField label="Currency">
           <select
+            data-testid="account-form-currency"
             value={currency}
             onChange={(e) => setCurrency(e.target.value)}
             className={inputClass}
@@ -115,6 +119,7 @@ export default function AccountForm({
             Cancel
           </button>
           <button
+            data-testid="account-form-submit"
             type="submit"
             className={btnPrimaryClass}
           >

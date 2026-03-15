@@ -54,6 +54,7 @@ export default function CategoryList({
     return (
       <tr
         key={cat.id}
+        data-testid={`category-row-${cat.id}`}
         className="hover:bg-gray-50 dark:hover:bg-gray-800/50"
       >
         <Td className="text-gray-900 dark:text-gray-100">
@@ -72,12 +73,14 @@ export default function CategoryList({
         </Td>
         <Td align="right">
           <button
+            data-testid={`category-edit-${cat.id}`}
             onClick={() => onEdit(cat)}
             className="text-xs px-2 py-1 text-blue-600 dark:text-blue-400 hover:underline"
           >
             Edit
           </button>
           <button
+            data-testid={`category-delete-${cat.id}`}
             onClick={() => onDelete(cat)}
             className="text-xs px-2 py-1 text-red-600 dark:text-red-400 hover:underline ml-2"
           >

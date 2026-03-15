@@ -83,6 +83,7 @@ export default function TransactionFilters({
           Search
         </label>
         <input
+          data-testid="filter-search"
           type="text"
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
@@ -96,6 +97,7 @@ export default function TransactionFilters({
           From
         </label>
         <input
+          data-testid="filter-date-from"
           type="date"
           value={filters.date_from ?? ""}
           onChange={(e) =>
@@ -110,6 +112,7 @@ export default function TransactionFilters({
           To
         </label>
         <input
+          data-testid="filter-date-to"
           type="date"
           value={filters.date_to ?? ""}
           onChange={(e) =>
@@ -164,6 +167,7 @@ export default function TransactionFilters({
           Account
         </label>
         <select
+          data-testid="filter-account"
           value={filters.account_id ?? ""}
           onChange={(e) =>
             updateFilters({ account_id: e.target.value || undefined })
@@ -184,6 +188,7 @@ export default function TransactionFilters({
           Direction
         </label>
         <select
+          data-testid="filter-direction"
           value={filters.direction ?? ""}
           onChange={(e) =>
             updateFilters({ direction: e.target.value || undefined })
@@ -235,6 +240,7 @@ export default function TransactionFilters({
 
       {hasFilters && (
         <button
+          data-testid="filter-clear"
           onClick={clearFilters}
           className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors mb-0"
         >

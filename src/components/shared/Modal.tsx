@@ -33,7 +33,7 @@ export default function Modal({ open, onClose, title, children, width = "md" }: 
     <div className={modalOverlayClass} onClick={(e) => {
       if (cardRef.current && !cardRef.current.contains(e.target as Node)) onClose();
     }}>
-      <div ref={cardRef} className={`${modalCardClass} ${widthMap[width]}`}>
+      <div ref={cardRef} data-testid="modal" className={`${modalCardClass} ${widthMap[width]}`}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">{title}</h2>
           <button
