@@ -8,6 +8,7 @@ import CategorySelect from "./CategorySelect";
 import { useKeyboardNav } from "../../lib/useKeyboardNav";
 import { useUndoStack } from "../../lib/useUndoStack";
 import CategoryPickerModal from "../shared/CategoryPickerModal";
+import { searchGoogle } from "../../lib/search";
 
 type SortField = "date" | "description" | "merchant" | "payee" | "amount" | "category" | "account";
 type SortDir = "asc" | "desc";
@@ -347,6 +348,15 @@ export default function TransactionTable({
                       <span className="truncate" title={tx.description}>
                         {tx.description}
                       </span>
+                      <button
+                        onClick={() => searchGoogle(tx.description)}
+                        className="shrink-0 text-gray-300 dark:text-gray-600 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+                        title="Search Google"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                          <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
+                        </svg>
+                      </button>
                       {tx.is_recurring && (
                         <span
                           className="shrink-0 text-[10px] px-1.5 py-0 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300"
