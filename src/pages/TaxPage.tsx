@@ -23,11 +23,12 @@ import TaxLineItemForm from "../components/tax/TaxLineItemForm";
 import ReceiptCell from "../components/tax/ReceiptCell";
 import ProrationSettingsModal from "../components/tax/ProrationSettingsModal";
 import TaxInfoPanel from "../components/tax/TaxInfoPanel";
+import TaxPaymentsPanel from "../components/tax/TaxPaymentsPanel";
 
 const CURRENT_YEAR = new Date().getFullYear();
 const YEAR_OPTIONS = Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - i);
 
-type TabDirection = "expense" | "income";
+type TabDirection = "expense" | "income" | "payments";
 
 const MONTH_NAMES = [
   "January",
@@ -252,8 +253,64 @@ export default function TaxPage() {
     return r?.text;
   }, [taxRules]);
 
+  // Compute grossIncome from all income items (independent of activeTab)
+  const grossIncome = useMemo(() => {
+    return items
+      .filter((item) => {
+        const cat = item.category_id ? categoryMap.get(item.category_id) : null;
+        if (!cat) return false;
+        const mapping = lineMappingBySlug.get(cat.slug);
+        return mapping?.direction === "income";
+      })
+      .reduce((sum, item) => sum + item.amount, 0);
+  }, [items, categoryMap, lineMappingBySlug]);
+
+  // Compute total deductions from expense items (independent of activeTab)
+  const expenseTotalDeductions = useMemo(() => {
+    if (!taxRules) return 0;
+    const rates = taxRules.rates;
+    const expenseItems = items.filter((item) => {
+      const cat = item.category_id ? categoryMap.get(item.category_id) : null;
+      if (!cat) return false;
+      const mapping = lineMappingBySlug.get(cat.slug);
+      return mapping?.direction === "expense";
+    });
+
+    let total = 0;
+    for (const item of expenseItems) {
+      const cat = item.category_id ? categoryMap.get(item.category_id) : null;
+      if (!cat) continue;
+      const mapping = lineMappingBySlug.get(cat.slug);
+      if (!mapping) continue;
+
+      let prorationPct = 1.0;
+      if (
+        mapping.proration === "vehicle" &&
+        settings?.vehicle_total_km &&
+        settings?.vehicle_business_km
+      ) {
+        prorationPct = settings.vehicle_business_km / settings.vehicle_total_km;
+      } else if (
+        mapping.proration === "home_office" &&
+        settings?.home_total_sqft &&
+        settings?.home_office_sqft
+      ) {
+        prorationPct = settings.home_office_sqft / settings.home_total_sqft;
+      }
+
+      let deductionPct = 1.0;
+      if (cat.slug === "meals_business") {
+        deductionPct = rates.meals_deduction_pct;
+      }
+
+      total += item.amount * prorationPct * deductionPct;
+    }
+    return total;
+  }, [items, taxRules, categoryMap, lineMappingBySlug, settings]);
+
   const isExpenseTab = activeTab === "expense";
-  const tabLabel = isExpenseTab ? "expenses" : "income";
+  const isPaymentsTab = activeTab === "payments";
+  const tabLabel = isExpenseTab ? "expenses" : activeTab === "income" ? "income" : "payments";
 
   const handleDataUpdated = useCallback(() => {
     fetchYearData(fiscalYear);
@@ -299,7 +356,7 @@ export default function TaxPage() {
 
       {/* Tabs */}
       <div className="flex border-b border-gray-200 dark:border-gray-700">
-        {(["expense", "income"] as TabDirection[]).map((tab) => (
+        {(["expense", "income", "payments"] as TabDirection[]).map((tab) => (
           <button
             key={tab}
             data-testid={`tax-tab-${tab}`}
@@ -310,13 +367,26 @@ export default function TaxPage() {
                 : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
             }`}
           >
-            {tab === "expense" ? "Expenses" : "Income"}
+            {tab === "expense"
+              ? "Expenses"
+              : tab === "income"
+                ? "Income"
+                : "Payments"}
           </button>
         ))}
       </div>
 
-      {/* Monthly grouped table */}
-      {groupedByMonth.length > 0 ? (
+      {/* Payments tab */}
+      {isPaymentsTab ? (
+        <TaxPaymentsPanel
+          fiscalYear={fiscalYear}
+          grossIncome={grossIncome}
+          totalDeductions={expenseTotalDeductions}
+          settings={settings}
+          onSettingsUpdated={handleDataUpdated}
+        />
+      ) : /* Monthly grouped table */
+      groupedByMonth.length > 0 ? (
         <div className="space-y-0">
           <table className="w-full text-sm">
             <thead>

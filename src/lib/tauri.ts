@@ -382,6 +382,14 @@ export async function calculateTaxBurden(
   });
 }
 
+export async function getTaxPaymentTransactions(
+  fiscalYear: number,
+): Promise<TaxWorkspaceItem[]> {
+  return invoke("get_tax_payment_transactions_cmd", {
+    fiscal_year: fiscalYear,
+  });
+}
+
 export async function updateTransactionReceipt(
   id: string,
   hasReceipt: boolean,

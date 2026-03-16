@@ -62,6 +62,8 @@ pub fn get_tax_workspace_items(
     })
 }
 
+db_command!(get_tax_payment_transactions_cmd -> Vec<TaxWorkspaceItem>, tax_line_item::get_tax_payment_transactions, fiscal_year: i32 => move);
+
 #[tauri::command(rename_all = "snake_case")]
 pub fn update_transaction_receipt(
     state: State<'_, AppState>,

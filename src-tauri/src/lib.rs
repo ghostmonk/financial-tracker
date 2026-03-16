@@ -84,6 +84,7 @@ pub fn run() {
             commands::tax::update_transaction_receipt,
             commands::tax::get_tax_rates,
             commands::tax::calculate_tax_burden,
+            commands::tax::get_tax_payment_transactions_cmd,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
