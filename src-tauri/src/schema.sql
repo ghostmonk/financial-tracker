@@ -129,6 +129,10 @@ CREATE TABLE IF NOT EXISTS fiscal_year_settings (
     vehicle_business_km REAL,
     home_total_sqft REAL,
     home_office_sqft REAL,
+    gst_collected REAL,
+    qst_collected REAL,
+    gst_remitted REAL,
+    qst_remitted REAL,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

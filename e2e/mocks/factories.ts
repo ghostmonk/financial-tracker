@@ -476,6 +476,10 @@ const defaultFiscalYearSettings: FiscalYearSettings = {
   vehicle_business_km: 8000,
   home_total_sqft: 1200,
   home_office_sqft: 150,
+  gst_collected: null,
+  qst_collected: null,
+  gst_remitted: null,
+  qst_remitted: null,
   created_at: now,
   updated_at: now,
 };

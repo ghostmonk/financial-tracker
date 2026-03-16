@@ -10,6 +10,10 @@ pub struct FiscalYearSettings {
     pub vehicle_business_km: Option<f64>,
     pub home_total_sqft: Option<f64>,
     pub home_office_sqft: Option<f64>,
+    pub gst_collected: Option<f64>,
+    pub qst_collected: Option<f64>,
+    pub gst_remitted: Option<f64>,
+    pub qst_remitted: Option<f64>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -21,11 +25,15 @@ pub struct UpsertFiscalYearSettingsParams {
     pub vehicle_business_km: Option<f64>,
     pub home_total_sqft: Option<f64>,
     pub home_office_sqft: Option<f64>,
+    pub gst_collected: Option<f64>,
+    pub qst_collected: Option<f64>,
+    pub gst_remitted: Option<f64>,
+    pub qst_remitted: Option<f64>,
 }
 
 const SELECT_COLS: &str =
     "fiscal_year, vehicle_total_km, vehicle_business_km, home_total_sqft, home_office_sqft, \
-     created_at, updated_at";
+     gst_collected, qst_collected, gst_remitted, qst_remitted, created_at, updated_at";
 
 fn row_to_fiscal_year_settings(row: &rusqlite::Row) -> rusqlite::Result<FiscalYearSettings> {
     Ok(FiscalYearSettings {
@@ -34,8 +42,12 @@ fn row_to_fiscal_year_settings(row: &rusqlite::Row) -> rusqlite::Result<FiscalYe
         vehicle_business_km: row.get(2)?,
         home_total_sqft: row.get(3)?,
         home_office_sqft: row.get(4)?,
-        created_at: row.get(5)?,
-        updated_at: row.get(6)?,
+        gst_collected: row.get(5)?,
+        qst_collected: row.get(6)?,
+        gst_remitted: row.get(7)?,
+        qst_remitted: row.get(8)?,
+        created_at: row.get(9)?,
+        updated_at: row.get(10)?,
     })
 }
 
@@ -45,13 +57,17 @@ pub fn upsert_fiscal_year_settings(
 ) -> Result<FiscalYearSettings, DbError> {
     conn.execute(
         "INSERT INTO fiscal_year_settings (fiscal_year, vehicle_total_km, vehicle_business_km, \
-         home_total_sqft, home_office_sqft) \
-         VALUES (?1, ?2, ?3, ?4, ?5) \
+         home_total_sqft, home_office_sqft, gst_collected, qst_collected, gst_remitted, qst_remitted) \
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9) \
          ON CONFLICT(fiscal_year) DO UPDATE SET \
          vehicle_total_km = excluded.vehicle_total_km, \
          vehicle_business_km = excluded.vehicle_business_km, \
          home_total_sqft = excluded.home_total_sqft, \
          home_office_sqft = excluded.home_office_sqft, \
+         gst_collected = excluded.gst_collected, \
+         qst_collected = excluded.qst_collected, \
+         gst_remitted = excluded.gst_remitted, \
+         qst_remitted = excluded.qst_remitted, \
          updated_at = datetime('now')",
         rusqlite::params![
             params.fiscal_year,
@@ -59,6 +75,10 @@ pub fn upsert_fiscal_year_settings(
             params.vehicle_business_km,
             params.home_total_sqft,
             params.home_office_sqft,
+            params.gst_collected,
+            params.qst_collected,
+            params.gst_remitted,
+            params.qst_remitted,
         ],
     )?;
 
@@ -103,6 +123,10 @@ mod tests {
             vehicle_business_km: Some(6000.0),
             home_total_sqft: Some(1200.0),
             home_office_sqft: Some(150.0),
+            gst_collected: None,
+            qst_collected: None,
+            gst_remitted: None,
+            qst_remitted: None,
         };
 
         // Act
@@ -126,6 +150,10 @@ mod tests {
             vehicle_business_km: Some(6000.0),
             home_total_sqft: Some(1200.0),
             home_office_sqft: Some(150.0),
+            gst_collected: None,
+            qst_collected: None,
+            gst_remitted: None,
+            qst_remitted: None,
         };
         upsert_fiscal_year_settings(&conn, params1).unwrap();
 
@@ -135,6 +163,10 @@ mod tests {
             vehicle_business_km: Some(8000.0),
             home_total_sqft: Some(1200.0),
             home_office_sqft: Some(200.0),
+            gst_collected: None,
+            qst_collected: None,
+            gst_remitted: None,
+            qst_remitted: None,
         };
 
         // Act
@@ -156,6 +188,10 @@ mod tests {
             vehicle_business_km: None,
             home_total_sqft: None,
             home_office_sqft: None,
+            gst_collected: None,
+            qst_collected: None,
+            gst_remitted: None,
+            qst_remitted: None,
         };
 
         // Act
@@ -178,6 +214,10 @@ mod tests {
             vehicle_business_km: Some(5000.0),
             home_total_sqft: None,
             home_office_sqft: None,
+            gst_collected: None,
+            qst_collected: None,
+            gst_remitted: None,
+            qst_remitted: None,
         };
         upsert_fiscal_year_settings(&conn, params).unwrap();
 
@@ -213,6 +253,10 @@ mod tests {
             vehicle_business_km: Some(3000.0),
             home_total_sqft: None,
             home_office_sqft: None,
+            gst_collected: None,
+            qst_collected: None,
+            gst_remitted: None,
+            qst_remitted: None,
         };
         let p2025 = UpsertFiscalYearSettingsParams {
             fiscal_year: 2025,
@@ -220,6 +264,10 @@ mod tests {
             vehicle_business_km: Some(6000.0),
             home_total_sqft: None,
             home_office_sqft: None,
+            gst_collected: None,
+            qst_collected: None,
+            gst_remitted: None,
+            qst_remitted: None,
         };
         upsert_fiscal_year_settings(&conn, p2024).unwrap();
         upsert_fiscal_year_settings(&conn, p2025).unwrap();

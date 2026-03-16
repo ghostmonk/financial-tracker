@@ -315,6 +315,10 @@ export interface FiscalYearSettings {
   vehicle_business_km: number | null;
   home_total_sqft: number | null;
   home_office_sqft: number | null;
+  gst_collected: number | null;
+  qst_collected: number | null;
+  gst_remitted: number | null;
+  qst_remitted: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -325,6 +329,10 @@ export interface UpsertFiscalYearSettingsParams {
   vehicle_business_km?: number | null;
   home_total_sqft?: number | null;
   home_office_sqft?: number | null;
+  gst_collected?: number | null;
+  qst_collected?: number | null;
+  gst_remitted?: number | null;
+  qst_remitted?: number | null;
 }
 
 export interface TaxBracket {
