@@ -360,6 +360,21 @@ export interface TaxRateConfig {
   };
 }
 
+export interface TaxBurdenEstimate {
+  gross_income: number;
+  total_deductions: number;
+  net_income: number;
+  cpp_qpp: number;
+  cpp_qpp2: number;
+  qpip: number;
+  cpp_qpp_deduction: number;
+  taxable_income: number;
+  federal_tax: number;
+  provincial_tax: number;
+  total_burden: number;
+  effective_rate: number;
+}
+
 export interface TaxWorkspaceItem {
   id: string;
   source: "transaction" | "tax_line_item";

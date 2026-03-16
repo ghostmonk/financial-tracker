@@ -8,7 +8,7 @@ use crate::models::tax_line_item::{
     self, CreateTaxLineItemParams, TaxLineItem, TaxWorkspaceItem, UpdateTaxLineItemParams,
 };
 use crate::tax::{self, TaxRules};
-use crate::tax_rates::{self, TaxRateConfig};
+use crate::tax_rates::{self, TaxBurdenEstimate, TaxRateConfig};
 use crate::AppState;
 
 use super::with_db_conn;
@@ -22,6 +22,21 @@ pub fn get_tax_rules() -> Result<TaxRules, String> {
 pub fn get_tax_rates(fiscal_year: i32) -> Result<TaxRateConfig, String> {
     let rules = tax::load_tax_rules();
     tax_rates::load_tax_rates(fiscal_year, &rules.jurisdiction)
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn calculate_tax_burden(
+    fiscal_year: i32,
+    gross_income: f64,
+    total_deductions: f64,
+) -> Result<TaxBurdenEstimate, String> {
+    let rules = tax::load_tax_rules();
+    let rates = tax_rates::load_tax_rates(fiscal_year, &rules.jurisdiction)?;
+    Ok(tax_rates::calculate_tax_burden(
+        gross_income,
+        total_deductions,
+        &rates,
+    ))
 }
 
 db_command!(list_tax_line_items -> Vec<TaxLineItem>, tax_line_item::list_tax_line_items_by_year, fiscal_year: i32 => move);

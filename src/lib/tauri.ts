@@ -29,6 +29,7 @@ import type {
   FiscalYearSettings,
   UpsertFiscalYearSettingsParams,
   TaxRateConfig,
+  TaxBurdenEstimate,
   TaxWorkspaceItem,
 } from "./types";
 
@@ -62,6 +63,7 @@ export type {
   FiscalYearSettings,
   UpsertFiscalYearSettingsParams,
   TaxRateConfig,
+  TaxBurdenEstimate,
   TaxWorkspaceItem,
 };
 
@@ -366,6 +368,18 @@ export async function getTaxRates(
   fiscalYear: number,
 ): Promise<TaxRateConfig> {
   return invoke("get_tax_rates", { fiscal_year: fiscalYear });
+}
+
+export async function calculateTaxBurden(
+  fiscalYear: number,
+  grossIncome: number,
+  totalDeductions: number,
+): Promise<TaxBurdenEstimate> {
+  return invoke("calculate_tax_burden", {
+    fiscal_year: fiscalYear,
+    gross_income: grossIncome,
+    total_deductions: totalDeductions,
+  });
 }
 
 export async function updateTransactionReceipt(
