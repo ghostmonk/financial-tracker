@@ -63,6 +63,7 @@ pub fn run() {
             commands::rules::get_uncategorized_groups,
             commands::rules::count_uncategorized_groups,
             commands::rules::apply_rules_to_transaction_ids,
+            commands::rules::apply_single_rule,
             commands::rules::reapply_all_rules,
             // Tags
             commands::tags::list_tags,

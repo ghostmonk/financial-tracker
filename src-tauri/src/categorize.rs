@@ -219,6 +219,46 @@ pub fn apply_rules_to_transactions(
     Ok(count)
 }
 
+/// Apply a single rule (by ID) to all uncategorized transactions.
+/// Returns count of newly categorized transactions.
+pub fn apply_single_rule(conn: &Connection, rule_id: &str) -> Result<usize, DbError> {
+    use crate::models::categorization_rule::{load_rule_account_ids, row_to_rule_base};
+
+    let mut stmt = conn.prepare(
+        "SELECT id, pattern, match_field, match_type, category_id, priority, amount_min, amount_max, auto_apply, created_at \
+         FROM categorization_rules WHERE id = ?1",
+    )?;
+    let mut rule = stmt.query_row(params![rule_id], row_to_rule_base)?;
+
+    let account_map = load_rule_account_ids(conn)?;
+    if let Some(ids) = account_map.get(&rule.id) {
+        rule.account_ids = ids.clone();
+    }
+
+    let mut tx_stmt = conn.prepare(
+        "SELECT id, description, payee, amount, account_id FROM transactions WHERE category_id IS NULL",
+    )?;
+    let txns: Vec<(String, String, Option<String>, f64, String)> = tx_stmt
+        .query_map([], |row| {
+            Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?))
+        })?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+
+    let mut count = 0usize;
+    for (tx_id, description, payee, amount, acct_id) in &txns {
+        if rule_matches(&rule, description, payee.as_deref(), *amount, acct_id) {
+            conn.execute(
+                "UPDATE transactions SET category_id = ?1, categorized_by_rule = 1, \
+                 updated_at = datetime('now') WHERE id = ?2",
+                params![rule.category_id, tx_id],
+            )?;
+            count += 1;
+        }
+    }
+
+    Ok(count)
+}
+
 /// 1. Clear all rule-applied categorizations
 /// 2. Load all auto_apply=1 rules
 /// 3. Fetch all uncategorized transactions

@@ -257,6 +257,10 @@ export async function applyRulesToTransactionIds(
   });
 }
 
+export async function applySingleRule(ruleId: string): Promise<number> {
+  return invoke("apply_single_rule", { rule_id: ruleId });
+}
+
 export async function reapplyAllRules(): Promise<number> {
   return invoke("reapply_all_rules");
 }

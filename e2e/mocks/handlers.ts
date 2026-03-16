@@ -50,6 +50,7 @@ const defaultResponses: MockResponseMap = {
   get_group_transactions: ok(factories.transactions.list()),
   count_uncategorized_groups: ok(factories.uncategorizedGroups.list().length),
   apply_rules_to_transaction_ids: ok(0),
+  apply_single_rule: ok(0),
   reapply_all_rules: ok(0),
 
   // Tags

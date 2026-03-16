@@ -5,6 +5,7 @@ import {
   updateCategorizationRule,
   deleteCategorizationRule,
   reapplyAllRules,
+  applySingleRule,
   listCategories,
   listAccounts,
 } from "../lib/tauri";
@@ -378,6 +379,24 @@ export default function RulesPage() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-2">
+                      <button
+                        data-testid={`rule-run-${rule.id}`}
+                        onClick={async () => {
+                          setBanner(null);
+                          try {
+                            const count = await applySingleRule(rule.id);
+                            setBanner(
+                              `Rule "${rule.pattern}": ${count} transaction${count !== 1 ? "s" : ""} categorized.`,
+                            );
+                            window.dispatchEvent(new Event("categorization-changed"));
+                          } catch (err) {
+                            setError(parseError(err));
+                          }
+                        }}
+                        className="text-xs text-green-600 dark:text-green-400 hover:underline"
+                      >
+                        Run
+                      </button>
                       <button
                         data-testid={`rule-edit-${rule.id}`}
                         onClick={() => handleEdit(rule)}

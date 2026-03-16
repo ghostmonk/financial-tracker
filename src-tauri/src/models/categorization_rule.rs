@@ -50,7 +50,7 @@ pub struct UpdateRuleParams {
 const SELECT_COLS: &str =
     "id, pattern, match_field, match_type, category_id, priority, amount_min, amount_max, auto_apply, created_at";
 
-fn row_to_rule_base(row: &rusqlite::Row) -> rusqlite::Result<CategorizationRule> {
+pub fn row_to_rule_base(row: &rusqlite::Row) -> rusqlite::Result<CategorizationRule> {
     Ok(CategorizationRule {
         id: row.get(0)?,
         pattern: row.get(1)?,
