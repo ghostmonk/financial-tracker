@@ -16,7 +16,7 @@ import type {
   Account,
 } from "../lib/types";
 import { parseError } from "../lib/utils";
-import { inputClass, btnClass, btnPrimaryClass, btnDangerClass } from "../lib/styles";
+import { inputClass, inputSmClass, btnClass, btnPrimaryClass, btnDangerClass } from "../lib/styles";
 import Modal from "../components/shared/Modal";
 import FormField from "../components/shared/FormField";
 import CategorySelect from "../components/transactions/CategorySelect";
@@ -35,6 +35,13 @@ export default function RulesPage() {
   );
   const [error, setError] = useState<string | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
+
+  // Filter state
+  const [filterSearch, setFilterSearch] = useState("");
+  const [filterAccountId, setFilterAccountId] = useState("");
+  const [filterCategoryId, setFilterCategoryId] = useState<string | null>(null);
+  const [filterMatchField, setFilterMatchField] = useState("");
+  const [filterAutoApply, setFilterAutoApply] = useState("");
 
   type SortField = "pattern" | "match_field" | "match_type" | "category" | "priority" | "auto_apply";
   type SortDir = "asc" | "desc";
@@ -85,8 +92,33 @@ export default function RulesPage() {
     }),
   );
 
+  const filteredRules = useMemo(() => {
+    let result = rules;
+    if (filterSearch) {
+      const term = filterSearch.toLowerCase();
+      result = result.filter((r) => r.pattern.toLowerCase().includes(term));
+    }
+    if (filterAccountId) {
+      result = result.filter(
+        (r) => r.account_ids.length === 0 || r.account_ids.includes(filterAccountId),
+      );
+    }
+    if (filterCategoryId) {
+      result = result.filter((r) => r.category_id === filterCategoryId);
+    }
+    if (filterMatchField) {
+      result = result.filter((r) => r.match_field === filterMatchField);
+    }
+    if (filterAutoApply === "yes") {
+      result = result.filter((r) => r.auto_apply);
+    } else if (filterAutoApply === "no") {
+      result = result.filter((r) => !r.auto_apply);
+    }
+    return result;
+  }, [rules, filterSearch, filterAccountId, filterCategoryId, filterMatchField, filterAutoApply]);
+
   const sortedRules = useMemo(() => {
-    const sorted = [...rules].sort((a, b) => {
+    const sorted = [...filteredRules].sort((a, b) => {
       let cmp = 0;
       switch (sortField) {
         case "pattern":
@@ -113,7 +145,7 @@ export default function RulesPage() {
       return sortDir === "asc" ? cmp : -cmp;
     });
     return sorted;
-  }, [rules, sortField, sortDir, categoryMap]);
+  }, [filteredRules, sortField, sortDir, categoryMap]);
 
   async function handleReapply() {
     setBanner(null);
@@ -202,6 +234,88 @@ export default function RulesPage() {
       {error && (
         <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
       )}
+
+      <div className="flex flex-wrap items-end gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
+        <div className="flex flex-col">
+          <label className="text-xs text-gray-500 dark:text-gray-400 mb-1">Search</label>
+          <input
+            data-testid="rules-filter-search"
+            type="text"
+            value={filterSearch}
+            onChange={(e) => setFilterSearch(e.target.value)}
+            placeholder="Pattern..."
+            className={`${inputSmClass} w-52`}
+          />
+        </div>
+
+        <div className="flex flex-col">
+          <label className="text-xs text-gray-500 dark:text-gray-400 mb-1">Account</label>
+          <select
+            data-testid="rules-filter-account"
+            value={filterAccountId}
+            onChange={(e) => setFilterAccountId(e.target.value)}
+            className={inputSmClass}
+          >
+            <option value="">All accounts</option>
+            {accounts.map((a) => (
+              <option key={a.id} value={a.id}>{a.name}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex flex-col">
+          <label className="text-xs text-gray-500 dark:text-gray-400 mb-1">Category</label>
+          <CategorySelect
+            categories={categories}
+            value={filterCategoryId}
+            onChange={(catId) => setFilterCategoryId(catId)}
+          />
+        </div>
+
+        <div className="flex flex-col">
+          <label className="text-xs text-gray-500 dark:text-gray-400 mb-1">Match field</label>
+          <select
+            data-testid="rules-filter-match-field"
+            value={filterMatchField}
+            onChange={(e) => setFilterMatchField(e.target.value)}
+            className={inputSmClass}
+          >
+            <option value="">All</option>
+            <option value="description">Description</option>
+            <option value="payee">Payee</option>
+          </select>
+        </div>
+
+        <div className="flex flex-col">
+          <label className="text-xs text-gray-500 dark:text-gray-400 mb-1">Auto-apply</label>
+          <select
+            data-testid="rules-filter-auto-apply"
+            value={filterAutoApply}
+            onChange={(e) => setFilterAutoApply(e.target.value)}
+            className={inputSmClass}
+          >
+            <option value="">All</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+        </div>
+
+        {(filterSearch || filterAccountId || filterCategoryId || filterMatchField || filterAutoApply) && (
+          <button
+            data-testid="rules-filter-clear"
+            onClick={() => {
+              setFilterSearch("");
+              setFilterAccountId("");
+              setFilterCategoryId(null);
+              setFilterMatchField("");
+              setFilterAutoApply("");
+            }}
+            className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          >
+            Clear filters
+          </button>
+        )}
+      </div>
 
       {loading ? (
         <p data-testid="rules-loading" className="text-gray-500 dark:text-gray-400 text-sm">Loading...</p>

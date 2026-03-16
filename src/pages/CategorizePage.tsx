@@ -17,7 +17,7 @@ import type {
   CategoryHotkey,
 } from "../lib/types";
 import { parseError } from "../lib/utils";
-import { selectClass, btnClass, btnPrimaryClass } from "../lib/styles";
+import { inputSmClass, btnClass, btnPrimaryClass } from "../lib/styles";
 import Modal from "../components/shared/Modal";
 import { useKeyboardNav } from "../lib/useKeyboardNav";
 import { useUndoStack } from "../lib/useUndoStack";
@@ -33,6 +33,7 @@ export default function CategorizePage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAccountId, setSelectedAccountId] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [categorizingGroup, setCategorizingGroup] =
     useState<UncategorizedGroup | null>(null);
   const [drillDownGroup, setDrillDownGroup] =
@@ -64,7 +65,11 @@ export default function CategorizePage() {
   );
 
   const sortedGroups = useMemo(() => {
-    const sorted = [...groups].sort((a, b) => {
+    const term = searchTerm.toLowerCase();
+    const filtered = term
+      ? groups.filter((g) => g.normalized_name.toLowerCase().includes(term))
+      : groups;
+    const sorted = [...filtered].sort((a, b) => {
       let cmp = 0;
       switch (sortField) {
         case "name":
@@ -80,7 +85,7 @@ export default function CategorizePage() {
       return sortDir === "asc" ? cmp : -cmp;
     });
     return sorted;
-  }, [groups, sortField, sortDir]);
+  }, [groups, sortField, sortDir, searchTerm]);
 
   function toggleSort(field: GroupSortField) {
     if (sortField === field) {
@@ -176,14 +181,6 @@ export default function CategorizePage() {
           group.normalized_name,
           selectedAccountId || undefined,
         );
-        console.log("[categorize] executeCategorization", {
-          withRule,
-          normalizedName: group.normalized_name,
-          categoryId,
-          selectedAccountId,
-          txCount: txs.length,
-          txIds: txs.map((t) => t.id),
-        });
         const txIds = txs.map((t) => t.id);
         const prevCategoryIds = txs.map((t) => t.category_id);
         const prevByRule = txs.map((t) => t.categorized_by_rule);
@@ -253,19 +250,41 @@ export default function CategorizePage() {
             {totalTransactions} transaction{totalTransactions !== 1 ? "s" : ""}
           </p>
         </div>
-        <select
-          data-testid="categorize-account-filter"
-          value={selectedAccountId}
-          onChange={(e) => setSelectedAccountId(e.target.value)}
-          className={selectClass}
-        >
-          <option value="">All Accounts</option>
-          {accounts.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.name}
-            </option>
-          ))}
-        </select>
+        <div className="flex items-center gap-2">
+          <input
+            data-testid="categorize-search"
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search groups..."
+            className={`${inputSmClass} w-52`}
+          />
+          <select
+            data-testid="categorize-account-filter"
+            value={selectedAccountId}
+            onChange={(e) => setSelectedAccountId(e.target.value)}
+            className={inputSmClass}
+          >
+            <option value="">All Accounts</option>
+            {accounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
+          {(searchTerm || selectedAccountId) && (
+            <button
+              data-testid="categorize-clear-filters"
+              onClick={() => {
+                setSearchTerm("");
+                setSelectedAccountId("");
+              }}
+              className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            >
+              Clear
+            </button>
+          )}
+        </div>
       </div>
 
       {error && (
