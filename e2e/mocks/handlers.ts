@@ -71,6 +71,7 @@ const defaultResponses: MockResponseMap = {
   get_fiscal_year_settings_cmd: ok(factories.tax.fiscalYearSettings()),
   upsert_fiscal_year_settings_cmd: ok(factories.tax.fiscalYearSettings()),
   get_tax_workspace_items: ok(factories.tax.workspaceItems()),
+  get_tax_payment_transactions_cmd: ok([]),
   update_transaction_receipt: ok(null),
 
   // Plugin commands
