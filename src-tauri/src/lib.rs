@@ -5,6 +5,7 @@ pub mod db_utils;
 mod import;
 mod models;
 mod tax;
+pub mod tax_rates;
 #[cfg(test)]
 mod test_utils;
 
@@ -81,6 +82,7 @@ pub fn run() {
             commands::tax::upsert_fiscal_year_settings_cmd,
             commands::tax::get_tax_workspace_items,
             commands::tax::update_transaction_receipt,
+            commands::tax::get_tax_rates,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

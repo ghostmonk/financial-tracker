@@ -327,6 +327,39 @@ export interface UpsertFiscalYearSettingsParams {
   home_office_sqft?: number | null;
 }
 
+export interface TaxBracket {
+  min: number;
+  max: number | null;
+  rate: number;
+}
+
+export interface TaxRateConfig {
+  year: number;
+  jurisdiction: string;
+  federal: {
+    brackets: TaxBracket[];
+    basic_personal_amount: number;
+    quebec_abatement: number;
+  };
+  provincial: {
+    brackets: TaxBracket[];
+    basic_personal_amount: number;
+  };
+  cpp_qpp: {
+    rate: number;
+    max_pensionable: number;
+    basic_exemption: number;
+  };
+  cpp_qpp2: {
+    rate: number;
+    second_ceiling: number;
+  };
+  qpip: {
+    self_employed_rate: number;
+    max_insurable: number;
+  };
+}
+
 export interface TaxWorkspaceItem {
   id: string;
   source: "transaction" | "tax_line_item";

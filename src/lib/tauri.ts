@@ -28,6 +28,7 @@ import type {
   UpdateTaxLineItemParams,
   FiscalYearSettings,
   UpsertFiscalYearSettingsParams,
+  TaxRateConfig,
   TaxWorkspaceItem,
 } from "./types";
 
@@ -60,6 +61,7 @@ export type {
   UpdateTaxLineItemParams,
   FiscalYearSettings,
   UpsertFiscalYearSettingsParams,
+  TaxRateConfig,
   TaxWorkspaceItem,
 };
 
@@ -358,6 +360,12 @@ export async function getTaxWorkspaceItems(
   fiscalYear: number,
 ): Promise<TaxWorkspaceItem[]> {
   return invoke("get_tax_workspace_items", { fiscal_year: fiscalYear });
+}
+
+export async function getTaxRates(
+  fiscalYear: number,
+): Promise<TaxRateConfig> {
+  return invoke("get_tax_rates", { fiscal_year: fiscalYear });
 }
 
 export async function updateTransactionReceipt(

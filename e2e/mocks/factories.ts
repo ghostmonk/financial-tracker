@@ -11,6 +11,7 @@ import type {
   ImportPreview,
   ImportResult,
   TaxRules,
+  TaxRateConfig,
   TaxLineItem,
   FiscalYearSettings,
   TaxWorkspaceItem,
@@ -414,6 +415,44 @@ const defaultTaxRules: TaxRules = {
   ],
 };
 
+const defaultTaxRateConfig: TaxRateConfig = {
+  year: 2025,
+  jurisdiction: "CA-QC",
+  federal: {
+    brackets: [
+      { min: 0, max: 57375, rate: 0.15 },
+      { min: 57375, max: 114750, rate: 0.205 },
+      { min: 114750, max: 158468, rate: 0.26 },
+      { min: 158468, max: 220000, rate: 0.29 },
+      { min: 220000, max: null, rate: 0.33 },
+    ],
+    basic_personal_amount: 16129,
+    quebec_abatement: 0.165,
+  },
+  provincial: {
+    brackets: [
+      { min: 0, max: 51780, rate: 0.14 },
+      { min: 51780, max: 103545, rate: 0.19 },
+      { min: 103545, max: 126000, rate: 0.24 },
+      { min: 126000, max: null, rate: 0.2575 },
+    ],
+    basic_personal_amount: 18056,
+  },
+  cpp_qpp: {
+    rate: 0.119,
+    max_pensionable: 71300,
+    basic_exemption: 3500,
+  },
+  cpp_qpp2: {
+    rate: 0.08,
+    second_ceiling: 81200,
+  },
+  qpip: {
+    self_employed_rate: 0.00878,
+    max_insurable: 94000,
+  },
+};
+
 const defaultTaxLineItems: TaxLineItem[] = [
   {
     id: IDS.taxLineItems.officeSupplies,
@@ -566,6 +605,8 @@ export const factories = {
       structuredClone(defaultFiscalYearSettings),
     workspaceItems: (): TaxWorkspaceItem[] =>
       structuredClone(defaultTaxWorkspaceItems),
+    rateConfig: (overrides?: Partial<TaxRateConfig>): TaxRateConfig =>
+      withOverrides(defaultTaxRateConfig, overrides),
   },
 };
 
