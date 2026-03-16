@@ -12,6 +12,7 @@ import type {
   ImportResult,
   TaxRules,
   TaxRateConfig,
+  TaxBurdenEstimate,
   TaxLineItem,
   FiscalYearSettings,
   TaxWorkspaceItem,
@@ -607,6 +608,20 @@ export const factories = {
       structuredClone(defaultTaxWorkspaceItems),
     rateConfig: (overrides?: Partial<TaxRateConfig>): TaxRateConfig =>
       withOverrides(defaultTaxRateConfig, overrides),
+    burdenEstimate: (): TaxBurdenEstimate => ({
+      gross_income: 200000,
+      total_deductions: 50000,
+      net_income: 150000,
+      cpp_qpp: 8068.2,
+      cpp_qpp2: 792.0,
+      qpip: 825.32,
+      cpp_qpp_deduction: 4034.1,
+      taxable_income: 145965.9,
+      federal_tax: 22500.0,
+      provincial_tax: 24000.0,
+      total_burden: 56185.52,
+      effective_rate: 0.2809,
+    }),
   },
 };
 

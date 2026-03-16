@@ -63,6 +63,7 @@ const defaultResponses: MockResponseMap = {
   // Tax
   get_tax_rules: ok(factories.tax.rules()),
   get_tax_rates: ok(factories.tax.rateConfig()),
+  calculate_tax_burden: ok(factories.tax.burdenEstimate()),
   list_tax_line_items: ok(factories.tax.lineItems()),
   create_tax_line_item_cmd: ok(factories.tax.singleLineItem()),
   update_tax_line_item_cmd: ok(factories.tax.singleLineItem()),
