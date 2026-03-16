@@ -312,6 +312,7 @@ static SEED_CATEGORIES: &[SeedCategory] = &[
             ("equipment", "Equipment"),
             ("rent_coworking", "Rent & Coworking"),
             ("telecom", "Telecom"),
+            ("business_bank_fees", "Business Bank Fees"),
             ("other_business", "Other Business"),
         ],
     },
