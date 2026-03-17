@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   listCategories,
   createCategory,
@@ -7,13 +7,31 @@ import {
   listTags,
   createTag,
   deleteTag,
+  listHotkeys,
+  setHotkey,
+  removeHotkey,
 } from "../lib/tauri";
-import type { Category, CreateCategoryParams, Tag } from "../lib/types";
+import type {
+  Category,
+  CreateCategoryParams,
+  Tag,
+  CategoryHotkey,
+} from "../lib/types";
 import { parseError } from "../lib/utils";
 import { btnClass, btnPrimaryClass, btnDangerClass } from "../lib/styles";
+import { useKeyboardNav } from "../lib/useKeyboardNav";
+import { usePersistedSet } from "../lib/usePersistedSet";
 import Modal from "../components/shared/Modal";
-import CategoryList from "../components/categories/CategoryList";
+import CategoryList, {
+  flattenCategories,
+} from "../components/categories/CategoryList";
 import CategoryForm from "../components/categories/CategoryForm";
+
+interface ConflictInfo {
+  key: string;
+  existingCategoryName: string;
+  newCategoryId: string;
+}
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -28,6 +46,115 @@ export default function CategoriesPage() {
   const [tags, setTags] = useState<Tag[]>([]);
   const [newTagName, setNewTagName] = useState("");
   const [tagError, setTagError] = useState<string | null>(null);
+
+  const [hotkeys, setHotkeys] = useState<CategoryHotkey[]>([]);
+  const [conflictInfo, setConflictInfo] = useState<ConflictInfo | null>(null);
+  const [collapsedParents, setCollapsedParents] = usePersistedSet(
+    "categories-collapsed",
+  );
+
+  const flatCats = useMemo(
+    () => flattenCategories(categories, collapsedParents),
+    [categories, collapsedParents],
+  );
+
+  const hotkeyByKey = useMemo(() => {
+    const map = new Map<string, CategoryHotkey>();
+    for (const hk of hotkeys) {
+      map.set(hk.key, hk);
+    }
+    return map;
+  }, [hotkeys]);
+
+  const hotkeyByCategoryId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const hk of hotkeys) {
+      map.set(hk.category_id, hk.key);
+    }
+    return map;
+  }, [hotkeys]);
+
+  const handleHotkeyKeyPress = useCallback(
+    async (key: string, shiftKey: boolean, focusedIdx: number) => {
+      const cat = flatCats[focusedIdx];
+      if (!cat) return;
+
+      if (key === "Backspace") {
+        const existingKey = hotkeyByCategoryId.get(cat.id);
+        if (existingKey) {
+          try {
+            await removeHotkey(existingKey);
+            const updated = await listHotkeys();
+            setHotkeys(updated);
+          } catch (err) {
+            console.error("Failed to remove hotkey:", err);
+          }
+        }
+        return;
+      }
+
+      // Only allow hotkey assignment on parent categories
+      if (cat.parent_id !== null) return;
+
+      const hotkeyKey = shiftKey ? key.toUpperCase() : key.toLowerCase();
+
+      const existing = hotkeyByKey.get(hotkeyKey);
+      if (existing && existing.category_id !== cat.id) {
+        const existingCat = categories.find(
+          (c) => c.id === existing.category_id,
+        );
+        setConflictInfo({
+          key: hotkeyKey,
+          existingCategoryName: existingCat?.name ?? "Unknown",
+          newCategoryId: cat.id,
+        });
+        return;
+      }
+
+      try {
+        await setHotkey({ key: hotkeyKey, category_id: cat.id });
+        const updated = await listHotkeys();
+        setHotkeys(updated);
+      } catch (err) {
+        console.error("Failed to set hotkey:", err);
+      }
+    },
+    [flatCats, hotkeyByKey, hotkeyByCategoryId, categories],
+  );
+
+  const handleArrowRight = useCallback(
+    (index: number) => {
+      const cat = flatCats[index];
+      if (!cat || cat.parent_id !== null) return;
+      const next = new Set(collapsedParents);
+      next.delete(cat.id);
+      setCollapsedParents(next);
+    },
+    [flatCats, collapsedParents, setCollapsedParents],
+  );
+
+  const handleArrowLeft = useCallback(
+    (index: number) => {
+      const cat = flatCats[index];
+      if (!cat) return;
+      const next = new Set(collapsedParents);
+      if (cat.parent_id !== null) {
+        next.add(cat.parent_id);
+      } else {
+        next.add(cat.id);
+      }
+      setCollapsedParents(next);
+    },
+    [flatCats, collapsedParents, setCollapsedParents],
+  );
+
+  const { focusedIndex } = useKeyboardNav({
+    itemCount: flatCats.length,
+    enabled: !showForm && !deletingCategory && !conflictInfo && !loading,
+    onKeyPress: handleHotkeyKeyPress,
+    onRight: handleArrowRight,
+    onLeft: handleArrowLeft,
+  });
 
   const fetchTags = useCallback(async () => {
     try {
@@ -50,10 +177,20 @@ export default function CategoriesPage() {
     }
   }, []);
 
+  const fetchHotkeys = useCallback(async () => {
+    try {
+      const result = await listHotkeys();
+      setHotkeys(result);
+    } catch (err) {
+      console.error("Failed to fetch hotkeys:", err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchCategories();
     fetchTags();
-  }, [fetchCategories, fetchTags]);
+    fetchHotkeys();
+  }, [fetchCategories, fetchTags, fetchHotkeys]);
 
   async function handleSubmit(params: CreateCategoryParams) {
     setError(null);
@@ -90,6 +227,22 @@ export default function CategoriesPage() {
     }
   }
 
+  async function handleConfirmReassign() {
+    if (!conflictInfo) return;
+    try {
+      await setHotkey({
+        key: conflictInfo.key,
+        category_id: conflictInfo.newCategoryId,
+      });
+      const updated = await listHotkeys();
+      setHotkeys(updated);
+    } catch (err) {
+      console.error("Failed to reassign hotkey:", err);
+    } finally {
+      setConflictInfo(null);
+    }
+  }
+
   async function handleAddTag() {
     const trimmed = newTagName.trim();
     if (!trimmed) return;
@@ -120,6 +273,10 @@ export default function CategoriesPage() {
           <h1 className="text-2xl font-semibold mb-1">Categories</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             {categories.length} categor{categories.length !== 1 ? "ies" : "y"}
+            {" — "}
+            <span className="text-gray-400 dark:text-gray-500">
+              Use arrow keys to navigate, press a letter to assign a hotkey
+            </span>
           </p>
         </div>
         <button
@@ -140,10 +297,18 @@ export default function CategoriesPage() {
       )}
 
       {loading ? (
-        <p data-testid="categories-loading" className="text-gray-500 dark:text-gray-400 text-sm">Loading...</p>
+        <p
+          data-testid="categories-loading"
+          className="text-gray-500 dark:text-gray-400 text-sm"
+        >
+          Loading...
+        </p>
       ) : (
         <CategoryList
           categories={categories}
+          hotkeys={hotkeys}
+          focusedIndex={focusedIndex}
+          collapsedParents={collapsedParents}
           onEdit={handleEdit}
           onDelete={setDeletingCategory}
         />
@@ -168,8 +333,8 @@ export default function CategoriesPage() {
         width="sm"
       >
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          Delete &quot;{deletingCategory?.name}&quot;? Transactions using
-          this category will become uncategorized.
+          Delete &quot;{deletingCategory?.name}&quot;? Transactions using this
+          category will become uncategorized.
         </p>
         <div className="flex justify-end gap-2 mt-4">
           <button
@@ -178,11 +343,33 @@ export default function CategoriesPage() {
           >
             Cancel
           </button>
-          <button
-            onClick={handleConfirmDelete}
-            className={btnDangerClass}
-          >
+          <button onClick={handleConfirmDelete} className={btnDangerClass}>
             Delete
+          </button>
+        </div>
+      </Modal>
+
+      <Modal
+        open={!!conflictInfo}
+        onClose={() => setConflictInfo(null)}
+        title="Reassign Hotkey"
+        width="sm"
+      >
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Key{" "}
+          <span className="font-mono font-bold">[{conflictInfo?.key}]</span> is
+          already assigned to &quot;{conflictInfo?.existingCategoryName}&quot;.
+          Reassign it?
+        </p>
+        <div className="flex justify-end gap-2 mt-4">
+          <button
+            onClick={() => setConflictInfo(null)}
+            className={btnClass}
+          >
+            Cancel
+          </button>
+          <button onClick={handleConfirmReassign} className={btnPrimaryClass}>
+            Reassign
           </button>
         </div>
       </Modal>

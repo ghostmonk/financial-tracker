@@ -265,7 +265,8 @@ static SEED_CATEGORIES: &[SeedCategory] = &[
         name: "Taxes",
         direction: "expense",
         children: &[
-            ("income_tax", "Income Tax"),
+            ("federal_tax_payment", "Federal Tax Payment"),
+            ("provincial_tax_payment", "Provincial Tax Payment"),
             ("sales_tax", "Sales Tax"),
             ("property_tax_payment", "Property Tax Payment"),
             ("tax_preparation", "Tax Preparation"),
@@ -311,6 +312,7 @@ static SEED_CATEGORIES: &[SeedCategory] = &[
             ("equipment", "Equipment"),
             ("rent_coworking", "Rent & Coworking"),
             ("telecom", "Telecom"),
+            ("business_bank_fees", "Business Bank Fees"),
             ("other_business", "Other Business"),
         ],
     },

@@ -76,11 +76,7 @@ impl UpdateBuilder {
         }
 
         self.values.push(Box::new(id.to_string()));
-        let sql = format!(
-            "UPDATE {} SET {} WHERE id = ?",
-            table,
-            self.sets.join(", ")
-        );
+        let sql = format!("UPDATE {} SET {} WHERE id = ?", table, self.sets.join(", "));
         let param_refs: Vec<&dyn rusqlite::types::ToSql> =
             self.values.iter().map(|v| v.as_ref()).collect();
         conn.execute(&sql, param_refs.as_slice())?;
@@ -117,9 +113,7 @@ macro_rules! db_command {
     // No extra args: list_*
     ($cmd_name:ident -> $ret:ty, $model_fn:expr) => {
         #[tauri::command(rename_all = "snake_case")]
-        pub fn $cmd_name(
-            state: tauri::State<'_, $crate::AppState>,
-        ) -> Result<$ret, String> {
+        pub fn $cmd_name(state: tauri::State<'_, $crate::AppState>) -> Result<$ret, String> {
             $crate::commands::with_db_conn(&state, |conn| {
                 $model_fn(conn).map_err(|e| e.to_string())
             })
@@ -164,11 +158,16 @@ macro_rules! db_command {
     };
 }
 
-pub fn in_clause(items: &[String], start_index: usize) -> (String, Vec<Box<dyn rusqlite::types::ToSql>>) {
+pub fn in_clause(
+    items: &[String],
+    start_index: usize,
+) -> (String, Vec<Box<dyn rusqlite::types::ToSql>>) {
     let placeholders: Vec<String> = (0..items.len())
         .map(|i| format!("?{}", i + start_index))
         .collect();
-    let values: Vec<Box<dyn rusqlite::types::ToSql>> =
-        items.iter().map(|s| Box::new(s.clone()) as Box<dyn rusqlite::types::ToSql>).collect();
+    let values: Vec<Box<dyn rusqlite::types::ToSql>> = items
+        .iter()
+        .map(|s| Box::new(s.clone()) as Box<dyn rusqlite::types::ToSql>)
+        .collect();
     (placeholders.join(", "), values)
 }

@@ -22,11 +22,18 @@ const defaultResponses: MockResponseMap = {
   update_category: ok(factories.categories.single()),
   delete_category: ok(null),
 
+  // Hotkeys
+  list_hotkeys: ok(factories.hotkeys.list()),
+  set_hotkey: ok(factories.hotkeys.single()),
+  remove_hotkey: ok(null),
+
   // Transactions
   list_transactions: ok(factories.transactions.list()),
   update_transaction: ok(factories.transactions.single()),
   update_transactions_category: ok(null),
   delete_transaction: ok(null),
+  list_used_category_ids: ok(factories.transactions.usedCategoryIds()),
+  get_transaction_summary: ok(factories.transactions.summary()),
 
   // Import
   preview_csv_file: ok(factories.csv.preview()),
@@ -43,6 +50,7 @@ const defaultResponses: MockResponseMap = {
   get_group_transactions: ok(factories.transactions.list()),
   count_uncategorized_groups: ok(factories.uncategorizedGroups.list().length),
   apply_rules_to_transaction_ids: ok(0),
+  apply_single_rule: ok(0),
   reapply_all_rules: ok(0),
 
   // Tags
@@ -54,6 +62,8 @@ const defaultResponses: MockResponseMap = {
 
   // Tax
   get_tax_rules: ok(factories.tax.rules()),
+  get_tax_rates: ok(factories.tax.rateConfig()),
+  calculate_tax_burden: ok(factories.tax.burdenEstimate()),
   list_tax_line_items: ok(factories.tax.lineItems()),
   create_tax_line_item_cmd: ok(factories.tax.singleLineItem()),
   update_tax_line_item_cmd: ok(factories.tax.singleLineItem()),
@@ -61,6 +71,7 @@ const defaultResponses: MockResponseMap = {
   get_fiscal_year_settings_cmd: ok(factories.tax.fiscalYearSettings()),
   upsert_fiscal_year_settings_cmd: ok(factories.tax.fiscalYearSettings()),
   get_tax_workspace_items: ok(factories.tax.workspaceItems()),
+  get_tax_payment_transactions_cmd: ok([]),
   update_transaction_receipt: ok(null),
 
   // Plugin commands

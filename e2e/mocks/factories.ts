@@ -2,13 +2,17 @@ import type {
   Account,
   Category,
   Transaction,
+  TransactionSummary,
   CategorizationRule,
   Tag,
+  CategoryHotkey,
   UncategorizedGroup,
   CsvPreview,
   ImportPreview,
   ImportResult,
   TaxRules,
+  TaxRateConfig,
+  TaxBurdenEstimate,
   TaxLineItem,
   FiscalYearSettings,
   TaxWorkspaceItem,
@@ -245,6 +249,7 @@ const defaultRules: CategorizationRule[] = [
     match_type: "contains",
     category_id: IDS.categories.groceries,
     priority: 10,
+    account_ids: [],
     amount_min: null,
     amount_max: null,
     auto_apply: true,
@@ -257,6 +262,7 @@ const defaultRules: CategorizationRule[] = [
     match_type: "exact",
     category_id: IDS.categories.rent,
     priority: 20,
+    account_ids: [],
     amount_min: null,
     amount_max: null,
     auto_apply: true,
@@ -410,6 +416,44 @@ const defaultTaxRules: TaxRules = {
   ],
 };
 
+const defaultTaxRateConfig: TaxRateConfig = {
+  year: 2025,
+  jurisdiction: "CA-QC",
+  federal: {
+    brackets: [
+      { min: 0, max: 57375, rate: 0.15 },
+      { min: 57375, max: 114750, rate: 0.205 },
+      { min: 114750, max: 158468, rate: 0.26 },
+      { min: 158468, max: 220000, rate: 0.29 },
+      { min: 220000, max: null, rate: 0.33 },
+    ],
+    basic_personal_amount: 16129,
+    quebec_abatement: 0.165,
+  },
+  provincial: {
+    brackets: [
+      { min: 0, max: 51780, rate: 0.14 },
+      { min: 51780, max: 103545, rate: 0.19 },
+      { min: 103545, max: 126000, rate: 0.24 },
+      { min: 126000, max: null, rate: 0.2575 },
+    ],
+    basic_personal_amount: 18056,
+  },
+  cpp_qpp: {
+    rate: 0.119,
+    max_pensionable: 71300,
+    basic_exemption: 3500,
+  },
+  cpp_qpp2: {
+    rate: 0.08,
+    second_ceiling: 81200,
+  },
+  qpip: {
+    self_employed_rate: 0.00878,
+    max_insurable: 94000,
+  },
+};
+
 const defaultTaxLineItems: TaxLineItem[] = [
   {
     id: IDS.taxLineItems.officeSupplies,
@@ -432,6 +476,10 @@ const defaultFiscalYearSettings: FiscalYearSettings = {
   vehicle_business_km: 8000,
   home_total_sqft: 1200,
   home_office_sqft: 150,
+  gst_collected: null,
+  qst_collected: null,
+  gst_remitted: null,
+  qst_remitted: null,
   created_at: now,
   updated_at: now,
 };
@@ -461,6 +509,29 @@ const defaultTaxWorkspaceItems: TaxWorkspaceItem[] = [
   },
 ];
 
+const defaultHotkeys: CategoryHotkey[] = [
+  {
+    id: "hk-001",
+    key: "e",
+    category_id: IDS.categories.expenses,
+    created_at: now,
+  },
+  {
+    id: "hk-002",
+    key: "i",
+    category_id: IDS.categories.income,
+    created_at: now,
+  },
+];
+
+const defaultTransactionSummary: TransactionSummary = {
+  total_count: 4,
+  total_debit: -1609.41,
+  total_credit: 3200.0,
+  parent_category_count: 2,
+  child_category_count: 3,
+};
+
 // ---------------------------------------------------------------------------
 // Factory API
 // ---------------------------------------------------------------------------
@@ -487,6 +558,19 @@ export const factories = {
     list: (): Transaction[] => structuredClone(defaultTransactions),
     single: (overrides?: Partial<Transaction>): Transaction =>
       withOverrides(defaultTransactions[0], overrides),
+    summary: (): TransactionSummary =>
+      structuredClone(defaultTransactionSummary),
+    usedCategoryIds: (): string[] => [
+      IDS.categories.groceries,
+      IDS.categories.salary,
+      IDS.categories.rent,
+    ],
+  },
+
+  hotkeys: {
+    list: (): CategoryHotkey[] => structuredClone(defaultHotkeys),
+    single: (overrides?: Partial<CategoryHotkey>): CategoryHotkey =>
+      withOverrides(defaultHotkeys[0], overrides),
   },
 
   rules: {
@@ -526,6 +610,22 @@ export const factories = {
       structuredClone(defaultFiscalYearSettings),
     workspaceItems: (): TaxWorkspaceItem[] =>
       structuredClone(defaultTaxWorkspaceItems),
+    rateConfig: (overrides?: Partial<TaxRateConfig>): TaxRateConfig =>
+      withOverrides(defaultTaxRateConfig, overrides),
+    burdenEstimate: (): TaxBurdenEstimate => ({
+      gross_income: 200000,
+      total_deductions: 50000,
+      net_income: 150000,
+      cpp_qpp: 8068.2,
+      cpp_qpp2: 792.0,
+      qpip: 825.32,
+      cpp_qpp_deduction: 4034.1,
+      taxable_income: 145965.9,
+      federal_tax: 22500.0,
+      provincial_tax: 24000.0,
+      total_burden: 56185.52,
+      effective_rate: 0.2809,
+    }),
   },
 };
 

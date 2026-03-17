@@ -86,6 +86,12 @@ CREATE TABLE IF NOT EXISTS categorization_rules (
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS rule_accounts (
+    rule_id TEXT NOT NULL REFERENCES categorization_rules(id) ON DELETE CASCADE,
+    account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    PRIMARY KEY (rule_id, account_id)
+);
+
 CREATE TABLE IF NOT EXISTS tags (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -125,6 +131,19 @@ CREATE TABLE IF NOT EXISTS fiscal_year_settings (
     vehicle_business_km REAL,
     home_total_sqft REAL,
     home_office_sqft REAL,
+    gst_collected REAL,
+    qst_collected REAL,
+    gst_remitted REAL,
+    qst_remitted REAL,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS category_hotkeys (
+    id TEXT PRIMARY KEY,
+    key TEXT NOT NULL UNIQUE,
+    category_id TEXT NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_category_hotkeys_category ON category_hotkeys(category_id);

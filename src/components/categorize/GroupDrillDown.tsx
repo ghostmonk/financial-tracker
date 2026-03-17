@@ -3,16 +3,27 @@ import {
   getGroupTransactions,
   updateTransactionsCategory,
   createCategorizationRule,
+  listHotkeys,
 } from "../../lib/tauri";
 import type {
   Transaction,
   Category,
   UncategorizedGroup,
+  CategoryHotkey,
 } from "../../lib/types";
 import { formatAmount } from "../../lib/utils";
-import { inputSmClass, btnClass, btnPrimaryClass } from "../../lib/styles";
+import {
+  inputSmClass,
+  btnClass,
+  btnPrimaryClass,
+  focusedRowClass,
+} from "../../lib/styles";
 import { Th, Td } from "../shared/Table";
 import CategorySelect from "../transactions/CategorySelect";
+import { useKeyboardNav } from "../../lib/useKeyboardNav";
+import { useUndoStack } from "../../lib/useUndoStack";
+import CategoryPickerModal from "../shared/CategoryPickerModal";
+import { searchGoogle } from "../../lib/search";
 
 interface GroupDrillDownProps {
   group: UncategorizedGroup;
@@ -51,6 +62,26 @@ export default function GroupDrillDown({
   const [sortField, setSortField] = useState<SortField>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
+  // Hotkey map
+  const [hotkeyMap, setHotkeyMap] = useState<Map<string, string>>(new Map());
+
+  // Picker modal state
+  const [pickerParentCategory, setPickerParentCategory] = useState<Category | null>(null);
+  const [pickerChildCategories, setPickerChildCategories] = useState<Category[]>([]);
+  const [pickerTargetIds, setPickerTargetIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    listHotkeys()
+      .then((hotkeys: CategoryHotkey[]) => {
+        const map = new Map<string, string>();
+        for (const h of hotkeys) {
+          map.set(h.key, h.category_id);
+        }
+        setHotkeyMap(map);
+      })
+      .catch(console.error);
+  }, []);
+
   function toggleSort(field: SortField) {
     if (sortField === field) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -62,7 +93,7 @@ export default function GroupDrillDown({
 
   function sortIndicator(field: SortField) {
     if (sortField !== field) return "";
-    return sortDir === "asc" ? " ▲" : " ▼";
+    return sortDir === "asc" ? " \u25B2" : " \u25BC";
   }
 
   const fetchTransactions = useCallback(async () => {
@@ -131,6 +162,86 @@ export default function GroupDrillDown({
     }
   }
 
+  const { push: pushUndo } = useUndoStack(fetchTransactions);
+
+  const handleSelectionChange = useCallback(
+    (indices: Set<number>) => {
+      const ids = new Set<string>();
+      for (const idx of indices) {
+        if (idx >= 0 && idx < sortedFiltered.length) {
+          ids.add(sortedFiltered[idx].id);
+        }
+      }
+      setSelectedIds(ids);
+    },
+    [sortedFiltered],
+  );
+
+  const handleHotkeyPress = useCallback(
+    (key: string, shiftKey: boolean, index: number) => {
+      const hotkeyKey = shiftKey ? key.toUpperCase() : key.toLowerCase();
+      const categoryId = hotkeyMap.get(hotkeyKey);
+      if (!categoryId) return;
+
+      const parentCat = categories.find((c) => c.id === categoryId);
+      if (!parentCat) return;
+
+      const children = categories.filter((c) => c.parent_id === categoryId);
+      const targetIds =
+        selectedIds.size > 0
+          ? Array.from(selectedIds)
+          : [sortedFiltered[index].id];
+
+      setPickerTargetIds(targetIds);
+      setPickerParentCategory(parentCat);
+      setPickerChildCategories(children);
+    },
+    [hotkeyMap, categories, selectedIds, sortedFiltered],
+  );
+
+  const handlePickerSelect = useCallback(
+    async (selectedCategoryId: string) => {
+      const targetIds = pickerTargetIds;
+      setPickerParentCategory(null);
+      setPickerChildCategories([]);
+      setPickerTargetIds([]);
+
+      if (targetIds.length === 0) return;
+
+      const targetTxs = transactions.filter((t) => targetIds.includes(t.id));
+
+      pushUndo({
+        transactionIds: targetIds,
+        previousCategoryIds: targetTxs.map((t) => t.category_id),
+        previousCategorizedByRule: targetTxs.map((t) => t.categorized_by_rule),
+        ruleId: null,
+        label: `Categorized ${targetIds.length} transaction(s)`,
+      });
+
+      await updateTransactionsCategory(targetIds, selectedCategoryId);
+
+      const remaining = transactions.filter((tx) => !targetIds.includes(tx.id));
+      setTransactions(remaining);
+      setSelectedIds(new Set());
+      window.dispatchEvent(new Event("categorization-changed"));
+      onRefresh();
+
+      if (remaining.length === 0) {
+        onBack();
+      }
+    },
+    [pickerTargetIds, transactions, pushUndo, onRefresh, onBack],
+  );
+
+  const { focusedIndex } = useKeyboardNav({
+    itemCount: sortedFiltered.length,
+    enabled: !categorySelectOpen && !assigning && !pickerParentCategory,
+    multiSelect: true,
+    onEscape: onBack,
+    onSelectionChange: handleSelectionChange,
+    onKeyPress: handleHotkeyPress,
+  });
+
   async function handleAssign() {
     if (selectedIds.size === 0 || !selectedCategoryId) return;
     setAssigning(true);
@@ -145,6 +256,7 @@ export default function GroupDrillDown({
           match_field: "description",
           match_type: matchType,
           category_id: selectedCategoryId,
+          account_ids: accountId ? [accountId] : [],
           auto_apply: true,
           amount_min: ruleAmountMin ? parseFloat(ruleAmountMin) : null,
           amount_max: ruleAmountMax ? parseFloat(ruleAmountMax) : null,
@@ -160,6 +272,7 @@ export default function GroupDrillDown({
       setMatchType("contains");
       setRuleAmountMin("");
       setRuleAmountMax("");
+      window.dispatchEvent(new Event("categorization-changed"));
       onRefresh();
 
       if (remaining.length === 0) {
@@ -353,14 +466,17 @@ export default function GroupDrillDown({
               </tr>
             </thead>
             <tbody>
-              {sortedFiltered.map((tx) => {
+              {sortedFiltered.map((tx, index) => {
                 const cat = tx.category_id
                   ? categories.find((c) => c.id === tx.category_id)
                   : null;
                 return (
                   <tr
                     key={tx.id}
+                    data-nav-index={index}
                     className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
+                      index === focusedIndex ? focusedRowClass : ""
+                    } ${
                       selectedIds.has(tx.id)
                         ? "bg-blue-50/50 dark:bg-blue-900/20"
                         : ""
@@ -378,9 +494,20 @@ export default function GroupDrillDown({
                       {tx.date}
                     </Td>
                     <Td className="max-w-xs text-gray-900 dark:text-gray-100">
-                      <span className="truncate block" title={tx.description}>
-                        {tx.description}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="truncate" title={tx.description}>
+                          {tx.description}
+                        </span>
+                        <button
+                          onClick={() => searchGoogle(tx.description)}
+                          className="shrink-0 text-gray-300 dark:text-gray-600 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+                          title="Search Google"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                            <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                      </div>
                     </Td>
                     <Td
                       align="right"
@@ -403,6 +530,18 @@ export default function GroupDrillDown({
           </table>
         </div>
       )}
+
+      <CategoryPickerModal
+        open={!!pickerParentCategory}
+        parentCategory={pickerParentCategory}
+        childCategories={pickerChildCategories}
+        onSelect={handlePickerSelect}
+        onClose={() => {
+          setPickerParentCategory(null);
+          setPickerChildCategories([]);
+          setPickerTargetIds([]);
+        }}
+      />
     </div>
   );
 }

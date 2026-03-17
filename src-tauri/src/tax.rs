@@ -125,8 +125,16 @@ mod tests {
         let rules = load_tax_rules();
 
         // Assert
-        let income_count = rules.line_mappings.iter().filter(|m| m.direction == "income").count();
-        let expense_count = rules.line_mappings.iter().filter(|m| m.direction == "expense").count();
+        let income_count = rules
+            .line_mappings
+            .iter()
+            .filter(|m| m.direction == "income")
+            .count();
+        let expense_count = rules
+            .line_mappings
+            .iter()
+            .filter(|m| m.direction == "expense")
+            .count();
         assert!(income_count >= 1, "Expected at least 1 income mapping");
         assert!(expense_count >= 10, "Expected at least 10 expense mappings");
     }
@@ -135,7 +143,11 @@ mod tests {
     fn load_tax_rules_freelance_mapping_zero_rated() {
         // Arrange & Act
         let rules = load_tax_rules();
-        let freelance = rules.line_mappings.iter().find(|m| m.category_slug == "freelance").unwrap();
+        let freelance = rules
+            .line_mappings
+            .iter()
+            .find(|m| m.category_slug == "freelance")
+            .unwrap();
 
         // Assert
         assert_eq!(freelance.direction, "income");
@@ -155,7 +167,10 @@ mod tests {
             .collect();
 
         // Assert
-        assert!(vehicle_items.len() >= 4, "Expected at least 4 vehicle-prorated items");
+        assert!(
+            vehicle_items.len() >= 4,
+            "Expected at least 4 vehicle-prorated items"
+        );
         for item in &vehicle_items {
             assert_eq!(item.t2125_line, "9281");
         }
@@ -172,7 +187,10 @@ mod tests {
             .collect();
 
         // Assert
-        assert!(home_items.len() >= 5, "Expected at least 5 home-office-prorated items");
+        assert!(
+            home_items.len() >= 5,
+            "Expected at least 5 home-office-prorated items"
+        );
         for item in &home_items {
             assert_eq!(item.t2125_line, "9945");
         }
@@ -207,7 +225,11 @@ mod tests {
     fn load_tax_rules_insurance_not_gst_eligible() {
         // Arrange & Act
         let rules = load_tax_rules();
-        let vehicle_insurance = rules.line_mappings.iter().find(|m| m.category_slug == "vehicle_insurance").unwrap();
+        let vehicle_insurance = rules
+            .line_mappings
+            .iter()
+            .find(|m| m.category_slug == "vehicle_insurance")
+            .unwrap();
 
         // Assert
         assert!(!vehicle_insurance.gst_eligible);
@@ -218,7 +240,11 @@ mod tests {
     fn load_tax_rules_mortgage_not_gst_eligible() {
         // Arrange & Act
         let rules = load_tax_rules();
-        let mortgage = rules.line_mappings.iter().find(|m| m.category_slug == "mortgage").unwrap();
+        let mortgage = rules
+            .line_mappings
+            .iter()
+            .find(|m| m.category_slug == "mortgage")
+            .unwrap();
 
         // Assert
         assert!(!mortgage.gst_eligible);

@@ -5,6 +5,7 @@ pub mod db_utils;
 mod import;
 mod models;
 mod tax;
+pub mod tax_rates;
 #[cfg(test)]
 mod test_utils;
 
@@ -38,11 +39,17 @@ pub fn run() {
             commands::categories::create_category,
             commands::categories::update_category,
             commands::categories::delete_category,
+            // Hotkeys
+            commands::hotkeys::list_hotkeys,
+            commands::hotkeys::set_hotkey,
+            commands::hotkeys::remove_hotkey,
             // Transactions
             commands::transactions::list_transactions,
+            commands::transactions::get_transaction_summary,
             commands::transactions::update_transaction,
             commands::transactions::update_transactions_category,
             commands::transactions::delete_transaction,
+            commands::transactions::list_used_category_ids,
             commands::transactions::get_group_transactions,
             // Import
             commands::import::preview_csv_file,
@@ -57,6 +64,7 @@ pub fn run() {
             commands::rules::get_uncategorized_groups,
             commands::rules::count_uncategorized_groups,
             commands::rules::apply_rules_to_transaction_ids,
+            commands::rules::apply_single_rule,
             commands::rules::reapply_all_rules,
             // Tags
             commands::tags::list_tags,
@@ -74,6 +82,9 @@ pub fn run() {
             commands::tax::upsert_fiscal_year_settings_cmd,
             commands::tax::get_tax_workspace_items,
             commands::tax::update_transaction_receipt,
+            commands::tax::get_tax_rates,
+            commands::tax::calculate_tax_burden,
+            commands::tax::get_tax_payment_transactions_cmd,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

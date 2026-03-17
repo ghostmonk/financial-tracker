@@ -194,10 +194,23 @@ pub fn create_transactions_batch(
     Ok(count)
 }
 
-pub fn list_transactions(
-    conn: &Connection,
-    filters: TransactionFilters,
-) -> Result<Vec<Transaction>, DbError> {
+#[derive(Debug, Clone, Serialize)]
+pub struct TransactionSummary {
+    pub total_count: u32,
+    pub total_debit: f64,
+    pub total_credit: f64,
+    pub parent_category_count: u32,
+    pub child_category_count: u32,
+}
+
+struct FilterClause {
+    conditions: Vec<String>,
+    values: Vec<Box<dyn rusqlite::types::ToSql>>,
+    next_param_idx: usize,
+    use_direction_join: bool,
+}
+
+fn build_filter_clause(filters: &TransactionFilters) -> FilterClause {
     let mut conditions = Vec::new();
     let mut values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
     let mut param_idx = 1;
@@ -209,9 +222,13 @@ pub fn list_transactions(
         param_idx += 1;
     }
     if let Some(ref category_id) = filters.category_id {
-        conditions.push(format!("t.category_id = ?{}", param_idx));
+        conditions.push(format!(
+            "(t.category_id = ?{} OR t.category_id IN (SELECT id FROM categories WHERE parent_id = ?{}))",
+            param_idx, param_idx + 1
+        ));
         values.push(Box::new(category_id.clone()));
-        param_idx += 1;
+        values.push(Box::new(category_id.clone()));
+        param_idx += 2;
     }
     if let Some(ref direction) = filters.direction {
         use_direction_join = true;
@@ -256,17 +273,39 @@ pub fn list_transactions(
         param_idx += 1;
     }
 
-    let where_clause = if conditions.is_empty() {
+    FilterClause {
+        conditions,
+        values,
+        next_param_idx: param_idx,
+        use_direction_join,
+    }
+}
+
+fn where_clause_str(conditions: &[String]) -> String {
+    if conditions.is_empty() {
         String::new()
     } else {
         format!("WHERE {}", conditions.join(" AND "))
-    };
+    }
+}
 
-    let join_clause = if use_direction_join {
+fn join_clause_str(use_direction_join: bool) -> &'static str {
+    if use_direction_join {
         "INNER JOIN categories c ON t.category_id = c.id"
     } else {
         ""
-    };
+    }
+}
+
+pub fn list_transactions(
+    conn: &Connection,
+    filters: TransactionFilters,
+) -> Result<Vec<Transaction>, DbError> {
+    let fc = build_filter_clause(&filters);
+    let where_clause = where_clause_str(&fc.conditions);
+    let join_clause = join_clause_str(fc.use_direction_join);
+    let mut values = fc.values;
+    let param_idx = fc.next_param_idx;
 
     let limit = filters.limit.unwrap_or(50);
     let offset = filters.offset.unwrap_or(0);
@@ -305,6 +344,78 @@ pub fn list_transactions(
         .query_map(param_refs.as_slice(), row_to_transaction)?
         .collect::<rusqlite::Result<Vec<_>>>()?;
     Ok(transactions)
+}
+
+pub fn get_transaction_summary(
+    conn: &Connection,
+    filters: TransactionFilters,
+) -> Result<TransactionSummary, DbError> {
+    let fc = build_filter_clause(&filters);
+    let where_clause = where_clause_str(&fc.conditions);
+    let join_clause = join_clause_str(fc.use_direction_join);
+
+    // Totals query
+    let totals_sql = format!(
+        "SELECT COUNT(*), \
+         COALESCE(SUM(CASE WHEN t.amount < 0 THEN t.amount ELSE 0 END), 0), \
+         COALESCE(SUM(CASE WHEN t.amount > 0 THEN t.amount ELSE 0 END), 0) \
+         FROM transactions t {} {}",
+        join_clause, where_clause
+    );
+    let param_refs: Vec<&dyn rusqlite::types::ToSql> =
+        fc.values.iter().map(|v| v.as_ref()).collect();
+
+    let (total_count, total_debit, total_credit): (u32, f64, f64) =
+        conn.query_row(&totals_sql, param_refs.as_slice(), |row| {
+            Ok((row.get(0)?, row.get(1)?, row.get(2)?))
+        })?;
+
+    // Child category count (categories with parent_id IS NOT NULL)
+    let child_where = if where_clause.is_empty() {
+        "WHERE t.category_id IS NOT NULL AND t.category_id IN (SELECT id FROM categories WHERE parent_id IS NOT NULL)".to_string()
+    } else {
+        format!(
+            "{} AND t.category_id IS NOT NULL AND t.category_id IN (SELECT id FROM categories WHERE parent_id IS NOT NULL)",
+            where_clause
+        )
+    };
+    let child_sql = format!(
+        "SELECT COUNT(DISTINCT t.category_id) FROM transactions t {} {}",
+        join_clause, child_where
+    );
+    let child_category_count: u32 =
+        conn.query_row(&child_sql, param_refs.as_slice(), |row| row.get(0))?;
+
+    // Parent category count: distinct parent categories that any assigned category belongs to
+    // A transaction assigned to a child category counts its parent; one assigned directly to a parent counts that parent
+    let parent_extra = "t.category_id IS NOT NULL";
+    let parent_where = if where_clause.is_empty() {
+        format!("WHERE {}", parent_extra)
+    } else {
+        format!("{} AND {}", where_clause, parent_extra)
+    };
+    let parent_sql = format!(
+        "SELECT COUNT(DISTINCT COALESCE(cat.parent_id, cat.id)) \
+         FROM transactions t {} \
+         INNER JOIN categories cat ON t.category_id = cat.id \
+         {}",
+        if fc.use_direction_join {
+            join_clause
+        } else {
+            ""
+        },
+        parent_where
+    );
+    let parent_category_count: u32 =
+        conn.query_row(&parent_sql, param_refs.as_slice(), |row| row.get(0))?;
+
+    Ok(TransactionSummary {
+        total_count,
+        total_debit,
+        total_credit,
+        parent_category_count,
+        child_category_count,
+    })
 }
 
 pub fn update_transaction(
@@ -359,6 +470,16 @@ pub fn update_transactions_category(
 pub fn delete_transaction(conn: &Connection, id: &str) -> Result<(), DbError> {
     conn.execute("DELETE FROM transactions WHERE id = ?1", params![id])?;
     Ok(())
+}
+
+pub fn list_used_category_ids(conn: &Connection) -> Result<Vec<String>, DbError> {
+    let mut stmt = conn.prepare(
+        "SELECT DISTINCT category_id FROM transactions WHERE category_id IS NOT NULL ORDER BY category_id",
+    )?;
+    let ids = stmt
+        .query_map([], |row| row.get::<_, String>(0))?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+    Ok(ids)
 }
 
 pub fn get_transaction_ids_by_hashes(
@@ -423,4 +544,158 @@ pub fn check_duplicates_by_hash(
         .query_map(param_refs.as_slice(), |row| row.get::<_, String>(0))?
         .collect::<rusqlite::Result<Vec<_>>>()?;
     Ok(existing)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_utils::fixtures::{insert_test_account, setup_db};
+
+    fn insert_category(conn: &Connection, id: &str, name: &str, parent_id: Option<&str>) {
+        conn.execute(
+            "INSERT INTO categories (id, slug, name, parent_id, direction, sort_order) \
+             VALUES (?1, ?2, ?3, ?4, 'income', 0)",
+            params![id, name, name, parent_id],
+        )
+        .unwrap();
+    }
+
+    fn insert_tx(conn: &Connection, id: &str, category_id: &str) {
+        insert_test_account(conn, "acct-1");
+        conn.execute(
+            "INSERT INTO transactions (id, date, amount, description, account_id, category_id) \
+             VALUES (?1, '2025-01-15', 100.0, 'Test tx', 'acct-1', ?2)",
+            params![id, category_id],
+        )
+        .unwrap();
+    }
+
+    fn insert_tx_with_amount(
+        conn: &Connection,
+        id: &str,
+        amount: f64,
+        account_id: &str,
+        category_id: Option<&str>,
+    ) {
+        insert_test_account(conn, account_id);
+        conn.execute(
+            "INSERT INTO transactions (id, date, amount, description, account_id, category_id) \
+             VALUES (?1, '2025-01-15', ?2, 'Test tx', ?3, ?4)",
+            params![id, amount, account_id, category_id],
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn test_category_filter_includes_children() {
+        let conn = setup_db();
+
+        insert_category(&conn, "parent-1", "Income", None);
+        insert_category(&conn, "child-1", "Salary", Some("parent-1"));
+        insert_category(&conn, "child-2", "Bonus", Some("parent-1"));
+
+        insert_tx(&conn, "tx-parent", "parent-1");
+        insert_tx(&conn, "tx-child1", "child-1");
+        insert_tx(&conn, "tx-child2", "child-2");
+
+        let filters = TransactionFilters {
+            category_id: Some("parent-1".to_string()),
+            limit: Some(100),
+            ..Default::default()
+        };
+
+        let results = list_transactions(&conn, filters).unwrap();
+        assert_eq!(results.len(), 3, "Should return parent + both children");
+
+        let mut ids: Vec<&str> = results.iter().map(|t| t.id.as_str()).collect();
+        ids.sort();
+        assert_eq!(ids, vec!["tx-child1", "tx-child2", "tx-parent"]);
+    }
+
+    #[test]
+    fn test_get_transaction_summary_totals() {
+        let conn = setup_db();
+
+        insert_category(&conn, "cat-1", "Expenses", None);
+        insert_category(&conn, "cat-2", "Income", None);
+
+        insert_tx_with_amount(&conn, "tx-1", -50.0, "acct-1", Some("cat-1"));
+        insert_tx_with_amount(&conn, "tx-2", -30.0, "acct-1", Some("cat-1"));
+        insert_tx_with_amount(&conn, "tx-3", 200.0, "acct-1", Some("cat-2"));
+        insert_tx_with_amount(&conn, "tx-4", 100.0, "acct-1", Some("cat-2"));
+
+        let summary =
+            get_transaction_summary(&conn, TransactionFilters::default()).unwrap();
+
+        assert_eq!(summary.total_count, 4);
+        assert!((summary.total_debit - (-80.0)).abs() < 0.01);
+        assert!((summary.total_credit - 300.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_get_transaction_summary_category_counts() {
+        let conn = setup_db();
+
+        insert_category(&conn, "parent-exp", "Expenses", None);
+        insert_category(&conn, "child-groc", "Groceries", Some("parent-exp"));
+        insert_category(&conn, "child-rent", "Rent", Some("parent-exp"));
+        insert_category(&conn, "parent-inc", "Income", None);
+        insert_category(&conn, "child-sal", "Salary", Some("parent-inc"));
+
+        insert_tx_with_amount(&conn, "tx-1", -50.0, "acct-1", Some("child-groc"));
+        insert_tx_with_amount(&conn, "tx-2", -1500.0, "acct-1", Some("child-rent"));
+        insert_tx_with_amount(&conn, "tx-3", 3000.0, "acct-1", Some("child-sal"));
+
+        let summary =
+            get_transaction_summary(&conn, TransactionFilters::default()).unwrap();
+
+        // parent_category_count: Expenses (via child-groc, child-rent) + Income (via child-sal) = 2
+        assert_eq!(summary.parent_category_count, 2);
+        // child_category_count: child-groc, child-rent, child-sal = 3
+        assert_eq!(summary.child_category_count, 3);
+    }
+
+    #[test]
+    fn test_get_transaction_summary_with_filters() {
+        let conn = setup_db();
+
+        insert_category(&conn, "cat-1", "Expenses", None);
+
+        insert_tx_with_amount(&conn, "tx-1", -100.0, "acct-1", Some("cat-1"));
+        insert_tx_with_amount(&conn, "tx-2", -200.0, "acct-1", Some("cat-1"));
+        insert_tx_with_amount(&conn, "tx-3", -300.0, "acct-2", Some("cat-1"));
+
+        let filters = TransactionFilters {
+            account_id: Some("acct-1".to_string()),
+            ..Default::default()
+        };
+        let summary = get_transaction_summary(&conn, filters).unwrap();
+
+        assert_eq!(summary.total_count, 2);
+        assert!((summary.total_debit - (-300.0)).abs() < 0.01);
+        assert!((summary.total_credit - 0.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_list_used_category_ids() {
+        let conn = setup_db();
+
+        insert_category(&conn, "cat-a", "A", None);
+        insert_category(&conn, "cat-b", "B", None);
+        insert_category(&conn, "cat-c", "C", None);
+
+        insert_tx_with_amount(&conn, "tx-1", -10.0, "acct-1", Some("cat-a"));
+        insert_tx_with_amount(&conn, "tx-2", -20.0, "acct-1", Some("cat-b"));
+        insert_tx_with_amount(&conn, "tx-3", -30.0, "acct-1", Some("cat-a"));
+        // tx-4 has no category
+        insert_tx_with_amount(&conn, "tx-4", -40.0, "acct-1", None);
+
+        let used = list_used_category_ids(&conn).unwrap();
+
+        assert_eq!(used.len(), 2);
+        assert!(used.contains(&"cat-a".to_string()));
+        assert!(used.contains(&"cat-b".to_string()));
+        // cat-c is not used by any transaction
+        assert!(!used.contains(&"cat-c".to_string()));
+    }
 }

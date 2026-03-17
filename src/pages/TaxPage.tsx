@@ -14,17 +14,21 @@ import type {
   FiscalYearSettings,
   LineMapping,
 } from "../lib/types";
-import { btnClass } from "../lib/styles";
+import { btnClass, focusedRowClass } from "../lib/styles";
+import { formatAmount } from "../lib/utils";
 import { useCategoryMap } from "../lib/hooks";
+import { useKeyboardNav } from "../lib/useKeyboardNav";
+import { usePersistedSet } from "../lib/usePersistedSet";
 import TaxLineItemForm from "../components/tax/TaxLineItemForm";
 import ReceiptCell from "../components/tax/ReceiptCell";
 import ProrationSettingsModal from "../components/tax/ProrationSettingsModal";
 import TaxInfoPanel from "../components/tax/TaxInfoPanel";
+import TaxPaymentsPanel from "../components/tax/TaxPaymentsPanel";
 
 const CURRENT_YEAR = new Date().getFullYear();
 const YEAR_OPTIONS = Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - i);
 
-type TabDirection = "expense" | "income";
+type TabDirection = "expense" | "income" | "payments";
 
 const MONTH_NAMES = [
   "January",
@@ -70,6 +74,7 @@ export default function TaxPage() {
   const [showProration, setShowProration] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [editItem, setEditItem] = useState<TaxWorkspaceItem | null>(null);
+  const [collapsedMonths, , toggleMonth] = usePersistedSet("tax-collapsed-months");
 
   // Load tax rules once
   useEffect(() => {
@@ -128,6 +133,30 @@ export default function TaxPage() {
     return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b));
   }, [filteredItems]);
 
+  // Flat list of visible items for keyboard nav
+  const visibleItems = useMemo(() => {
+    const result: TaxWorkspaceItem[] = [];
+    for (const [ym, monthItems] of groupedByMonth) {
+      if (collapsedMonths.has(ym)) continue;
+      result.push(...monthItems);
+    }
+    return result;
+  }, [groupedByMonth, collapsedMonths]);
+
+  const anyModalOpen = showAddForm || showProration || showInfo;
+
+  const { focusedIndex } = useKeyboardNav({
+    itemCount: visibleItems.length,
+    enabled: !anyModalOpen && !loading,
+    onEnter: (index) => {
+      const item = visibleItems[index];
+      if (item?.source === "tax_line_item") {
+        setEditItem(item);
+        setShowAddForm(true);
+      }
+    },
+  });
+
   // Annual summary computation
   const summaryLines = useMemo(() => {
     if (!taxRules || filteredItems.length === 0) return [];
@@ -150,7 +179,7 @@ export default function TaxPage() {
         entry = { mapping, amounts: [], categorySlugs: new Set() };
         byLine.set(key, entry);
       }
-      entry.amounts.push(Math.abs(item.amount));
+      entry.amounts.push(item.amount);
       entry.categorySlugs.add(cat.slug);
     }
 
@@ -224,8 +253,64 @@ export default function TaxPage() {
     return r?.text;
   }, [taxRules]);
 
+  // Compute grossIncome from all income items (independent of activeTab)
+  const grossIncome = useMemo(() => {
+    return items
+      .filter((item) => {
+        const cat = item.category_id ? categoryMap.get(item.category_id) : null;
+        if (!cat) return false;
+        const mapping = lineMappingBySlug.get(cat.slug);
+        return mapping?.direction === "income";
+      })
+      .reduce((sum, item) => sum + item.amount, 0);
+  }, [items, categoryMap, lineMappingBySlug]);
+
+  // Compute total deductions from expense items (independent of activeTab)
+  const expenseTotalDeductions = useMemo(() => {
+    if (!taxRules) return 0;
+    const rates = taxRules.rates;
+    const expenseItems = items.filter((item) => {
+      const cat = item.category_id ? categoryMap.get(item.category_id) : null;
+      if (!cat) return false;
+      const mapping = lineMappingBySlug.get(cat.slug);
+      return mapping?.direction === "expense";
+    });
+
+    let total = 0;
+    for (const item of expenseItems) {
+      const cat = item.category_id ? categoryMap.get(item.category_id) : null;
+      if (!cat) continue;
+      const mapping = lineMappingBySlug.get(cat.slug);
+      if (!mapping) continue;
+
+      let prorationPct = 1.0;
+      if (
+        mapping.proration === "vehicle" &&
+        settings?.vehicle_total_km &&
+        settings?.vehicle_business_km
+      ) {
+        prorationPct = settings.vehicle_business_km / settings.vehicle_total_km;
+      } else if (
+        mapping.proration === "home_office" &&
+        settings?.home_total_sqft &&
+        settings?.home_office_sqft
+      ) {
+        prorationPct = settings.home_office_sqft / settings.home_total_sqft;
+      }
+
+      let deductionPct = 1.0;
+      if (cat.slug === "meals_business") {
+        deductionPct = rates.meals_deduction_pct;
+      }
+
+      total += item.amount * prorationPct * deductionPct;
+    }
+    return total;
+  }, [items, taxRules, categoryMap, lineMappingBySlug, settings]);
+
   const isExpenseTab = activeTab === "expense";
-  const tabLabel = isExpenseTab ? "expenses" : "income";
+  const isPaymentsTab = activeTab === "payments";
+  const tabLabel = isExpenseTab ? "expenses" : activeTab === "income" ? "income" : "payments";
 
   const handleDataUpdated = useCallback(() => {
     fetchYearData(fiscalYear);
@@ -271,7 +356,7 @@ export default function TaxPage() {
 
       {/* Tabs */}
       <div className="flex border-b border-gray-200 dark:border-gray-700">
-        {(["expense", "income"] as TabDirection[]).map((tab) => (
+        {(["expense", "income", "payments"] as TabDirection[]).map((tab) => (
           <button
             key={tab}
             data-testid={`tax-tab-${tab}`}
@@ -282,13 +367,26 @@ export default function TaxPage() {
                 : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
             }`}
           >
-            {tab === "expense" ? "Expenses" : "Income"}
+            {tab === "expense"
+              ? "Expenses"
+              : tab === "income"
+                ? "Income"
+                : "Payments"}
           </button>
         ))}
       </div>
 
-      {/* Monthly grouped table */}
-      {groupedByMonth.length > 0 ? (
+      {/* Payments tab */}
+      {isPaymentsTab ? (
+        <TaxPaymentsPanel
+          fiscalYear={fiscalYear}
+          grossIncome={grossIncome}
+          totalDeductions={expenseTotalDeductions}
+          settings={settings}
+          onSettingsUpdated={handleDataUpdated}
+        />
+      ) : /* Monthly grouped table */
+      groupedByMonth.length > 0 ? (
         <div className="space-y-0">
           <table className="w-full text-sm">
             <thead>
@@ -310,7 +408,7 @@ export default function TaxPage() {
             <tbody>
               {groupedByMonth.map(([ym, monthItems]) => {
                 const subtotal = monthItems.reduce(
-                  (s, i) => s + Math.abs(i.amount),
+                  (s, i) => s + i.amount,
                   0,
                 );
                 return (
@@ -319,9 +417,13 @@ export default function TaxPage() {
                     ym={ym}
                     items={monthItems}
                     subtotal={subtotal}
+                    collapsed={collapsedMonths.has(ym)}
+                    onToggleCollapse={() => toggleMonth(ym)}
                     categoryMap={categoryMap}
                     lineMappingBySlug={lineMappingBySlug}
                     fiscalYear={fiscalYear}
+                    visibleItems={visibleItems}
+                    focusedIndex={focusedIndex}
                     onUpdated={handleDataUpdated}
                     onEditItem={(item) => {
                       setEditItem(item);
@@ -478,18 +580,26 @@ function MonthGroup({
   ym,
   items,
   subtotal,
+  collapsed,
+  onToggleCollapse,
   categoryMap,
   lineMappingBySlug,
   fiscalYear,
+  visibleItems,
+  focusedIndex,
   onUpdated,
   onEditItem,
 }: {
   ym: string;
   items: TaxWorkspaceItem[];
   subtotal: number;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
   categoryMap: Map<string, Category>;
   lineMappingBySlug: Map<string, LineMapping>;
   fiscalYear: number;
+  visibleItems: TaxWorkspaceItem[];
+  focusedIndex: number;
   onUpdated: () => void;
   onEditItem: (item: TaxWorkspaceItem) => void;
 }) {
@@ -542,27 +652,43 @@ function MonthGroup({
 
   return (
     <>
-      <tr className="bg-gray-50 dark:bg-gray-800">
+      <tr
+        className="bg-gray-50 dark:bg-gray-800 cursor-pointer select-none"
+        onClick={onToggleCollapse}
+      >
         <td
           colSpan={6}
           className="px-3 py-2 font-medium text-gray-700 dark:text-gray-300"
         >
+          <span className="text-gray-400 dark:text-gray-500 text-xs mr-2">
+            {collapsed ? "\u25B6" : "\u25BC"}
+          </span>
           {formatMonthHeader(ym)}
+          <span className="text-gray-400 dark:text-gray-500 text-xs ml-2">
+            ({items.length})
+          </span>
         </td>
-        <td className="px-3 py-2 text-right font-mono text-gray-700 dark:text-gray-300">
-          ${subtotal.toFixed(2)}
+        <td className={`px-3 py-2 text-right font-mono ${
+          subtotal < 0
+            ? "text-red-600 dark:text-red-400"
+            : "text-green-600 dark:text-green-400"
+        }`}>
+          {formatAmount(subtotal)}
         </td>
       </tr>
-      {items.map((item) => {
+      {!collapsed && items.map((item) => {
         const cat = item.category_id
           ? categoryMap.get(item.category_id)
           : null;
         const mapping = cat ? lineMappingBySlug.get(cat.slug) : null;
+        const navIndex = visibleItems.indexOf(item);
+        const isFocused = navIndex === focusedIndex;
 
         return (
           <tr
             key={item.id}
-            className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+            data-nav-index={navIndex >= 0 ? navIndex : undefined}
+            className={`border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 ${isFocused ? focusedRowClass : ""}`}
           >
             <td className="px-3 py-1.5 whitespace-nowrap text-gray-600 dark:text-gray-400">
               {item.date}
@@ -597,14 +723,18 @@ function MonthGroup({
               )}
             </td>
             <td
-              className="px-3 py-1.5 text-right font-mono"
+              className={`px-3 py-1.5 text-right font-mono ${
+                item.amount < 0
+                  ? "text-red-600 dark:text-red-400"
+                  : "text-green-600 dark:text-green-400"
+              }`}
               title={
                 cat?.slug === "meals_business"
                   ? "Only 50% of meal/entertainment expenses are deductible"
                   : undefined
               }
             >
-              ${Math.abs(item.amount).toFixed(2)}
+              {formatAmount(item.amount)}
               {cat?.slug === "meals_business" && (
                 <span className="text-orange-500 dark:text-orange-400 text-xs ml-1">
                   (50%)

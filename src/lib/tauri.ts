@@ -8,6 +8,7 @@ import type {
   UpdateCategoryParams,
   Transaction,
   TransactionFilters,
+  TransactionSummary,
   UpdateTransactionParams,
   CsvColumnMapping,
   CsvPreview,
@@ -19,12 +20,16 @@ import type {
   UpdateRuleParams,
   UncategorizedGroup,
   Tag,
+  CategoryHotkey,
+  SetHotkeyParams,
   TaxRules,
   TaxLineItem,
   CreateTaxLineItemParams,
   UpdateTaxLineItemParams,
   FiscalYearSettings,
   UpsertFiscalYearSettingsParams,
+  TaxRateConfig,
+  TaxBurdenEstimate,
   TaxWorkspaceItem,
 } from "./types";
 
@@ -37,6 +42,7 @@ export type {
   UpdateCategoryParams,
   Transaction,
   TransactionFilters,
+  TransactionSummary,
   UpdateTransactionParams,
   CsvColumnMapping,
   CsvPreview,
@@ -48,12 +54,16 @@ export type {
   UpdateRuleParams,
   UncategorizedGroup,
   Tag,
+  CategoryHotkey,
+  SetHotkeyParams,
   TaxRules,
   TaxLineItem,
   CreateTaxLineItemParams,
   UpdateTaxLineItemParams,
   FiscalYearSettings,
   UpsertFiscalYearSettingsParams,
+  TaxRateConfig,
+  TaxBurdenEstimate,
   TaxWorkspaceItem,
 };
 
@@ -121,6 +131,12 @@ export async function listTransactions(
   return invoke("list_transactions", { filters });
 }
 
+export async function getTransactionSummary(
+  filters: TransactionFilters,
+): Promise<TransactionSummary> {
+  return invoke("get_transaction_summary", { filters });
+}
+
 export async function updateTransaction(
   id: string,
   params: UpdateTransactionParams,
@@ -140,6 +156,10 @@ export async function updateTransactionsCategory(
 
 export async function deleteTransaction(id: string): Promise<void> {
   return invoke("delete_transaction", { id });
+}
+
+export async function listUsedCategoryIds(): Promise<string[]> {
+  return invoke("list_used_category_ids");
 }
 
 // Import
@@ -241,6 +261,10 @@ export async function applyRulesToTransactionIds(
   });
 }
 
+export async function applySingleRule(ruleId: string): Promise<number> {
+  return invoke("apply_single_rule", { rule_id: ruleId });
+}
+
 export async function reapplyAllRules(): Promise<number> {
   return invoke("reapply_all_rules");
 }
@@ -275,6 +299,22 @@ export async function getTransactionTags(
   return invoke("get_transaction_tags", {
     transaction_id: transactionId,
   });
+}
+
+// Hotkeys
+
+export async function listHotkeys(): Promise<CategoryHotkey[]> {
+  return invoke("list_hotkeys");
+}
+
+export async function setHotkey(
+  params: SetHotkeyParams,
+): Promise<CategoryHotkey> {
+  return invoke("set_hotkey", { params });
+}
+
+export async function removeHotkey(key: string): Promise<void> {
+  return invoke("remove_hotkey", { key });
 }
 
 // Tax
@@ -322,6 +362,32 @@ export async function getTaxWorkspaceItems(
   fiscalYear: number,
 ): Promise<TaxWorkspaceItem[]> {
   return invoke("get_tax_workspace_items", { fiscal_year: fiscalYear });
+}
+
+export async function getTaxRates(
+  fiscalYear: number,
+): Promise<TaxRateConfig> {
+  return invoke("get_tax_rates", { fiscal_year: fiscalYear });
+}
+
+export async function calculateTaxBurden(
+  fiscalYear: number,
+  grossIncome: number,
+  totalDeductions: number,
+): Promise<TaxBurdenEstimate> {
+  return invoke("calculate_tax_burden", {
+    fiscal_year: fiscalYear,
+    gross_income: grossIncome,
+    total_deductions: totalDeductions,
+  });
+}
+
+export async function getTaxPaymentTransactions(
+  fiscalYear: number,
+): Promise<TaxWorkspaceItem[]> {
+  return invoke("get_tax_payment_transactions_cmd", {
+    fiscal_year: fiscalYear,
+  });
 }
 
 export async function updateTransactionReceipt(

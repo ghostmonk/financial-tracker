@@ -26,3 +26,6 @@ export const btnPrimaryClass =
 
 export const btnDangerClass =
   "px-3 py-1.5 text-sm rounded-md bg-red-600 text-white hover:bg-red-700 transition-colors";
+
+export const focusedRowClass =
+  "outline-2 outline outline-blue-500 dark:outline-blue-400 outline-offset-[-2px] bg-blue-50/50 dark:bg-blue-900/20";

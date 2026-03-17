@@ -240,6 +240,43 @@ pub fn get_tax_workspace_items(
     Ok(items)
 }
 
+/// Query tax payment transactions for a fiscal year.
+/// Looks for transactions with category slugs 'federal_tax_payment' or 'provincial_tax_payment'.
+pub fn get_tax_payment_transactions(
+    conn: &Connection,
+    fiscal_year: i32,
+) -> Result<Vec<TaxWorkspaceItem>, DbError> {
+    let date_from = format!("{}-01-01", fiscal_year);
+    let date_to = format!("{}-12-31", fiscal_year);
+
+    let mut stmt = conn.prepare(
+        "SELECT t.id, t.date, t.description, t.amount, t.category_id, t.has_receipt, t.receipt_path, t.notes \
+         FROM transactions t \
+         INNER JOIN categories c ON t.category_id = c.id \
+         WHERE t.date >= ?1 AND t.date <= ?2 \
+         AND c.slug IN ('federal_tax_payment', 'provincial_tax_payment') \
+         ORDER BY t.date ASC",
+    )?;
+
+    let items = stmt
+        .query_map(params![date_from, date_to], |row| {
+            Ok(TaxWorkspaceItem {
+                id: row.get(0)?,
+                source: TaxItemSource::Transaction,
+                date: row.get(1)?,
+                description: row.get(2)?,
+                amount: row.get(3)?,
+                category_id: row.get(4)?,
+                has_receipt: row.get(5)?,
+                receipt_path: row.get(6)?,
+                notes: row.get(7)?,
+            })
+        })?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+
+    Ok(items)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -370,7 +407,8 @@ mod tests {
     fn update_tax_line_item_description_only_preserves_other_fields() {
         // Arrange
         let conn = setup_db();
-        let item = create_tax_line_item(&conn, make_params("2025-01-01", "Original", -50.0, 2025)).unwrap();
+        let item = create_tax_line_item(&conn, make_params("2025-01-01", "Original", -50.0, 2025))
+            .unwrap();
         let update = UpdateTaxLineItemParams {
             date: None,
             description: Some("Updated".to_string()),
@@ -396,7 +434,8 @@ mod tests {
     fn update_tax_line_item_multiple_fields_updates_all() {
         // Arrange
         let conn = setup_db();
-        let item = create_tax_line_item(&conn, make_params("2025-01-01", "Original", -50.0, 2025)).unwrap();
+        let item = create_tax_line_item(&conn, make_params("2025-01-01", "Original", -50.0, 2025))
+            .unwrap();
         let update = UpdateTaxLineItemParams {
             date: Some("2025-02-15".to_string()),
             description: Some("Changed".to_string()),
@@ -455,7 +494,8 @@ mod tests {
     fn delete_tax_line_item_existing_item_removes_from_db() {
         // Arrange
         let conn = setup_db();
-        let item = create_tax_line_item(&conn, make_params("2025-01-01", "Delete me", -10.0, 2025)).unwrap();
+        let item = create_tax_line_item(&conn, make_params("2025-01-01", "Delete me", -10.0, 2025))
+            .unwrap();
 
         // Act
         delete_tax_line_item(&conn, &item.id).unwrap();
@@ -490,7 +530,8 @@ mod tests {
         assert_eq!(item.category_id.as_deref(), Some("cat-del"));
 
         // Act
-        conn.execute("DELETE FROM categories WHERE id = 'cat-del'", []).unwrap();
+        conn.execute("DELETE FROM categories WHERE id = 'cat-del'", [])
+            .unwrap();
 
         // Assert
         let items = list_tax_line_items_by_year(&conn, 2025).unwrap();

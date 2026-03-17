@@ -1,11 +1,14 @@
 use tauri::State;
 
 use crate::db_command;
-use crate::models::fiscal_year_settings::{self, FiscalYearSettings, UpsertFiscalYearSettingsParams};
+use crate::models::fiscal_year_settings::{
+    self, FiscalYearSettings, UpsertFiscalYearSettingsParams,
+};
 use crate::models::tax_line_item::{
     self, CreateTaxLineItemParams, TaxLineItem, TaxWorkspaceItem, UpdateTaxLineItemParams,
 };
 use crate::tax::{self, TaxRules};
+use crate::tax_rates::{self, TaxBurdenEstimate, TaxRateConfig};
 use crate::AppState;
 
 use super::with_db_conn;
@@ -13,6 +16,27 @@ use super::with_db_conn;
 #[tauri::command(rename_all = "snake_case")]
 pub fn get_tax_rules() -> Result<TaxRules, String> {
     Ok(tax::load_tax_rules().clone())
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn get_tax_rates(fiscal_year: i32) -> Result<TaxRateConfig, String> {
+    let rules = tax::load_tax_rules();
+    tax_rates::load_tax_rates(fiscal_year, &rules.jurisdiction)
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn calculate_tax_burden(
+    fiscal_year: i32,
+    gross_income: f64,
+    total_deductions: f64,
+) -> Result<TaxBurdenEstimate, String> {
+    let rules = tax::load_tax_rules();
+    let rates = tax_rates::load_tax_rates(fiscal_year, &rules.jurisdiction)?;
+    Ok(tax_rates::calculate_tax_burden(
+        gross_income,
+        total_deductions,
+        &rates,
+    ))
 }
 
 db_command!(list_tax_line_items -> Vec<TaxLineItem>, tax_line_item::list_tax_line_items_by_year, fiscal_year: i32 => move);
@@ -34,10 +58,11 @@ pub fn get_tax_workspace_items(
             .iter()
             .map(|m| m.category_slug.clone())
             .collect();
-        tax_line_item::get_tax_workspace_items(conn, fiscal_year, &slugs)
-            .map_err(|e| e.to_string())
+        tax_line_item::get_tax_workspace_items(conn, fiscal_year, &slugs).map_err(|e| e.to_string())
     })
 }
+
+db_command!(get_tax_payment_transactions_cmd -> Vec<TaxWorkspaceItem>, tax_line_item::get_tax_payment_transactions, fiscal_year: i32 => move);
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn update_transaction_receipt(

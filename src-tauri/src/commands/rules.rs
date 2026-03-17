@@ -41,6 +41,8 @@ pub fn apply_rules_to_transaction_ids(
     })
 }
 
+db_command!(apply_single_rule -> usize, categorize::apply_single_rule, rule_id: String);
+
 #[tauri::command(rename_all = "snake_case")]
 pub fn reapply_all_rules(state: State<'_, AppState>) -> Result<usize, String> {
     with_db_conn(&state, |conn| {

@@ -194,6 +194,18 @@
       "hint": "Business phone line, business portion of mobile plan."
     },
     {
+      "category_slug": "business_bank_fees",
+      "direction": "expense",
+      "t2125_line": "8710",
+      "t2125_label": "Interest and bank charges",
+      "tp80_line": "156",
+      "tp80_label": "Interets et frais bancaires",
+      "gst_eligible": false,
+      "qst_eligible": false,
+      "proration": null,
+      "hint": "Business account fees, service charges, transaction fees. Not GST/QST eligible."
+    },
+    {
       "category_slug": "other_business",
       "direction": "expense",
       "t2125_line": "9270",

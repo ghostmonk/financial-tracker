@@ -73,6 +73,14 @@ export interface Transaction {
   updated_at: string;
 }
 
+export interface TransactionSummary {
+  total_count: number;
+  total_debit: number;
+  total_credit: number;
+  parent_category_count: number;
+  child_category_count: number;
+}
+
 export interface TransactionFilters {
   account_id?: string;
   category_id?: string;
@@ -154,6 +162,7 @@ export interface CategorizationRule {
   match_field: string;
   match_type: string;
   category_id: string;
+  account_ids: string[];
   priority: number;
   amount_min: number | null;
   amount_max: number | null;
@@ -166,6 +175,7 @@ export interface CreateRuleParams {
   match_field: string;
   match_type: string;
   category_id: string;
+  account_ids?: string[];
   priority?: number;
   auto_apply?: boolean;
   amount_min?: number | null;
@@ -177,6 +187,7 @@ export interface UpdateRuleParams {
   match_field?: string;
   match_type?: string;
   category_id?: string;
+  account_ids?: string[];
   priority?: number;
   auto_apply?: boolean;
   amount_min?: number | null;
@@ -196,6 +207,18 @@ export interface Tag {
   name: string;
   slug: string;
   created_at: string;
+}
+
+export interface CategoryHotkey {
+  id: string;
+  key: string;
+  category_id: string;
+  created_at: string;
+}
+
+export interface SetHotkeyParams {
+  key: string;
+  category_id: string;
 }
 
 export interface TaxRates {
@@ -292,6 +315,10 @@ export interface FiscalYearSettings {
   vehicle_business_km: number | null;
   home_total_sqft: number | null;
   home_office_sqft: number | null;
+  gst_collected: number | null;
+  qst_collected: number | null;
+  gst_remitted: number | null;
+  qst_remitted: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -302,6 +329,58 @@ export interface UpsertFiscalYearSettingsParams {
   vehicle_business_km?: number | null;
   home_total_sqft?: number | null;
   home_office_sqft?: number | null;
+  gst_collected?: number | null;
+  qst_collected?: number | null;
+  gst_remitted?: number | null;
+  qst_remitted?: number | null;
+}
+
+export interface TaxBracket {
+  min: number;
+  max: number | null;
+  rate: number;
+}
+
+export interface TaxRateConfig {
+  year: number;
+  jurisdiction: string;
+  federal: {
+    brackets: TaxBracket[];
+    basic_personal_amount: number;
+    quebec_abatement: number;
+  };
+  provincial: {
+    brackets: TaxBracket[];
+    basic_personal_amount: number;
+  };
+  cpp_qpp: {
+    rate: number;
+    max_pensionable: number;
+    basic_exemption: number;
+  };
+  cpp_qpp2: {
+    rate: number;
+    second_ceiling: number;
+  };
+  qpip: {
+    self_employed_rate: number;
+    max_insurable: number;
+  };
+}
+
+export interface TaxBurdenEstimate {
+  gross_income: number;
+  total_deductions: number;
+  net_income: number;
+  cpp_qpp: number;
+  cpp_qpp2: number;
+  qpip: number;
+  cpp_qpp_deduction: number;
+  taxable_income: number;
+  federal_tax: number;
+  provincial_tax: number;
+  total_burden: number;
+  effective_rate: number;
 }
 
 export interface TaxWorkspaceItem {

@@ -5,16 +5,19 @@ import {
   updateCategorizationRule,
   deleteCategorizationRule,
   reapplyAllRules,
+  applySingleRule,
   listCategories,
+  listAccounts,
 } from "../lib/tauri";
 import type {
   CategorizationRule,
   CreateRuleParams,
   UpdateRuleParams,
   Category,
+  Account,
 } from "../lib/types";
 import { parseError } from "../lib/utils";
-import { inputClass, btnClass, btnPrimaryClass, btnDangerClass } from "../lib/styles";
+import { inputClass, inputSmClass, btnClass, btnPrimaryClass, btnDangerClass } from "../lib/styles";
 import Modal from "../components/shared/Modal";
 import FormField from "../components/shared/FormField";
 import CategorySelect from "../components/transactions/CategorySelect";
@@ -22,6 +25,7 @@ import CategorySelect from "../components/transactions/CategorySelect";
 export default function RulesPage() {
   const [rules, setRules] = useState<CategorizationRule[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingRule, setEditingRule] = useState<CategorizationRule | null>(
@@ -32,6 +36,13 @@ export default function RulesPage() {
   );
   const [error, setError] = useState<string | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
+
+  // Filter state
+  const [filterSearch, setFilterSearch] = useState("");
+  const [filterAccountId, setFilterAccountId] = useState("");
+  const [filterCategoryId, setFilterCategoryId] = useState<string | null>(null);
+  const [filterMatchField, setFilterMatchField] = useState("");
+  const [filterAutoApply, setFilterAutoApply] = useState("");
 
   type SortField = "pattern" | "match_field" | "match_type" | "category" | "priority" | "auto_apply";
   type SortDir = "asc" | "desc";
@@ -67,7 +78,10 @@ export default function RulesPage() {
   useEffect(() => {
     fetchRules();
     listCategories().then(setCategories).catch(console.error);
+    listAccounts().then(setAccounts).catch(console.error);
   }, [fetchRules]);
+
+  const accountMap = new Map(accounts.map((a) => [a.id, a.name]));
 
   const categoryMap = new Map(
     categories.map((c) => {
@@ -79,8 +93,33 @@ export default function RulesPage() {
     }),
   );
 
+  const filteredRules = useMemo(() => {
+    let result = rules;
+    if (filterSearch) {
+      const term = filterSearch.toLowerCase();
+      result = result.filter((r) => r.pattern.toLowerCase().includes(term));
+    }
+    if (filterAccountId) {
+      result = result.filter(
+        (r) => r.account_ids.length === 0 || r.account_ids.includes(filterAccountId),
+      );
+    }
+    if (filterCategoryId) {
+      result = result.filter((r) => r.category_id === filterCategoryId);
+    }
+    if (filterMatchField) {
+      result = result.filter((r) => r.match_field === filterMatchField);
+    }
+    if (filterAutoApply === "yes") {
+      result = result.filter((r) => r.auto_apply);
+    } else if (filterAutoApply === "no") {
+      result = result.filter((r) => !r.auto_apply);
+    }
+    return result;
+  }, [rules, filterSearch, filterAccountId, filterCategoryId, filterMatchField, filterAutoApply]);
+
   const sortedRules = useMemo(() => {
-    const sorted = [...rules].sort((a, b) => {
+    const sorted = [...filteredRules].sort((a, b) => {
       let cmp = 0;
       switch (sortField) {
         case "pattern":
@@ -107,7 +146,7 @@ export default function RulesPage() {
       return sortDir === "asc" ? cmp : -cmp;
     });
     return sorted;
-  }, [rules, sortField, sortDir, categoryMap]);
+  }, [filteredRules, sortField, sortDir, categoryMap]);
 
   async function handleReapply() {
     setBanner(null);
@@ -197,6 +236,88 @@ export default function RulesPage() {
         <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
       )}
 
+      <div className="flex flex-wrap items-end gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
+        <div className="flex flex-col">
+          <label className="text-xs text-gray-500 dark:text-gray-400 mb-1">Search</label>
+          <input
+            data-testid="rules-filter-search"
+            type="text"
+            value={filterSearch}
+            onChange={(e) => setFilterSearch(e.target.value)}
+            placeholder="Pattern..."
+            className={`${inputSmClass} w-52`}
+          />
+        </div>
+
+        <div className="flex flex-col">
+          <label className="text-xs text-gray-500 dark:text-gray-400 mb-1">Account</label>
+          <select
+            data-testid="rules-filter-account"
+            value={filterAccountId}
+            onChange={(e) => setFilterAccountId(e.target.value)}
+            className={inputSmClass}
+          >
+            <option value="">All accounts</option>
+            {accounts.map((a) => (
+              <option key={a.id} value={a.id}>{a.name}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex flex-col">
+          <label className="text-xs text-gray-500 dark:text-gray-400 mb-1">Category</label>
+          <CategorySelect
+            categories={categories}
+            value={filterCategoryId}
+            onChange={(catId) => setFilterCategoryId(catId)}
+          />
+        </div>
+
+        <div className="flex flex-col">
+          <label className="text-xs text-gray-500 dark:text-gray-400 mb-1">Match field</label>
+          <select
+            data-testid="rules-filter-match-field"
+            value={filterMatchField}
+            onChange={(e) => setFilterMatchField(e.target.value)}
+            className={inputSmClass}
+          >
+            <option value="">All</option>
+            <option value="description">Description</option>
+            <option value="payee">Payee</option>
+          </select>
+        </div>
+
+        <div className="flex flex-col">
+          <label className="text-xs text-gray-500 dark:text-gray-400 mb-1">Auto-apply</label>
+          <select
+            data-testid="rules-filter-auto-apply"
+            value={filterAutoApply}
+            onChange={(e) => setFilterAutoApply(e.target.value)}
+            className={inputSmClass}
+          >
+            <option value="">All</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+        </div>
+
+        {(filterSearch || filterAccountId || filterCategoryId || filterMatchField || filterAutoApply) && (
+          <button
+            data-testid="rules-filter-clear"
+            onClick={() => {
+              setFilterSearch("");
+              setFilterAccountId("");
+              setFilterCategoryId(null);
+              setFilterMatchField("");
+              setFilterAutoApply("");
+            }}
+            className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          >
+            Clear filters
+          </button>
+        )}
+      </div>
+
       {loading ? (
         <p data-testid="rules-loading" className="text-gray-500 dark:text-gray-400 text-sm">Loading...</p>
       ) : rules.length === 0 ? (
@@ -212,6 +333,7 @@ export default function RulesPage() {
                 <th data-testid="rule-sort-field" className="px-4 py-3 cursor-pointer select-none" onClick={() => toggleSort("match_field")}>Field{sortIndicator("match_field")}</th>
                 <th data-testid="rule-sort-type" className="px-4 py-3 cursor-pointer select-none" onClick={() => toggleSort("match_type")}>Match{sortIndicator("match_type")}</th>
                 <th data-testid="rule-sort-category" className="px-4 py-3 cursor-pointer select-none" onClick={() => toggleSort("category")}>Category{sortIndicator("category")}</th>
+                <th className="px-4 py-3">Account</th>
                 <th className="px-4 py-3">Amount</th>
                 <th data-testid="rule-sort-priority" className="px-4 py-3 text-right cursor-pointer select-none" onClick={() => toggleSort("priority")}>Priority{sortIndicator("priority")}</th>
                 <th data-testid="rule-sort-auto_apply" className="px-4 py-3 cursor-pointer select-none" onClick={() => toggleSort("auto_apply")}>Auto{sortIndicator("auto_apply")}</th>
@@ -233,6 +355,13 @@ export default function RulesPage() {
                   <td className="px-4 py-3">
                     {categoryMap.get(rule.category_id) ?? "Unknown"}
                   </td>
+                  <td className="px-4 py-3 text-xs">
+                    {rule.account_ids.length === 0
+                      ? "All"
+                      : rule.account_ids
+                          .map((id) => accountMap.get(id) ?? "Unknown")
+                          .join(", ")}
+                  </td>
                   <td className="px-4 py-3 text-xs tabular-nums">
                     {rule.amount_min != null && rule.amount_max != null
                       ? `$${rule.amount_min.toFixed(2)} - $${rule.amount_max.toFixed(2)}`
@@ -250,6 +379,24 @@ export default function RulesPage() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-2">
+                      <button
+                        data-testid={`rule-run-${rule.id}`}
+                        onClick={async () => {
+                          setBanner(null);
+                          try {
+                            const count = await applySingleRule(rule.id);
+                            setBanner(
+                              `Rule "${rule.pattern}": ${count} transaction${count !== 1 ? "s" : ""} categorized.`,
+                            );
+                            window.dispatchEvent(new Event("categorization-changed"));
+                          } catch (err) {
+                            setError(parseError(err));
+                          }
+                        }}
+                        className="text-xs text-green-600 dark:text-green-400 hover:underline"
+                      >
+                        Run
+                      </button>
                       <button
                         data-testid={`rule-edit-${rule.id}`}
                         onClick={() => handleEdit(rule)}
@@ -276,6 +423,7 @@ export default function RulesPage() {
       {showForm && (
         <RuleForm
           categories={categories}
+          accounts={accounts}
           editingRule={editingRule}
           onSubmit={handleSubmit}
           onCancel={() => {
@@ -317,6 +465,7 @@ export default function RulesPage() {
 
 interface RuleFormProps {
   categories: Category[];
+  accounts: Account[];
   editingRule: CategorizationRule | null;
   onSubmit: (params: CreateRuleParams) => void;
   onCancel: () => void;
@@ -324,6 +473,7 @@ interface RuleFormProps {
 
 function RuleForm({
   categories,
+  accounts,
   editingRule,
   onSubmit,
   onCancel,
@@ -337,6 +487,9 @@ function RuleForm({
   );
   const [categoryId, setCategoryId] = useState<string | null>(
     editingRule?.category_id ?? null,
+  );
+  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>(
+    editingRule?.account_ids ?? [],
   );
   const [amountMin, setAmountMin] = useState(
     editingRule?.amount_min?.toString() ?? "",
@@ -357,6 +510,7 @@ function RuleForm({
       match_field: matchField,
       match_type: matchType,
       category_id: categoryId,
+      account_ids: selectedAccountIds.length === accounts.length ? [] : selectedAccountIds,
       amount_min: amountMin ? parseFloat(amountMin) : undefined,
       amount_max: amountMax ? parseFloat(amountMax) : undefined,
       priority,
@@ -407,6 +561,36 @@ function RuleForm({
             value={categoryId}
             onChange={(catId) => setCategoryId(catId)}
           />
+        </FormField>
+
+        <FormField label="Accounts">
+          <div className="space-y-1 max-h-32 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-md p-2">
+            {accounts.map((a) => (
+              <label key={a.id} className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={selectedAccountIds.includes(a.id)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedAccountIds([...selectedAccountIds, a.id]);
+                    } else {
+                      setSelectedAccountIds(selectedAccountIds.filter(id => id !== a.id));
+                    }
+                  }}
+                  className="rounded border-gray-300 dark:border-gray-600"
+                />
+                {a.name}
+              </label>
+            ))}
+          </div>
+          <div className="flex gap-2 mt-1">
+            <button type="button" onClick={() => setSelectedAccountIds(accounts.map(a => a.id))} className="text-xs text-blue-600 dark:text-blue-400">
+              Select all
+            </button>
+            <button type="button" onClick={() => setSelectedAccountIds([])} className="text-xs text-gray-500 dark:text-gray-400">
+              Clear
+            </button>
+          </div>
         </FormField>
 
         <div className="grid grid-cols-2 gap-3">

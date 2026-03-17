@@ -1,6 +1,7 @@
 pub mod accounts;
 pub mod categories;
 pub mod database;
+pub mod hotkeys;
 pub mod import;
 pub mod rules;
 pub mod tags;
