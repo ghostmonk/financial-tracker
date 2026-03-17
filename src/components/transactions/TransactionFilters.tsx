@@ -1,9 +1,8 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import type {
   TransactionFilters as Filters,
   Account,
   Category,
-  Transaction,
 } from "../../lib/types";
 import { inputSmClass } from "../../lib/styles";
 import CategorySelect from "../transactions/CategorySelect";
@@ -13,7 +12,6 @@ interface TransactionFiltersProps {
   onFiltersChange: (filters: Filters) => void;
   accounts: Account[];
   categories: Category[];
-  transactions: Transaction[];
 }
 
 export default function TransactionFilters({
@@ -21,7 +19,6 @@ export default function TransactionFilters({
   onFiltersChange,
   accounts,
   categories,
-  transactions,
 }: TransactionFiltersProps) {
   const [searchText, setSearchText] = useState(filters.search ?? "");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -49,20 +46,6 @@ export default function TransactionFilters({
     setSearchText("");
     onFiltersChange({ limit: 50, offset: 0 });
   }
-
-  const usedCategories = useMemo(() => {
-    const usedCategoryIds = new Set(
-      transactions
-        .map((t) => t.category_id)
-        .filter((id): id is string => id !== null),
-    );
-    return categories.filter((c) => {
-      if (usedCategoryIds.has(c.id)) return true;
-      return categories.some(
-        (child) => child.parent_id === c.id && usedCategoryIds.has(child.id),
-      );
-    });
-  }, [transactions, categories]);
 
   const hasFilters =
     !!filters.search ||
@@ -206,7 +189,7 @@ export default function TransactionFilters({
       <div className="flex flex-col">
         <label className="text-xs text-gray-500 dark:text-gray-400 mb-1">Category</label>
         <CategorySelect
-          categories={usedCategories}
+          categories={categories}
           value={filters.category_id ?? null}
           onChange={(catId) => updateFilters({ category_id: catId ?? undefined })}
         />

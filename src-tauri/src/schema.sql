@@ -38,6 +38,8 @@ CREATE TABLE IF NOT EXISTS transactions (
     fitid TEXT,
     transaction_type TEXT,
     categorized_by_rule INTEGER NOT NULL DEFAULT 0,
+    has_receipt INTEGER NOT NULL DEFAULT 0,
+    receipt_path TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

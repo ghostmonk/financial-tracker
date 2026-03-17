@@ -111,6 +111,44 @@ pub fn row_to_transaction(row: &rusqlite::Row) -> rusqlite::Result<Transaction> 
     })
 }
 
+pub fn create_transaction(
+    conn: &Connection,
+    params: CreateTransactionParams,
+) -> Result<Transaction, DbError> {
+    let id = Uuid::new_v4().to_string();
+    let is_recurring = params.is_recurring.unwrap_or(false);
+    let tax_deductible = params.tax_deductible.unwrap_or(false);
+    conn.execute(
+        "INSERT INTO transactions (id, date, amount, description, payee, merchant, account_id, category_id, \
+         is_recurring, tax_deductible, gst_amount, qst_amount, notes, import_hash, fitid, transaction_type) \
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
+        rusqlite::params![
+            id,
+            params.date,
+            params.amount,
+            params.description,
+            params.payee,
+            params.merchant,
+            params.account_id,
+            params.category_id,
+            is_recurring,
+            tax_deductible,
+            params.gst_amount,
+            params.qst_amount,
+            params.notes,
+            params.import_hash,
+            params.fitid,
+            params.transaction_type,
+        ],
+    )?;
+
+    let mut stmt = conn.prepare(&format!(
+        "SELECT {} FROM transactions WHERE id = ?1",
+        SELECT_COLS
+    ))?;
+    Ok(stmt.query_row(rusqlite::params![&id], row_to_transaction)?)
+}
+
 pub fn create_transactions_batch(
     conn: &Connection,
     batch: Vec<CreateTransactionParams>,

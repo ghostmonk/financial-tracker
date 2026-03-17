@@ -85,6 +85,19 @@ pub fn add_tags_to_transaction(
     Ok(())
 }
 
+pub fn remove_tags_from_transaction(
+    conn: &Connection,
+    transaction_id: &str,
+    tag_ids: &[String],
+) -> Result<(), DbError> {
+    let mut stmt =
+        conn.prepare("DELETE FROM transaction_tags WHERE transaction_id = ?1 AND tag_id = ?2")?;
+    for tag_id in tag_ids {
+        stmt.execute(params![transaction_id, tag_id])?;
+    }
+    Ok(())
+}
+
 pub fn set_transaction_tags(
     conn: &Connection,
     transaction_id: &str,
@@ -107,6 +120,14 @@ pub fn get_transaction_tags(conn: &Connection, transaction_id: &str) -> Result<V
         .query_map(params![transaction_id], row_to_tag)?
         .collect::<rusqlite::Result<Vec<_>>>()?;
     Ok(tags)
+}
+
+pub fn list_transactions_by_tag(conn: &Connection, tag_id: &str) -> Result<Vec<String>, DbError> {
+    let mut stmt = conn.prepare("SELECT transaction_id FROM transaction_tags WHERE tag_id = ?1")?;
+    let ids = stmt
+        .query_map(params![tag_id], |row| row.get(0))?
+        .collect::<rusqlite::Result<Vec<String>>>()?;
+    Ok(ids)
 }
 
 static SEED_TAGS: &[(&str, &str)] = &[
@@ -208,6 +229,22 @@ mod tests {
     }
 
     #[test]
+    fn test_remove_tags_from_transaction() {
+        let conn = setup_db();
+        insert_test_transaction(&conn, "txn-1");
+
+        let t1 = create_tag(&conn, "Work", "work").unwrap();
+        let t2 = create_tag(&conn, "Medical", "medical").unwrap();
+
+        add_tags_to_transaction(&conn, "txn-1", &[t1.id.clone(), t2.id.clone()]).unwrap();
+        remove_tags_from_transaction(&conn, "txn-1", &[t1.id.clone()]).unwrap();
+
+        let tags = get_transaction_tags(&conn, "txn-1").unwrap();
+        assert_eq!(tags.len(), 1);
+        assert_eq!(tags[0].slug, "medical");
+    }
+
+    #[test]
     fn test_set_transaction_tags() {
         let conn = setup_db();
         insert_test_transaction(&conn, "txn-1");
@@ -224,6 +261,23 @@ mod tests {
         let tags = get_transaction_tags(&conn, "txn-1").unwrap();
         assert_eq!(tags.len(), 1);
         assert_eq!(tags[0].slug, "family");
+    }
+
+    #[test]
+    fn test_list_transactions_by_tag() {
+        let conn = setup_db();
+        insert_test_transaction(&conn, "txn-1");
+        insert_test_transaction(&conn, "txn-2");
+
+        let t1 = create_tag(&conn, "Work", "work").unwrap();
+
+        add_tags_to_transaction(&conn, "txn-1", &[t1.id.clone()]).unwrap();
+        add_tags_to_transaction(&conn, "txn-2", &[t1.id.clone()]).unwrap();
+
+        let ids = list_transactions_by_tag(&conn, &t1.id).unwrap();
+        assert_eq!(ids.len(), 2);
+        assert!(ids.contains(&"txn-1".to_string()));
+        assert!(ids.contains(&"txn-2".to_string()));
     }
 
     #[test]

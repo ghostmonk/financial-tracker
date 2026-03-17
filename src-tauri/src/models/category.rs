@@ -465,3 +465,16 @@ pub fn delete_category(conn: &Connection, id: &str) -> Result<(), DbError> {
     )?;
     Ok(())
 }
+
+pub fn get_category_by_slug(conn: &Connection, slug: &str) -> Result<Option<Category>, DbError> {
+    let mut stmt = conn.prepare(&format!(
+        "SELECT {} FROM categories WHERE slug = ?1",
+        SELECT_COLS
+    ))?;
+    let result = stmt.query_row(rusqlite::params![slug], row_to_category);
+    match result {
+        Ok(cat) => Ok(Some(cat)),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(e) => Err(DbError::from(e)),
+    }
+}
