@@ -43,9 +43,9 @@ pub fn calculate_tax_burden(
 
     // 3. QPP2 (second ceiling)
     let cpp_qpp2 = if net_income > rates.cpp_qpp.max_pensionable {
-        let qpp2_earnings =
-            (net_income.min(rates.cpp_qpp2.second_ceiling) - rates.cpp_qpp.max_pensionable)
-                .max(0.0);
+        let qpp2_earnings = (net_income.min(rates.cpp_qpp2.second_ceiling)
+            - rates.cpp_qpp.max_pensionable)
+            .max(0.0);
         qpp2_earnings * rates.cpp_qpp2.rate
     } else {
         0.0
@@ -62,8 +62,7 @@ pub fn calculate_tax_burden(
 
     // 7. Federal tax
     let federal_gross = apply_brackets(taxable_income, &rates.federal.brackets);
-    let federal_credit =
-        rates.federal.basic_personal_amount * rates.federal.brackets[0].rate;
+    let federal_credit = rates.federal.basic_personal_amount * rates.federal.brackets[0].rate;
     let federal_tax =
         ((federal_gross - federal_credit).max(0.0)) * (1.0 - rates.federal.quebec_abatement);
 
@@ -194,6 +193,74 @@ mod tests {
         assert_eq!(config.federal.quebec_abatement, 0.165);
         assert_eq!(config.cpp_qpp.rate, 0.1190);
         assert_eq!(config.qpip.self_employed_rate, 0.00878);
+    }
+
+    #[test]
+    fn test_load_2026_rates() {
+        let config = load_tax_rates(2026, "CA-QC").unwrap();
+        assert_eq!(config.year, 2026);
+
+        let federal: Vec<(f64, Option<f64>, f64)> = config
+            .federal
+            .brackets
+            .iter()
+            .map(|b| (b.min, b.max, b.rate))
+            .collect();
+        assert_eq!(
+            federal,
+            vec![
+                (0.0, Some(58523.0), 0.14),
+                (58523.0, Some(117045.0), 0.205),
+                (117045.0, Some(181440.0), 0.26),
+                (181440.0, Some(258482.0), 0.29),
+                (258482.0, None, 0.33),
+            ]
+        );
+        assert_eq!(config.federal.basic_personal_amount, 16452.0);
+        assert_eq!(config.federal.quebec_abatement, 0.165);
+
+        let provincial: Vec<(f64, Option<f64>, f64)> = config
+            .provincial
+            .brackets
+            .iter()
+            .map(|b| (b.min, b.max, b.rate))
+            .collect();
+        assert_eq!(
+            provincial,
+            vec![
+                (0.0, Some(54345.0), 0.14),
+                (54345.0, Some(108680.0), 0.19),
+                (108680.0, Some(132245.0), 0.24),
+                (132245.0, None, 0.2575),
+            ]
+        );
+        assert_eq!(config.provincial.basic_personal_amount, 18952.0);
+
+        assert_eq!(config.cpp_qpp.rate, 0.126);
+        assert_eq!(config.cpp_qpp.max_pensionable, 74600.0);
+        assert_eq!(config.cpp_qpp.basic_exemption, 3500.0);
+        assert_eq!(config.cpp_qpp2.rate, 0.08);
+        assert_eq!(config.cpp_qpp2.second_ceiling, 85000.0);
+        assert_eq!(config.qpip.self_employed_rate, 0.00764);
+        assert_eq!(config.qpip.max_insurable, 103000.0);
+    }
+
+    #[test]
+    fn test_calculate_burden_2026_200k_with_10k_deductions() {
+        let rates = load_tax_rates(2026, "CA-QC").unwrap();
+        let result = calculate_tax_burden(200000.0, 10000.0, &rates);
+
+        assert_eq!(result.net_income, 190000.0);
+        // (74600 - 3500) * 0.126
+        assert!((result.cpp_qpp - 8958.60).abs() < 0.01);
+        // (85000 - 74600) * 0.08
+        assert!((result.cpp_qpp2 - 832.00).abs() < 0.01);
+        // 103000 * 0.00764
+        assert!((result.qpip - 786.92).abs() < 0.01);
+        assert!((result.taxable_income - 185520.70).abs() < 0.01);
+        assert!((result.federal_tax - 29903.90).abs() < 0.01);
+        assert!((result.provincial_tax - 34652.76).abs() < 0.01);
+        assert!((result.total_burden - 75134.18).abs() < 0.01);
     }
 
     #[test]

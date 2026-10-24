@@ -1,4 +1,5 @@
 import { test, expect } from "../fixtures";
+import { getMockCalls } from "../mocks/tauri-ipc";
 
 test.describe("Tax Page", () => {
   test.beforeEach(async ({ mockPage, page }) => {
@@ -139,6 +140,45 @@ test.describe("Tax Page", () => {
     // Should show reminders
     await expect(panel).toContainText("Reminders");
     await expect(panel).toContainText("File GST/QST return by month-end");
+  });
+
+  test("sends expenses to tax burden as a positive deduction", async ({
+    mockPage,
+    page,
+  }) => {
+    const expense = (id: string, amount: number) => ({
+      id,
+      source: "transaction",
+      date: "2026-02-01",
+      description: `Office purchase ${id}`,
+      amount,
+      category_id: "cat-office-supplies-001",
+      has_receipt: false,
+      receipt_path: null,
+      notes: null,
+    });
+    // Two purchases (stored negative) and one refund (stored positive)
+    await mockPage("/unlock", {
+      get_tax_workspace_items: {
+        data: [
+          expense("tws-a", -500),
+          expense("tws-b", -250),
+          expense("tws-c", 50),
+        ],
+      },
+    });
+    await page.getByTestId("unlock-password").fill("test-password");
+    await page.getByTestId("unlock-submit").click();
+    await expect(page).toHaveURL(/\/transactions/);
+    await page.getByTestId("nav-tax").click();
+    await expect(page).toHaveURL(/\/tax/);
+
+    await page.getByTestId("tax-tab-payments").click();
+    await expect(page.getByText("Tax Burden Estimate")).toBeVisible();
+
+    const calls = await getMockCalls(page, "calculate_tax_burden");
+    expect(calls.length).toBeGreaterThan(0);
+    expect(calls[calls.length - 1].total_deductions).toBeCloseTo(700, 2);
   });
 
   test("shows empty state when no items", async ({ mockPage, page }) => {

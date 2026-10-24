@@ -19,6 +19,10 @@ export async function injectTauriMock(
       { data?: unknown; error?: string }
     > = JSON.parse(json);
 
+    // Every invoke is recorded so specs can assert on the args sent
+    const calls: { cmd: string; args: Record<string, unknown> }[] = [];
+    (window as unknown as Record<string, unknown>).__TAURI_MOCK_CALLS__ = calls;
+
     (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ = {
       metadata: {
         currentWindow: { label: "main" },
@@ -29,7 +33,8 @@ export async function injectTauriMock(
         return `https://asset.localhost/${encodeURIComponent(filePath)}`;
       },
 
-      invoke: async (cmd: string, _args: Record<string, unknown> = {}) => {
+      invoke: async (cmd: string, args: Record<string, unknown> = {}) => {
+        calls.push({ cmd, args: structuredClone(args) });
         const entry = responses[cmd];
         if (!entry) {
           const msg = `[tauri-ipc-mock] Unhandled command: "${cmd}"`;
@@ -43,4 +48,16 @@ export async function injectTauriMock(
       },
     };
   }, JSON.stringify(responseMap));
+}
+
+/** Returns the args of every recorded invoke of `cmd`, oldest first. */
+export async function getMockCalls(
+  page: Page,
+  cmd: string,
+): Promise<Record<string, unknown>[]> {
+  return page.evaluate((name: string) => {
+    const calls = (window as unknown as Record<string, unknown>)
+      .__TAURI_MOCK_CALLS__ as { cmd: string; args: Record<string, unknown> }[];
+    return calls.filter((c) => c.cmd === name).map((c) => c.args);
+  }, cmd);
 }
