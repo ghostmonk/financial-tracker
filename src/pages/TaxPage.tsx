@@ -303,7 +303,9 @@ export default function TaxPage() {
         deductionPct = rates.meals_deduction_pct;
       }
 
-      total += item.amount * prorationPct * deductionPct;
+      // Expenses are stored as negative amounts; negate so the deduction is
+      // positive and refunds (positive amounts) reduce it.
+      total -= item.amount * prorationPct * deductionPct;
     }
     return total;
   }, [items, taxRules, categoryMap, lineMappingBySlug, settings]);
